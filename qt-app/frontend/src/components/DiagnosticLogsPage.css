@@ -1,0 +1,302 @@
+/**
+ * @file DiagnosticLogsPage.css - 定义 Diagnostic Logs Page（诊断日志页面）样式。
+ * @author PopoY
+ * @created 2026-06-27
+ * @brief 保持 Diagnostic Logs Page（诊断日志页面）在 1280x720 IPC（工控机）视口内紧凑可读。
+ */
+
+.diagnostic-logs-page {
+  --diagnostic-toolbar-height: 36px;
+  --diagnostic-detail-height: 184px;
+  display: grid;
+  grid-template-rows:
+    var(--diagnostic-toolbar-height)
+    minmax(0, 1fr)
+    var(--diagnostic-detail-height);
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.diagnostic-logs-page__toolbar {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: 36px;
+  min-height: var(--diagnostic-toolbar-height);
+  padding-inline: 0;
+}
+
+.diagnostic-logs-page__toolbar-main {
+  min-width: 0;
+}
+
+/* PopoY: toolbar（工具栏）使用显式 gap（间距），避免 Ant Design Row gutter（栅格间距）负 margin（外边距）造成 1280px 视口横向溢出。 */
+.diagnostic-logs-page__toolbar-main.ant-row {
+  column-gap: 8px;
+  margin-inline: 0 !important;
+}
+
+.diagnostic-logs-page__toolbar-main > .ant-col {
+  padding-inline: 0 !important;
+}
+
+.diagnostic-logs-page__toolbar .ant-btn {
+  min-height: 36px;
+  padding-inline: 10px;
+}
+
+.diagnostic-logs-page__toolbar .ant-btn::before {
+  inset: -4px;
+}
+
+.diagnostic-logs-page__toolbar-icon {
+  display: inline-block;
+  min-width: 1em;
+  line-height: 1;
+  text-align: center;
+}
+
+.diagnostic-logs-page__toolbar .ant-segmented {
+  min-height: 36px;
+}
+
+.diagnostic-logs-page__toolbar .ant-segmented {
+  display: inline-flex;
+  align-items: center;
+}
+
+.diagnostic-logs-page__table {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.diagnostic-logs-page__table .ant-spin-nested-loading,
+.diagnostic-logs-page__table .ant-spin-container {
+  height: 100%;
+  min-height: 0;
+}
+
+/* PopoY: 参考 signal snapshot（信号快照）把 pagination（分页器）固定到底部，避免与 Table（表格）产生额外间距。 */
+.diagnostic-logs-page__table .ant-spin-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.diagnostic-logs-page__table .ant-table {
+  flex: 1;
+  box-sizing: border-box;
+  padding-bottom: 6px;
+}
+
+.diagnostic-logs-page__table .ant-table,
+.diagnostic-logs-page__table .ant-table-container {
+  height: 100%;
+  min-height: 0;
+}
+
+/* PopoY: header（表头）和 body（表体）分行，避免 scroll body（滚动表体）占满主区域后压到 pagination（分页）。 */
+.diagnostic-logs-page__table .ant-table-container {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.diagnostic-logs-page__table .ant-table-body {
+  min-height: 0;
+}
+
+.diagnostic-logs-page__table.ant-table-wrapper .ant-table-pagination.ant-pagination,
+.diagnostic-logs-page__table .ant-pagination {
+  justify-content: flex-end;
+  margin: 0 !important;
+  margin-top: auto !important;
+  padding-top: 6px;
+}
+
+.diagnostic-logs-page .ant-table.ant-table-small .ant-table-cell {
+  padding-block: 5px;
+}
+
+.diagnostic-logs-page__table .ant-btn-link {
+  max-width: 160px;
+  height: auto;
+  padding: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.diagnostic-logs-page__detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.diagnostic-logs-page__detail {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 6px 8px;
+  border: 1px solid var(--ant-color-border-secondary, #f0f0f0);
+  border-radius: 6px;
+  background: var(--ant-color-bg-container, #ffffff);
+}
+
+.diagnostic-logs-page__detail-title {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.diagnostic-logs-page__detail-title-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diagnostic-logs-page__timeline-drawer .ant-drawer-body {
+  min-height: 0;
+  padding: 8px 12px 12px;
+  overflow: hidden;
+}
+
+.diagnostic-logs-page__timeline {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+
+.diagnostic-logs-page__timeline-list {
+  display: grid;
+  gap: 6px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.diagnostic-logs-page__timeline-button {
+  display: grid;
+  grid-template-columns: 12px 96px minmax(0, 1fr);
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  padding: 6px;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+}
+
+.diagnostic-logs-page__timeline-button:hover,
+.diagnostic-logs-page__timeline-button:focus-visible,
+.diagnostic-logs-page__timeline-item--active .diagnostic-logs-page__timeline-button {
+  background: var(--ant-color-fill-tertiary, #f5f5f5);
+}
+
+.diagnostic-logs-page__timeline-button:focus-visible {
+  outline: 2px solid var(--ant-color-primary, #0078c8);
+  outline-offset: 1px;
+}
+
+.diagnostic-logs-page__timeline-marker {
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border: 2px solid var(--ant-color-primary, #0078c8);
+  border-radius: 50%;
+  background: var(--ant-color-bg-container, #ffffff);
+}
+
+.diagnostic-logs-page__timeline-time {
+  color: var(--ant-color-text-secondary, #595959);
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.diagnostic-logs-page__timeline-content,
+.diagnostic-logs-page__timeline-main,
+.diagnostic-logs-page__timeline-event,
+.diagnostic-logs-page__timeline-message {
+  min-width: 0;
+}
+
+.diagnostic-logs-page__timeline-content {
+  display: grid;
+  gap: 3px;
+}
+
+.diagnostic-logs-page__timeline-main {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.diagnostic-logs-page__timeline-event {
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diagnostic-logs-page__timeline .ant-tag {
+  margin-inline-end: 0;
+  text-align: center;
+}
+
+.diagnostic-logs-page__timeline-message {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--ant-color-text-secondary, #595959);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.diagnostic-logs-page__detail .ant-descriptions-header {
+  margin-bottom: 4px;
+}
+
+.diagnostic-logs-page__detail .ant-descriptions-view,
+.diagnostic-logs-page__detail .ant-descriptions-view table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.diagnostic-logs-page__detail .ant-descriptions-item {
+  padding-bottom: 2px;
+}
+
+.diagnostic-logs-page__detail .ant-descriptions-item-container,
+.diagnostic-logs-page__detail .ant-descriptions-item-content {
+  min-width: 0;
+}
+
+.diagnostic-logs-page__detail .ant-descriptions-item-label {
+  white-space: nowrap;
+}
+
+.diagnostic-logs-page__detail .ant-descriptions-item-label,
+.diagnostic-logs-page__detail .ant-descriptions-item-content {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.diagnostic-logs-page__detail-value {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  white-space: nowrap;
+}

@@ -1,0 +1,459 @@
+/**
+ * @file PressJobPage.css - 定义 Press Working Page（压机作业页面）样式。
+ * @author PopoY
+ * @created 2026-06-30
+ * @brief 约束 1280x720 touch IPC（触控工控机）四行布局，并避免实时信号滚动条。
+ */
+
+.press-job-page {
+  display: grid;
+  grid-template-rows: 62px 56px 138px minmax(0, 1fr);
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.press-job-page__filters,
+.press-job-page__actions-row,
+.press-job-page__job-table {
+  min-width: 0;
+  border: 1px solid var(--qt-app-control-blue-line);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--qt-app-control-blue-soft) 36%, transparent);
+}
+
+.press-job-page__filters {
+  box-sizing: border-box;
+  padding: 8px 10px;
+}
+
+.press-job-page__filters > .ant-row {
+  height: 100%;
+  align-items: center;
+}
+
+.press-job-page__filter-row {
+  height: 100%;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.press-job-page__filter-target {
+  min-width: 0;
+}
+
+.press-job-page__guidance-launchers {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.press-job-page__guidance-launchers .ant-btn {
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.press-job-page__filters .ant-form-item {
+  margin-bottom: 0;
+}
+
+.press-job-page__filters .ant-form-item-row {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.press-job-page__filters .ant-select-selector {
+  min-height: 44px;
+}
+
+.press-job-page__select-popup {
+  width: var(--press-job-select-popup-width);
+  max-width: calc(100vw - 24px);
+  padding: 8px;
+}
+
+.press-job-page__select-popup--two-column {
+  --press-job-select-columns: 2;
+  --press-job-select-popup-width: 520px;
+}
+
+.press-job-page__select-popup--four-column {
+  --press-job-select-columns: 4;
+  --press-job-select-popup-width: 720px;
+}
+
+.press-job-page__mold-select-popup {
+  --press-job-select-columns: 8;
+  --press-job-select-visible-rows: 14;
+  --press-job-select-popup-width: 960px;
+}
+
+/* @author PopoY: popup（浮层）改为 touch grid（触控网格），保留 Select（选择器）原生选中逻辑。 */
+.press-job-page__select-list,
+.press-job-page__select-list .rc-virtual-list-holder {
+  max-height: none !important;
+}
+
+/* @author PopoY: mold popup（模具浮层）固定为 8*14 touch grid（触控网格），避免候选项高度无限展开。 */
+.press-job-page__mold-select-popup .press-job-page__select-list,
+.press-job-page__mold-select-popup .press-job-page__select-list .rc-virtual-list-holder {
+  max-height: calc(var(--press-job-select-visible-rows) * 48px + 12 * 4px) !important;
+}
+
+.press-job-page__select-list .rc-virtual-list-holder-inner {
+  display: grid !important;
+  grid-template-columns: repeat(var(--press-job-select-columns), minmax(0, 1fr));
+  gap: 4px;
+}
+
+.press-job-page__select-option {
+  min-height: 48px;
+  border: 1px solid var(--qt-app-control-blue-line);
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.press-job-page__select-option .ant-select-item-option-content {
+  display: -webkit-box;
+  overflow: hidden;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.press-job-page__select-option.ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+  background: color-mix(in srgb, var(--qt-app-control-blue-soft) 72%, transparent);
+}
+
+.press-job-page__select-option.ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+  border-color: var(--qt-app-control-blue);
+  background: color-mix(in srgb, var(--qt-app-control-blue-soft) 86%, transparent);
+  font-weight: 600;
+}
+
+/* @author PopoY: selected state（选中态）使用 stable rgba（稳定透明色），避免 portal popup（传送浮层）拿不到 App CSS variable（变量）。 */
+.press-job-page__mold-select-popup .press-job-page__select-option.ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+  background-color: rgba(0, 120, 200, 0.16) !important;
+}
+
+.press-job-page__actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 10px;
+}
+
+.press-job-page__actions {
+  min-width: 0;
+}
+
+.press-job-page__actions .ant-space-item {
+  display: inline-flex;
+}
+
+.press-job-page__action-button-target {
+  display: inline-flex;
+}
+
+.press-job-page__actions .ant-btn {
+  min-height: 44px;
+  padding-inline: 12px;
+}
+
+.press-job-page__actions .ant-btn::before {
+  inset: -4px;
+}
+
+.press-job-page__action-icon {
+  display: inline-block;
+  min-width: 1em;
+  line-height: 1;
+  text-align: center;
+}
+
+.press-job-page__status {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.press-job-page__job-table,
+.press-job-page__signals {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.press-job-page__section-title {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+  padding-inline: 10px;
+}
+
+.press-job-page__section-title--with-action {
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.press-job-page__section-title--with-action .ant-btn {
+  min-height: 32px;
+}
+
+.press-job-page__table-body,
+.press-job-page__signals-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 8px 10px;
+}
+
+.press-job-page__table-body {
+  overflow: auto;
+}
+
+.press-job-page__signals-body {
+  overflow: hidden;
+}
+
+.press-job-page__table-body .ant-table-wrapper,
+.press-job-page__table-body .ant-spin-nested-loading,
+.press-job-page__table-body .ant-spin-container {
+  height: 100%;
+}
+
+.press-job-page__table-body .ant-table {
+  height: 100%;
+}
+
+.press-job-page__table-body .ant-table-container {
+  min-width: 0;
+}
+
+.press-job-page__table-body .ant-table-thead > tr > th,
+.press-job-page__table-body .ant-table-tbody > tr > td {
+  padding-block: 6px;
+}
+
+.press-job-page__planned-duration-input {
+  width: 88px;
+}
+
+.press-job-page__planned-duration-input.ant-input {
+  min-height: 28px;
+  padding-block: 2px;
+  padding-inline: 6px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.press-job-page__mold-lock-drawer .ant-drawer-body {
+  min-height: 0;
+  padding: 12px;
+  overflow: hidden;
+}
+
+.press-job-page__mold-lock-layout {
+  display: grid;
+  grid-template-rows: 44px minmax(0, 1fr);
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+}
+
+.press-job-page__mold-lock-toolbar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) auto auto auto auto;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.press-job-page__mold-lock-input {
+  min-width: 0;
+}
+
+.press-job-page__mold-lock-input-target,
+.press-job-page__mold-info-table-target {
+  min-width: 0;
+  min-height: 0;
+}
+
+.press-job-page__mold-lock-button-target {
+  display: inline-flex;
+}
+
+.press-job-page__mold-lock-input .ant-select-selector,
+.press-job-page__mold-lock-toolbar .ant-btn {
+  min-height: 44px;
+}
+
+.press-job-page__mold-lock-toolbar .ant-btn {
+  white-space: nowrap;
+}
+
+.press-job-page__mold-lock-button-icon {
+  display: inline-block;
+  min-width: 1em;
+  line-height: 1;
+  text-align: center;
+}
+
+.press-job-page__mold-info-table {
+  min-height: 0;
+  overflow: auto;
+}
+
+.press-job-page__mold-process-select {
+  width: 100%;
+  min-width: 0;
+}
+
+.press-job-page__mold-info-table .ant-table-thead > tr > th,
+.press-job-page__mold-info-table .ant-table-tbody > tr > td {
+  padding-block: 5px;
+}
+
+.press-job-page__mold-unlock-drawer .ant-drawer-body {
+  min-height: 0;
+  padding: 12px;
+  overflow: hidden;
+}
+
+.press-job-page__mold-unlock-layout {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+}
+
+.press-job-page__mold-unlock-status-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.press-job-page__mold-unlock-status,
+.press-job-page__mold-unlock-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.press-job-page__mold-unlock-status {
+  min-width: 0;
+  justify-content: flex-start;
+}
+
+.press-job-page__mold-unlock-status-row .ant-btn {
+  min-height: 32px;
+  white-space: nowrap;
+}
+
+.press-job-page__mold-unlock-table-target {
+  min-height: 0;
+  overflow: auto;
+}
+
+.press-job-page__mold-unlock-confirm-target {
+  display: inline-flex;
+}
+
+.press-job-page__mold-unlock-table {
+  min-height: 0;
+  overflow: auto;
+}
+
+.press-job-page__mold-unlock-table .ant-table-thead > tr > th,
+.press-job-page__mold-unlock-table .ant-table-tbody > tr > td {
+  padding-block: 5px;
+}
+
+.numeric-keypad {
+  position: fixed;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  box-sizing: border-box;
+  width: 248px;
+  max-width: calc(100vw - 24px);
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: 12px;
+  padding: 10px;
+  background: color-mix(in srgb, canvas 96%, var(--qt-app-control-blue-soft));
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.14);
+}
+
+.numeric-keypad__key.ant-btn {
+  min-width: 0;
+  min-height: 40px;
+  border-radius: 8px;
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.numeric-keypad__key--clear.ant-btn {
+  border-color: #d88a16;
+  color: #d88a16;
+}
+
+.numeric-keypad__key--confirm.ant-btn {
+  color: #ffffff;
+}
+
+.numeric-keypad__key--close.ant-btn {
+  border-color: #8c8c8c;
+  color: #6b7280;
+}
+
+[data-theme="dark"] .numeric-keypad {
+  border-color: #6e6e73;
+  background: #242428;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.42);
+}
+
+[data-theme="dark"] .numeric-keypad__key.ant-btn {
+  border-color: #6e6e73;
+  background: #2c2c30;
+  color: #f5f5f7;
+}
+
+[data-theme="dark"] .numeric-keypad__key.ant-btn:hover,
+[data-theme="dark"] .numeric-keypad__key.ant-btn:focus-visible {
+  border-color: var(--qt-app-control-blue);
+  color: #ffffff;
+}
+
+[data-theme="dark"] .numeric-keypad__key--clear.ant-btn {
+  border-color: #ffa726;
+  color: #ffa726;
+}
+
+[data-theme="dark"] .numeric-keypad__key--close.ant-btn {
+  border-color: #8e8e93;
+  color: #d1d1d6;
+}
+
+.press-job-page__signals-body .signal-snapshot-table {
+  min-height: 0;
+}
+
+.press-job-page__signals-body .signal-snapshot-groups {
+  gap: 8px;
+  overflow: hidden;
+}

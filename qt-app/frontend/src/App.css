@@ -1,0 +1,93 @@
+/**
+ * @file App.css - 定义 Qt App（Qt 应用）应用外壳样式。
+ * @author PopoY
+ * @created 2026-06-27
+ * @brief 固定 App Shell（应用外壳）顶部导航和内容区高度。
+ */
+
+.qt-app-shell {
+  --qt-app-control-blue: #0078c8;
+  --qt-app-control-blue-soft: rgba(0, 120, 200, 0.1);
+  --qt-app-control-blue-line: rgba(0, 120, 200, 0.22);
+  --qt-app-ink-soft: color-mix(in srgb, currentColor 72%, transparent);
+  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: 56px minmax(0, 1fr);
+  gap: 8px;
+  height: 100vh;
+  margin: 0;
+  overflow: hidden;
+  padding: 12px;
+}
+
+[data-theme="dark"] .qt-app-shell {
+  --qt-app-control-blue: #64d2ff;
+  --qt-app-control-blue-soft: rgba(100, 210, 255, 0.14);
+  --qt-app-control-blue-line: rgba(100, 210, 255, 0.36);
+  --qt-app-ink-soft: #d1d1d6;
+}
+
+.qt-app-shell__topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  border: 1px solid var(--qt-app-control-blue-line);
+  border-radius: 6px;
+  padding: 5px 10px;
+  background: var(--qt-app-control-blue-soft);
+}
+
+.qt-app-shell__topbar-left,
+.qt-app-shell__topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.qt-app-shell__topbar-left {
+  flex: 1 1 auto;
+}
+
+.qt-app-shell__topbar-right {
+  flex: 0 0 auto;
+  justify-content: flex-end;
+}
+
+.qt-app-shell__station-account,
+.qt-app-shell__driver-status {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--qt-app-ink-soft);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.qt-app-shell__station-account-value.ant-typography,
+.qt-app-shell__driver-session.ant-typography {
+  max-width: 240px;
+  overflow: hidden;
+  color: var(--qt-app-ink-soft);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qt-app-shell__theme-toggle.ant-segmented {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.qt-app-shell__theme-toggle .ant-segmented-item {
+  min-width: 44px;
+}
+
+.qt-app-shell__body {
+  min-height: 0;
+  overflow: hidden;
+}

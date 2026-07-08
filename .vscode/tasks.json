@@ -1,0 +1,97 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "frontend: build",
+      "type": "process",
+      "command": "${workspaceFolder}/qt-app/frontend/node_modules/.bin/vite",
+      "args": [
+        "build"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/qt-app/frontend"
+      },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "native: configure",
+      "type": "process",
+      "command": "/Users/PopoY/Qt/6.10.2/macos/bin/qt-cmake",
+      "args": [
+        "-S",
+        ".",
+        "-B",
+        "build",
+        "-G",
+        "Ninja",
+        "-D",
+        "CMAKE_MAKE_PROGRAM=/Users/PopoY/Qt/Tools/Ninja/ninja"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/qt-app/native"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "native: build",
+      "type": "process",
+      "command": "/Users/PopoY/Qt/6.10.2/macos/bin/qt-cmake",
+      "args": [
+        "--build",
+        "build"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/qt-app/native"
+      },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "driver-service: build",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "${workspaceFolder}/driver-service/src/Sam.Calendaring.DriverService/Sam.Calendaring.DriverService.csproj"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/driver-service"
+      },
+      "group": "build",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "driver-service: restart for qt debug",
+      "type": "process",
+      "command": "/bin/zsh",
+      "args": [
+        "${workspaceFolder}/.vscode/restart-driver-service.sh"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "qt-app: prelaunch build",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "frontend: build",
+        "native: configure",
+        "native: build"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "qt-app: prelaunch debug",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "qt-app: prelaunch build",
+        "driver-service: build",
+        "driver-service: restart for qt debug"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

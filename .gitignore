@@ -1,0 +1,68 @@
+# @file Git ignore（Git 忽略规则）
+# @author PopoY
+# @created 2026-07-08
+# @purpose 忽略本地 dependency（依赖）、build output（构建产物）、log（日志）和 secret（敏感配置）。
+
+# OS（操作系统）本地文件
+.DS_Store
+Thumbs.db
+
+# IDE / editor（开发工具）本地缓存；保留 .vscode（VS Code 配置）用于团队 debug（调试）配置
+.vs/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.rsuser
+
+# .NET（.NET 平台）build output（构建产物）和 test output（测试产物）
+**/bin/
+**/obj/
+**/TestResults/
+**/coverage/
+*.nupkg
+
+# Node / Vite（前端工具链）dependency（依赖）和 build output（构建产物）
+**/node_modules/
+**/dist/
+**/.vite/
+
+# CMake / Qt（原生构建）本地 build directory（构建目录）
+build/
+**/build/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+CTestTestfile.cmake
+Testing/
+.ninja_deps
+.ninja_log
+*.ninja
+
+# Log / diagnostic output（日志和诊断输出）
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+.playwright-cli/
+output/
+**/output/
+
+# Agent tool state（代理工具状态）；保留 .impeccable/design.json（设计系统快照）
+.superpowers/
+.impeccable/live/
+
+# Runtime data（运行时数据）和 local database（本地数据库）
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Environment / secret（环境变量和敏感配置）
+.env
+.env.*
+!.env.example
+!.env.*.example

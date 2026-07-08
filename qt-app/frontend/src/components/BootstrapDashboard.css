@@ -1,0 +1,264 @@
+/**
+ * @file BootstrapDashboard.css - 定义 Bootstrap Dashboard（启动仪表盘）样式。
+ * @author PopoY
+ * @created 2026-06-26
+ * @brief 为 QT App bootstrap dashboard（启动仪表盘）应用克制的现场控制台样式。
+ */
+
+.bootstrap-dashboard {
+  --bootstrap-control-blue: #0078c8;
+  --bootstrap-control-blue-soft: rgba(0, 120, 200, 0.1);
+  --bootstrap-control-blue-line: rgba(0, 120, 200, 0.22);
+  --bootstrap-ink-soft: color-mix(in srgb, currentColor 72%, transparent);
+  --bootstrap-lift-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+  display: grid !important;
+  grid-template-columns: repeat(24, minmax(0, 1fr));
+  /* PopoY: 上排 status cards（状态卡片）保留底部呼吸空间，下排 panels（面板）只轻微收窄。 */
+  grid-template-rows: 40px 108px minmax(0, 1fr);
+  gap: 12px !important;
+  height: 100%;
+  margin-inline: 0 !important;
+  min-height: 0;
+  overflow: hidden;
+  row-gap: 12px !important;
+  width: 100%;
+}
+
+.bootstrap-dashboard > .ant-col {
+  flex: none !important;
+  max-width: none !important;
+  min-width: 0;
+  padding-inline: 0 !important;
+  width: auto !important;
+}
+
+.bootstrap-dashboard > .ant-col:nth-child(1) {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
+.bootstrap-dashboard > .ant-col:nth-child(2) {
+  grid-column: 1 / 9;
+  grid-row: 2;
+}
+
+.bootstrap-dashboard > .ant-col:nth-child(3) {
+  grid-column: 9 / 18;
+  grid-row: 2;
+}
+
+/* PopoY: dark mode（深色模式）只覆盖局部 token（令牌），保留当前 dashboard（仪表盘）结构。 */
+[data-theme="dark"] .bootstrap-dashboard {
+  --bootstrap-control-blue: #64d2ff;
+  --bootstrap-control-blue-soft: rgba(100, 210, 255, 0.14);
+  --bootstrap-control-blue-line: rgba(100, 210, 255, 0.36);
+  --bootstrap-ink-soft: #d1d1d6;
+  --bootstrap-lift-shadow: 0 0 0 1px rgba(100, 210, 255, 0.18);
+}
+
+.bootstrap-dashboard__header {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: 100%;
+  padding: 0;
+}
+
+.bootstrap-dashboard__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  white-space: normal;
+}
+
+.bootstrap-dashboard__toolbar .ant-btn {
+  min-height: 36px;
+  padding-inline: 10px;
+}
+
+.bootstrap-dashboard__toolbar .ant-btn::before {
+  inset: -4px;
+}
+
+.bootstrap-dashboard__toolbar-icon {
+  display: inline-block;
+  min-width: 1em;
+  line-height: 1;
+  text-align: center;
+}
+
+.bootstrap-dashboard .ant-card {
+  height: 100%;
+  transition:
+    border-color 150ms cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.bootstrap-dashboard .ant-card:is(:hover, :focus-within) {
+  border-color: var(--bootstrap-control-blue-line);
+  box-shadow: var(--bootstrap-lift-shadow);
+}
+
+.bootstrap-dashboard .ant-card-head {
+  min-height: 34px;
+  padding-inline: 10px;
+}
+
+.bootstrap-dashboard .ant-card-body {
+  padding: 10px;
+}
+
+.bootstrap-dashboard__snapshot-panel {
+  grid-column: 1 / 18;
+  grid-row: 3;
+  min-height: 0;
+}
+
+.bootstrap-dashboard__error-panel {
+  grid-column: 18 / -1;
+  /* PopoY: error panel（错误面板）补齐上排收窄后释放的高度。 */
+  grid-row: 2 / 4;
+  min-height: 0;
+}
+
+/* PopoY: grid（栅格）底行吃满剩余高度，避免 signal rows（信号行）改变 dashboard（仪表盘）布局。 */
+.bootstrap-dashboard__snapshot-panel > .ant-card,
+.bootstrap-dashboard__error-panel > .ant-card {
+  height: 100%;
+}
+
+.bootstrap-dashboard__snapshot-panel > .ant-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.bootstrap-dashboard__snapshot-panel > .ant-card > .ant-card-body,
+.signal-snapshot-table {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.bootstrap-dashboard .ant-descriptions-item-label {
+  min-width: 84px;
+  color: var(--bootstrap-ink-soft);
+  font-weight: 500;
+}
+
+/* PopoY: signal snapshot（信号快照）改为组别优先的紧凑行流，保留 fixed panel（固定面板）高度。 */
+.signal-snapshot-groups {
+  min-height: 0;
+  gap: 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+/* PopoY: row（行）按信号数量分配 6 列以内的空间，小 group（小分组）可共享一行。 */
+.signal-snapshot-group-row {
+  display: grid;
+  grid-template-columns: repeat(var(--signal-row-columns, 1), minmax(0, 1fr));
+  gap: 8px;
+}
+
+.signal-snapshot-group {
+  grid-column: span var(--signal-group-span, 1);
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: 6px;
+  background: transparent;
+  overflow: hidden;
+  padding: 8px;
+}
+
+.signal-snapshot-group__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  margin-bottom: 8px;
+}
+
+.signal-snapshot-group__title.ant-typography {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signal-snapshot-group__grid {
+  display: grid;
+  grid-template-columns: repeat(var(--signal-group-columns, 1), minmax(0, 1fr));
+  gap: 8px;
+}
+
+.signal-snapshot-item {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  align-items: start;
+  gap: 6px;
+  min-height: 56px;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+  background: transparent;
+  padding: 8px 2px 7px;
+}
+
+.signal-snapshot-item__meta {
+  min-width: 0;
+}
+
+.signal-snapshot-item__name,
+.signal-snapshot-item__value-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signal-snapshot-item__name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.signal-snapshot-item__value {
+  justify-self: start;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.25;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.signal-snapshot-item__value .ant-tag {
+  max-width: 100%;
+  overflow: hidden;
+  margin-inline-end: 0;
+  text-overflow: ellipsis;
+}
+
+.signal-snapshot-item__unit {
+  margin-left: 4px;
+  color: var(--bootstrap-ink-soft);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.bootstrap-dashboard .ant-alert {
+  padding: 8px 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bootstrap-dashboard .ant-card {
+    transition: none;
+  }
+}

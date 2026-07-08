@@ -1,0 +1,1338 @@
+/**
+ * @file erpClient.test.ts - 验证 ERP client（企业资源计划客户端）。
+ * @author PopoY
+ * @created 2026-06-25
+ * @brief 验证 ERP client（企业资源计划客户端）自动登录和租约流程。
+ */
+
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import type { NativeBootstrapConfig } from "../types/native";
+import {
+  autoLogin,
+  completePressJob,
+  fetchLeasePackage,
+  fetchParameterGroupOptions,
+  fetchPressMoldWorkTypeOptions,
+  fetchPressMoldCandidates,
+  fetchPressMoldInfoRows,
+  fetchPressJobCurrentJobs,
+  fetchPressJobLookupData,
+  fetchPressJobTeamOptions,
+  fetchPressLockedMolds,
+  getJson,
+  lockPressMold,
+  loadBootstrapSession,
+  recordPressJobParameters,
+  startPressJob,
+  updatePressMachineStatus,
+  unlockPressMolds,
+  postJson,
+} from "./erpClient";
+
+const sampleConfig: NativeBootstrapConfig = {
+  stationAccountId: "station-a",
+  granteeHostId: "host-a",
+  stationId: "station-01",
+  erpBaseUrl: "http://127.0.0.1:8080",
+  driverBaseUrl: "http://127.0.0.1:5000",
+  configVersion: "v1",
+};
+
+/**
+ * @brief Reset all mocks between test cases so call assertions stay isolated.
+ * @author PopoY
+ */
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
+
+/**
+ * @brief 创建最小 fetch response（响应）对象，用于验证原生 JSON helper（辅助函数）请求头。
+ * @author PopoY
+ * @param payload JSON payload（载荷）returned by mocked fetch.
+ * @returns Fetch-compatible response（响应）stub.
+ */
+function createFetchResponse(payload: unknown) {
+  return {
+    ok: true,
+    json: vi.fn().mockResolvedValue(payload),
+  } as unknown as Response;
+}
+
+/**
+ * @brief Create a minimal ERP login success payload for downstream lease requests.
+ * @returns Minimal login response shape required by the planned service contract.
+ */
+function createLoginResponse() {
+  return {
+    sessionToken: "erp-session-token",
+    stationContext: {
+      stationAccountId: "station-a",
+      stationId: "station-01",
+    },
+    defaultDeviceScope: {
+      deviceIds: ["device-01"],
+    },
+    businessContext: {
+      shiftCode: "A",
+    },
+  };
+}
+
+/**
+ * @brief Create an ERP login payload that illegally includes device connection data.
+ * @returns Login response payload used to verify bootstrap session narrowing.
+ */
+function createLoginResponseWithDeviceConnectionInfo() {
+  return {
+    ...createLoginResponse(),
+    deviceConnectionInfo: {
+      host: "should-not-leak-from-login",
+      password: "secret",
+      port: 9527,
+      username: "device-user",
+    },
+  };
+}
+
+/**
+ * @brief Create a minimal ERP lease payload that also includes the forbidden deviceConnectionInfo field.
+ * @returns Lease response payload used to assert that device connection details are ignored.
+ */
+function createLeaseResponse() {
+  return {
+    signalConfig: {
+      baseUrl: "http://127.0.0.1:9000",
+      topic: "stations/station-01",
+    },
+    signedLease: {
+      leaseId: "lease-01",
+      signature: "signed-payload",
+    },
+    deviceConnectionInfo: {
+      host: "should-not-leak",
+      password: "secret",
+      port: 9527,
+      username: "device-user",
+    },
+  };
+}
+
+/**
+ * @brief Create the stringified lease payload shape commonly returned by backend signing code.
+ * @returns Lease response where signedLease and signalConfig are JSON strings.
+ */
+function createStringifiedLeaseResponse() {
+  return {
+    signalConfig: JSON.stringify({
+      signals: [
+        {
+          address: 100,
+          name: "pressure",
+        },
+      ],
+    }),
+    signedLease: JSON.stringify({
+      alg: "RS256",
+      kid: "lease-key-01",
+      payloadJson: JSON.stringify({
+        leaseId: "lease-01",
+        targetDeviceId: "device-01",
+        expiresAt: "2026-06-25T16:00:00Z",
+        fencingToken: 10,
+      }),
+      signature: "signed-payload",
+    }),
+  };
+}
+
+/**
+ * @brief Create the ERP placeholder lease payload currently rejected by Driver Real Mode.
+ * @returns Lease response where ERP still returns the bootstrap placeholder package.
+ */
+function createBootstrapPlaceholderLeaseResponse() {
+  return {
+    signalConfig: {
+      granteeHostId: "host-a",
+      mode: "bootstrap-minimal",
+      signalConfigHash: "legacy-hash",
+      stationId: "station-01",
+      targetDeviceId: "device-01",
+    },
+    signedLease: {
+      granteeHostId: "host-a",
+      leaseId: "bootstrap-lease-01",
+      signature: "UNSIGNED_BOOTSTRAP_PLACEHOLDER",
+      targetDeviceId: "device-01",
+      targetEndpoint: "driver://pending",
+    },
+  };
+}
+
+describe("erpClient", () => {
+  /**
+   * @brief 断言 press working（压机作业）Qt clients（客户端）发送认证头、关联头并收窄请求体。
+   * @author PopoY
+   */
+  it("submits press working Qt requests with auth headers and whitelisted bodies", async () => {
+    const postJson = vi
+      .fn()
+      .mockResolvedValueOnce({
+        code: 200,
+        data: {
+          correlationId: "press-start-01",
+          localJobSessionId: "press-job-row-01",
+          resultCode: "OK",
+          deviceId: "drop-device",
+        },
+      })
+      .mockResolvedValueOnce({
+        code: 200,
+        data: {
+          correlationId: "press-param-01",
+          localJobSessionId: "press-job-row-01",
+          resultCode: "OK",
+          registerAddress: 100,
+        },
+      })
+      .mockResolvedValueOnce({
+        code: 200,
+        data: {
+          correlationId: "press-complete-01",
+          localJobSessionId: "press-job-row-01",
+          resultCode: "OK",
+          ip: "drop-ip",
+        },
+      })
+      .mockResolvedValueOnce({
+        code: 200,
+        data: {
+          correlationId: "press-line-in-01",
+          localJobSessionId: "press-device-action-01",
+          resultCode: "OK",
+          status: "0",
+          port: 502,
+        },
+      });
+
+    await expect(
+      startPressJob(postJson, {
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        sessionToken: "erp-session-token",
+        request: {
+          correlationId: "press-start-01",
+          idempotencyKey: "press-start-01",
+          localJobSessionId: "press-job-row-01",
+          operatorId: "zhangsan",
+          teamId: "PLINE-01",
+          processId: "CRAFT-001",
+          expectedDuration: "1.5",
+          deviceId: "drop-device",
+          ip: "drop-ip",
+        } as never,
+      }),
+    ).resolves.toEqual({
+      correlationId: "press-start-01",
+      localJobSessionId: "press-job-row-01",
+      resultCode: "OK",
+    });
+    await expect(
+      recordPressJobParameters(postJson, {
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        sessionToken: "erp-session-token",
+        request: {
+          correlationId: "press-param-01",
+          idempotencyKey: "press-param-01",
+          parameterIdempotencyKey: "press-param-start-01",
+          localJobSessionId: "press-job-row-01",
+          type: "start",
+          signalValues: {
+            pressDownCount: 5,
+          },
+          registerAddress: 100,
+          writeValue: true,
+        } as never,
+      }),
+    ).resolves.toEqual({
+      correlationId: "press-param-01",
+      localJobSessionId: "press-job-row-01",
+      resultCode: "OK",
+    });
+    await expect(
+      completePressJob(postJson, {
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        sessionToken: "erp-session-token",
+        request: {
+          correlationId: "press-complete-01",
+          idempotencyKey: "press-complete-01",
+          localJobSessionId: "press-job-row-01",
+          operatorId: "zhangsan",
+          signalConfig: "drop-config",
+        } as never,
+      }),
+    ).resolves.toEqual({
+      correlationId: "press-complete-01",
+      localJobSessionId: "press-job-row-01",
+      resultCode: "OK",
+    });
+    await expect(
+      updatePressMachineStatus(postJson, {
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        sessionToken: "erp-session-token",
+        request: {
+          correlationId: "press-line-in-01",
+          idempotencyKey: "press-line-in-01",
+          localJobSessionId: "press-device-action-01",
+          status: "0",
+          reason: "lineIn",
+          deviceId: "drop-device",
+          port: 502,
+        } as never,
+      }),
+    ).resolves.toEqual({
+      correlationId: "press-line-in-01",
+      localJobSessionId: "press-device-action-01",
+      resultCode: "OK",
+      status: "0",
+    });
+
+    expect(postJson).toHaveBeenNthCalledWith(
+      1,
+      "http://127.0.0.1:8080/api/qt/press-working/press-job-starts",
+      {
+        correlationId: "press-start-01",
+        idempotencyKey: "press-start-01",
+        localJobSessionId: "press-job-row-01",
+        operatorId: "zhangsan",
+        teamId: "PLINE-01",
+        processId: "CRAFT-001",
+        expectedDuration: "1.5",
+      },
+      {
+        bearerToken: "erp-session-token",
+        headers: {
+          "X-Correlation-Id": "press-start-01",
+        },
+      },
+    );
+    expect(postJson).toHaveBeenNthCalledWith(
+      2,
+      "http://127.0.0.1:8080/api/qt/press-working/press-job-parameters",
+      {
+        correlationId: "press-param-01",
+        idempotencyKey: "press-param-01",
+        parameterIdempotencyKey: "press-param-start-01",
+        localJobSessionId: "press-job-row-01",
+        type: "start",
+        signalValues: {
+          pressDownCount: 5,
+        },
+      },
+      {
+        bearerToken: "erp-session-token",
+        headers: {
+          "X-Correlation-Id": "press-param-01",
+        },
+      },
+    );
+    expect(postJson).toHaveBeenNthCalledWith(
+      3,
+      "http://127.0.0.1:8080/api/qt/press-working/press-job-completions",
+      {
+        correlationId: "press-complete-01",
+        idempotencyKey: "press-complete-01",
+        localJobSessionId: "press-job-row-01",
+        operatorId: "zhangsan",
+      },
+      {
+        bearerToken: "erp-session-token",
+        headers: {
+          "X-Correlation-Id": "press-complete-01",
+        },
+      },
+    );
+    expect(postJson).toHaveBeenNthCalledWith(
+      4,
+      "http://127.0.0.1:8080/api/qt/press-working/machine-status",
+      {
+        correlationId: "press-line-in-01",
+        idempotencyKey: "press-line-in-01",
+        localJobSessionId: "press-device-action-01",
+        status: "0",
+        reason: "lineIn",
+      },
+      {
+        bearerToken: "erp-session-token",
+        headers: {
+          "X-Correlation-Id": "press-line-in-01",
+        },
+      },
+    );
+    expect(JSON.stringify(postJson.mock.calls)).not.toContain("drop-device");
+    expect(JSON.stringify(postJson.mock.calls)).not.toContain("drop-ip");
+    expect(JSON.stringify(postJson.mock.calls)).not.toContain("drop-config");
+    expect(JSON.stringify(postJson.mock.calls)).not.toContain("registerAddress");
+  });
+
+  /**
+   * @brief 断言 mold candidate（模具候选）查询使用 Qt 专用 endpoint（端点）并丢弃敏感字段。
+   * @author PopoY
+   * @returns Promise resolved when candidate narrowing（候选收窄）is asserted.
+   */
+  it("fetches press mold candidates with correlation header and whitelisted fields", async () => {
+    const getJson = vi.fn().mockResolvedValueOnce({
+      code: 200,
+      data: [
+        {
+          moldNo: "MOLD-01",
+          makeOrderNumber: "MO-01",
+          stages: "OP10",
+          projectCode: "P123",
+          name: "上模",
+          defaultProcessId: "CRAFT-001",
+          deviceId: "drop-device",
+          operationIp: "drop-operation-ip",
+          ipAddress: "drop-ip",
+          port: 502,
+          sessionToken: "drop-token",
+          signedLease: "drop-lease",
+          signature: "drop-signature",
+          signalConfig: "drop-config",
+        },
+        {
+          code: "MOLD-02",
+          makeOrderNumber: "MO-02",
+          projectCode: "P123",
+          privateKey: "drop-key",
+        },
+      ],
+    });
+
+    await expect(
+      fetchPressMoldCandidates(getJson, {
+        correlationId: "press-mold-search-01",
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        lockedMoldNos: ["LOCKED-01", "LOCKED-02"],
+        moldNo: " MOLD-01 ",
+        sessionToken: "erp-session-token",
+      }),
+    ).resolves.toEqual([
+      {
+        moldNo: "MOLD-01",
+        makeOrderNumber: "MO-01",
+        stages: "OP10",
+        projectCode: "P123",
+        name: "上模",
+        defaultProcessId: "CRAFT-001",
+      },
+      {
+        moldNo: "MOLD-02",
+        makeOrderNumber: "MO-02",
+        projectCode: "P123",
+      },
+    ]);
+
+    expect(getJson).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/api/qt/press-working/mold-candidates?moldNo=MOLD-01&lockedMoldNos=LOCKED-01&lockedMoldNos=LOCKED-02",
+      "erp-session-token",
+      {
+        headers: {
+          "X-Correlation-Id": "press-mold-search-01",
+        },
+      },
+    );
+  });
+
+  /**
+   * @brief 断言空 moldNo（模具号）不会触发 ERP 查询。
+   * @author PopoY
+   * @returns Promise resolved when blank query（空查询）short-circuits.
+   */
+  it("skips press mold candidate lookup when mold number is blank", async () => {
+    const getJson = vi.fn();
+
+    await expect(
+      fetchPressMoldCandidates(getJson, {
+        correlationId: "press-mold-search-blank",
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        lockedMoldNos: [],
+        moldNo: "   ",
+        sessionToken: "erp-session-token",
+      }),
+    ).resolves.toEqual([]);
+
+    expect(getJson).not.toHaveBeenCalled();
+  });
+
+  /**
+   * @brief 断言 mold info rows（模具明细行）查询独立使用 list endpoint（列表端点），不混入近似候选查询。
+   * @author PopoY
+   * @returns Promise resolved when detail rows（明细行）narrowing（收窄）is asserted.
+   */
+  it("fetches press mold info rows only from the detail endpoint", async () => {
+    const getJson = vi.fn().mockResolvedValueOnce({
+      code: 200,
+      data: [
+        {
+          mouldCode: "MOLD-01",
+          makeOrderNumber: "MO-01",
+          stages: "OP10",
+          projectCode: "P123",
+          name: "上模",
+          deviceId: "drop-device",
+          operationIp: "drop-operation-ip",
+        },
+      ],
+    });
+
+    await expect(
+      fetchPressMoldInfoRows(getJson, {
+        correlationId: "press-mold-info-01",
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        lockedMoldNos: ["LOCKED-01"],
+        moldNo: " MOLD-01 ",
+        sessionToken: "erp-session-token",
+      }),
+    ).resolves.toEqual([
+      {
+        moldNo: "MOLD-01",
+        makeOrderNumber: "MO-01",
+        stages: "OP10",
+        projectCode: "P123",
+        name: "上模",
+      },
+    ]);
+
+    expect(getJson).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/api/qt/press-working/mold-info-rows?moldNo=MOLD-01&lockedMoldNos=LOCKED-01",
+      "erp-session-token",
+      {
+        headers: {
+          "X-Correlation-Id": "press-mold-info-01",
+        },
+      },
+    );
+  });
+
+  /**
+   * @brief 断言 lock mold（锁模）提交只发送白名单 body（请求体）和 correlation header（关联请求头）。
+   * @author PopoY
+   * @returns Promise resolved when lock request（锁模请求）and result are asserted.
+   */
+  it("locks a press mold without forwarding raw device or network fields", async () => {
+    const postJson = vi.fn().mockResolvedValueOnce({
+      code: 200,
+      data: {
+        lockedMoldNos: ["MOLD-01"],
+        deviceId: "drop-device",
+      },
+    });
+    const request = {
+      operatorId: "zhangsan",
+      teamId: "PLINE-01",
+      processId: "CRAFT-001",
+      selectedRows: [
+        {
+          moldNo: "MOLD-01",
+          makeOrderNumber: "MO-01",
+          stages: "OP10",
+          craftCode: "CRAFT-001",
+          projectCode: "P123",
+          ip: "drop-ip",
+          port: 502,
+          deviceId: "drop-device",
+        },
+      ],
+      correlationId: "press-mold-lock-01",
+      operationIp: "drop-operation-ip",
+    };
+
+    await expect(
+      lockPressMold(postJson, {
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        request,
+        sessionToken: "erp-session-token",
+      }),
+    ).resolves.toEqual({
+      lockedMoldNos: ["MOLD-01"],
+    });
+
+    expect(postJson).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/api/qt/press-working/mold-locks",
+      {
+        operatorId: "zhangsan",
+        teamId: "PLINE-01",
+        processId: "CRAFT-001",
+        selectedRows: [
+          {
+            moldNo: "MOLD-01",
+            makeOrderNumber: "MO-01",
+            stages: "OP10",
+            craftCode: "CRAFT-001",
+            projectCode: "P123",
+          },
+        ],
+        correlationId: "press-mold-lock-01",
+      },
+      {
+        bearerToken: "erp-session-token",
+        headers: {
+          "X-Correlation-Id": "press-mold-lock-01",
+        },
+      },
+    );
+  });
+
+  /**
+   * @brief 断言 ERP AjaxResult（企业资源计划响应包装）业务失败返回中文 msg（消息）。
+   * @author PopoY
+   * @returns Promise resolved when Chinese business error（中文业务错误）is propagated.
+   */
+  it("rejects mold lock ERP business failures with the Chinese message", async () => {
+    const postJson = vi.fn().mockResolvedValueOnce({
+      code: 500,
+      msg: "模具号 MOLD-01 已存在，请检查后重试。",
+    });
+
+    await expect(
+      lockPressMold(postJson, {
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        request: {
+          operatorId: "zhangsan",
+          teamId: "PLINE-01",
+          processId: "CRAFT-001",
+          selectedRows: [
+            {
+              moldNo: "MOLD-01",
+              makeOrderNumber: "MO-01",
+              craftCode: "CRAFT-001",
+            },
+          ],
+          correlationId: "press-mold-lock-error",
+        },
+        sessionToken: "erp-session-token",
+      }),
+    ).rejects.toThrow("模具号 MOLD-01 已存在，请检查后重试。");
+  });
+
+  /**
+   * @brief 断言 locked molds（已锁定模具）查询使用 Qt endpoint（端点）并只保留解锁抽屉白名单字段。
+   * @author PopoY
+   * @returns Promise resolved when locked mold narrowing（已锁定模具收窄）is asserted.
+   */
+  it("fetches locked press molds with correlation header and whitelisted fields", async () => {
+    const getJson = vi.fn().mockResolvedValueOnce({
+      code: 200,
+      data: [
+        {
+          moldNo: "MOLD-01",
+          stages: "OP10",
+          makeOrderNumber: "MO-01",
+          craftCode: "PRESS-01",
+          craftName: "冲压成型",
+          mouldMakeOrderType: "1",
+          workTimeTypeText: "正常",
+          startedAt: "2026-07-02 08:30:00",
+          operator: "zhangsan",
+          operatorName: "张三",
+          moldJobId: "MJ-01",
+          deviceId: "drop-device",
+          operationIp: "drop-operation-ip",
+          ipAddress: "drop-ip",
+          port: 502,
+          sessionToken: "drop-token",
+          signedLease: "drop-lease",
+          signature: "drop-signature",
+          signalConfig: "drop-config",
+        },
+        {
+          mouldCode: "MOLD-02",
+          startTime: "2026-07-02 09:00:00",
+          operatorNickName: "李四",
+          privateKey: "drop-key",
+        },
+        {
+          moldNo: "MOLD-03",
+          craftName: "WX1",
+          workTimeTypeText: "0",
+          operatorName: "liangy",
+        },
+      ],
+    });
+
+    await expect(
+      fetchPressLockedMolds(getJson, {
+        correlationId: "press-mold-unlock-query-01",
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        sessionToken: "erp-session-token",
+      }),
+    ).resolves.toEqual([
+      {
+        moldNo: "MOLD-01",
+        stages: "OP10",
+        makeOrderNumber: "MO-01",
+        craftCode: "PRESS-01",
+        craftName: "冲压成型",
+        workTimeType: "1",
+        workTimeTypeText: "正常",
+        startedAt: "2026-07-02 08:30:00",
+        operatorId: "zhangsan",
+        operatorName: "张三",
+        moldJobId: "MJ-01",
+      },
+      {
+        moldNo: "MOLD-02",
+        startedAt: "2026-07-02 09:00:00",
+        operatorName: "李四",
+      },
+      {
+        moldNo: "MOLD-03",
+        craftCode: "WX1",
+        craftName: "WX1",
+        workTimeType: "0",
+        workTimeTypeText: "0",
+        operatorId: "liangy",
+        operatorName: "liangy",
+      },
+    ]);
+
+    expect(getJson).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/api/qt/press-working/locked-molds",
+      "erp-session-token",
+      {
+        headers: {
+          "X-Correlation-Id": "press-mold-unlock-query-01",
+        },
+      },
+    );
+  });
+
+  /**
+   * @brief 断言 unlock mold（解锁模具）提交只发送白名单 body（请求体）和 correlation header（关联请求头）。
+   * @author PopoY
+   * @returns Promise resolved when unlock request（解锁请求）and result are asserted.
+   */
+  it("unlocks press molds without forwarding raw device or network fields", async () => {
+    const postJson = vi.fn().mockResolvedValueOnce({
+      code: 200,
+      data: {
+        unlockedMoldNos: ["MOLD-01", "MOLD-02"],
+        deviceId: "drop-device",
+      },
+    });
+    const request = {
+      operatorId: "zhangsan",
+      moldNos: ["MOLD-01", " ", "MOLD-02"],
+      correlationId: "press-mold-unlock-01",
+      deviceId: "drop-device",
+      ip: "drop-ip",
+      port: 502,
+    };
+
+    await expect(
+      unlockPressMolds(postJson, {
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        request,
+        sessionToken: "erp-session-token",
+      }),
+    ).resolves.toEqual({
+      unlockedMoldNos: ["MOLD-01", "MOLD-02"],
+    });
+
+    expect(postJson).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/api/qt/press-working/mold-unlocks",
+      {
+        operatorId: "zhangsan",
+        moldNos: ["MOLD-01", "MOLD-02"],
+        correlationId: "press-mold-unlock-01",
+      },
+      {
+        bearerToken: "erp-session-token",
+        headers: {
+          "X-Correlation-Id": "press-mold-unlock-01",
+        },
+      },
+    );
+  });
+
+  /**
+   * @brief 断言 unlock mold（解锁模具）ERP AjaxResult（响应包装）失败返回中文 msg（消息）。
+   * @author PopoY
+   * @returns Promise resolved when Chinese business error（中文业务错误）is propagated.
+   */
+  it("rejects mold unlock ERP business failures with the Chinese message", async () => {
+    const postJson = vi.fn().mockResolvedValueOnce({
+      code: 500,
+      msg: "加工中不能解锁最后一套模具，请使用完成加工功能。",
+    });
+
+    await expect(
+      unlockPressMolds(postJson, {
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        request: {
+          operatorId: "zhangsan",
+          moldNos: ["MOLD-01"],
+          correlationId: "press-mold-unlock-error",
+        },
+        sessionToken: "erp-session-token",
+      }),
+    ).rejects.toThrow("加工中不能解锁最后一套模具，请使用完成加工功能。");
+  });
+
+  /**
+   * @brief 断言 JSON helper（辅助函数）合并 Authorization（授权）和 X-Correlation-Id（关联 ID）请求头。
+   * @author PopoY
+   * @returns Promise resolved when native fetch（原生请求）headers are asserted.
+   */
+  it("merges optional ERP JSON request headers for native GET and POST helpers", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(createFetchResponse({ code: 200, data: [] }))
+      .mockResolvedValueOnce(createFetchResponse({ code: 200, data: {} }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getJson("http://127.0.0.1:8080/get", "erp-session-token", {
+      headers: {
+        "X-Correlation-Id": "press-mold-search-01",
+      },
+    });
+    await postJson(
+      "http://127.0.0.1:8080/post",
+      { hello: "world" },
+      {
+        bearerToken: "erp-session-token",
+        headers: {
+          "X-Correlation-Id": "press-mold-lock-01",
+        },
+      },
+    );
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "http://127.0.0.1:8080/get", {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: "Bearer erp-session-token",
+        "X-Correlation-Id": "press-mold-search-01",
+      },
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "http://127.0.0.1:8080/post", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: "Bearer erp-session-token",
+        "X-Correlation-Id": "press-mold-lock-01",
+      },
+      body: JSON.stringify({ hello: "world" }),
+    });
+  });
+
+  /**
+   * @brief 断言 current job（当前作业）查询使用 sam-erp 当前处理端接口并只保留展示白名单。
+   * @author PopoY
+   * @returns Promise resolved when current job rows（当前作业行）are normalized.
+   */
+  it("fetches current press jobs without exposing raw device or network fields", async () => {
+    const getJson = vi.fn().mockResolvedValueOnce({
+      code: 200,
+      data: [
+        {
+          id: 101,
+          deviceId: 9001,
+          deviceName: "一号压机",
+          expectedDuration: "2.5",
+          mouldCode: "MOLD-01",
+          operationIp: "192.168.1.10",
+          port: 502,
+          startParameterRecords: "[secret-records]",
+          startTime: "2026-06-30 08:00:00",
+          status: "1",
+          modbusEntity: {
+            ipAddress: "10.0.0.8",
+            port: 1502,
+          },
+        },
+        {},
+      ],
+    });
+
+    await expect(
+      fetchPressJobCurrentJobs(getJson, {
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        sessionToken: "erp-session-token",
+      }),
+    ).resolves.toEqual([
+      {
+        localJobSessionId: "press-job-row-0",
+        pressName: "一号压机",
+        moldNo: "MOLD-01",
+        plannedDurationHours: "2.5",
+        startedAt: "2026-06-30 08:00:00",
+        status: "1",
+      },
+    ]);
+
+    expect(getJson).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/modbus/device/getPressJobByHandleIp",
+      "erp-session-token",
+    );
+  });
+
+  /**
+   * @brief 断言 press job lookup data（压机作业查询数据）复用 sam-erp 班组、人员和工艺接口。
+   * @author PopoY
+   * @returns Promise resolved when lookup data（查询数据）is normalized.
+   */
+  it("fetches press job team, current user, operator, and process lookup data", async () => {
+    const getJson = vi
+      .fn()
+      .mockResolvedValueOnce({
+        code: 200,
+        data: [
+          { code: "PLINE-A", name: "压机一班", rawSecret: "drop-team-secret" },
+          { code: "PLINE-B", name: "压机二班" },
+          { code: "", name: "空班组不展示" },
+        ],
+      })
+      .mockResolvedValueOnce({
+        code: 200,
+        data: {
+          plineCode: "PLINE-A",
+          userName: "zhangsan",
+          nickName: "张三",
+          credential: "drop-user-secret",
+        },
+      })
+      .mockResolvedValueOnce({
+        code: 200,
+        data: [
+          { userName: "zhangsan", nickName: "张三", sessionToken: "drop-token" },
+          { userName: "lisi", nickName: "李四" },
+        ],
+      })
+      .mockResolvedValueOnce({
+        code: 200,
+        data: [
+          { craftCode: "PRESS-01", craftName: "压制作业", privateKey: "drop-key" },
+          { craftCode: "PRESS-02", craftName: "整形作业" },
+        ],
+      });
+
+    await expect(
+      fetchPressJobLookupData(getJson, {
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        sessionToken: "erp-session-token",
+      }),
+    ).resolves.toEqual({
+      defaultOperatorId: "zhangsan",
+      defaultTeamId: "PLINE-A",
+      operatorOptions: [
+        { operatorId: "zhangsan", operatorName: "张三", teamId: "PLINE-A" },
+        { operatorId: "lisi", operatorName: "李四", teamId: "PLINE-A" },
+      ],
+      processOptions: [
+        { processId: "PRESS-01", processName: "压制作业", teamId: "PLINE-A" },
+        { processId: "PRESS-02", processName: "整形作业", teamId: "PLINE-A" },
+      ],
+      teamOptions: [
+        { teamId: "PLINE-A", teamName: "压机一班" },
+        { teamId: "PLINE-B", teamName: "压机二班" },
+      ],
+    });
+
+    expect(getJson).toHaveBeenNthCalledWith(
+      1,
+      "http://127.0.0.1:8080/fm/pline/getPlnListByDept2/30",
+      "erp-session-token",
+    );
+    expect(getJson).toHaveBeenNthCalledWith(
+      2,
+      "http://127.0.0.1:8080/rel/qtrel/getQtUserInfo",
+      "erp-session-token",
+    );
+    expect(getJson).toHaveBeenNthCalledWith(
+      3,
+      "http://127.0.0.1:8080/rel/qtrel/getQtUserList2/PLINE-A",
+      "erp-session-token",
+    );
+    expect(getJson).toHaveBeenNthCalledWith(
+      4,
+      "http://127.0.0.1:8080/samMesPlineCraft/samMesPlineCraftController/getCraftByPlineIdAndDeviceType/PLINE-A/0",
+      "erp-session-token",
+    );
+  });
+
+  /**
+   * @brief 断言 team cascade（班组级联）只读取目标班组的人员和预选工艺。
+   * @author PopoY
+   * @returns Promise resolved when selected team options are normalized.
+   */
+  it("fetches operator and process options for the selected press job team", async () => {
+    const getJson = vi
+      .fn()
+      .mockResolvedValueOnce({
+        code: 200,
+        data: [{ userName: "wangwu", nickName: "王五" }],
+      })
+      .mockResolvedValueOnce({
+        code: 200,
+        data: [{ craftCode: "PRESS-09", craftName: "校形作业" }],
+      });
+
+    await expect(
+      fetchPressJobTeamOptions(getJson, {
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        sessionToken: "erp-session-token",
+        teamId: "PLINE-B",
+      }),
+    ).resolves.toEqual({
+      operatorOptions: [
+        { operatorId: "wangwu", operatorName: "王五", teamId: "PLINE-B" },
+      ],
+      processOptions: [
+        { processId: "PRESS-09", processName: "校形作业", teamId: "PLINE-B" },
+      ],
+      teamId: "PLINE-B",
+    });
+
+    expect(getJson).toHaveBeenNthCalledWith(
+      1,
+      "http://127.0.0.1:8080/rel/qtrel/getQtUserList2/PLINE-B",
+      "erp-session-token",
+    );
+    expect(getJson).toHaveBeenNthCalledWith(
+      2,
+      "http://127.0.0.1:8080/samMesPlineCraft/samMesPlineCraftController/getCraftByPlineIdAndDeviceType/PLINE-B/0",
+      "erp-session-token",
+    );
+  });
+
+  /**
+   * @brief 断言 parameter_group dict（参数组别字典）按 sam-erp 字典接口读取并压缩成展示选项。
+   * @author PopoY
+   * @returns Promise resolved when dict options and bearer token are asserted.
+   */
+  it("fetches parameter_group dict options with the ERP session token", async () => {
+    const getJson = vi.fn().mockResolvedValueOnce({
+      code: 200,
+      data: [
+        { dictValue: "4", dictLabel: "压机动作参数", listClass: "default" },
+        { dictValue: 5, dictLabel: "报警状态", cssClass: "" },
+        { dictValue: "", dictLabel: "空值不应展示" },
+      ],
+    });
+
+    await expect(
+      fetchParameterGroupOptions(getJson, {
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        sessionToken: "erp-session-token",
+      }),
+    ).resolves.toEqual([
+      { dictValue: "4", dictLabel: "压机动作参数" },
+      { dictValue: "5", dictLabel: "报警状态" },
+    ]);
+
+    expect(getJson).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/system/dict/data/type/parameter_group",
+      "erp-session-token",
+    );
+  });
+
+  /**
+   * @brief 断言 mould_make_order_type dictionary（字典）读取复用 ERP 字典接口。
+   * @author PopoY
+   * @returns Promise resolved when mold work type dict（工时类型字典）is narrowed.
+   */
+  it("fetches mold work type dict options with the ERP session token", async () => {
+    const getJson = vi.fn().mockResolvedValueOnce({
+      code: 200,
+      data: [
+        { dictValue: "1", dictLabel: "正常作业" },
+        { dictValue: 2, dictLabel: "返修作业" },
+      ],
+    });
+
+    await expect(
+      fetchPressMoldWorkTypeOptions(getJson, {
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        sessionToken: "erp-session-token",
+      }),
+    ).resolves.toEqual([
+      { dictValue: "1", dictLabel: "正常作业" },
+      { dictValue: "2", dictLabel: "返修作业" },
+    ]);
+
+    expect(getJson).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/system/dict/data/type/mould_make_order_type",
+      "erp-session-token",
+    );
+  });
+
+  /**
+   * @brief Assert that ERP login errors are normalized into the domain error code expected by callers.
+   * @returns Promise resolved when the rejection shape assertion completes.
+   */
+  it("maps login failure to ERP_AUTO_LOGIN_FAILED", async () => {
+    const postJson = vi.fn().mockRejectedValue(new Error("401"));
+
+    await expect(autoLogin(postJson, sampleConfig)).rejects.toMatchObject({
+      code: "ERP_AUTO_LOGIN_FAILED",
+    });
+
+    expect(postJson).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * @brief Assert that a failed ERP login short-circuits the lease flow and does not trigger a second request.
+   * @returns Promise resolved when the short-circuit assertion completes.
+   */
+  it("does not request a lease package when auto-login fails", async () => {
+    const postJson = vi.fn().mockRejectedValueOnce(new Error("401"));
+
+    await expect(loadBootstrapSession(postJson, sampleConfig)).rejects.toMatchObject({
+      code: "ERP_AUTO_LOGIN_FAILED",
+    });
+
+    // 先验证登录失败场景，再断言后续租约请求没有被触发。
+    expect(postJson).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * @brief Assert that ERP AjaxResult business errors do not enter the lease flow.
+   * @author PopoY
+   * @returns Promise resolved when the wrapped business failure is rejected.
+   */
+  it("rejects ERP AjaxResult business errors from auto-login", async () => {
+    const postJson = vi.fn().mockResolvedValueOnce({
+      code: 500,
+      msg: '403 FORBIDDEN "Station is not bound to granteeHostId"',
+    });
+
+    await expect(loadBootstrapSession(postJson, sampleConfig)).rejects.toMatchObject({
+      code: "ERP_AUTO_LOGIN_FAILED",
+    });
+
+    expect(postJson).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * @brief Assert that the lease API response is narrowed to the bootstrap lease package fields only.
+   * @returns Promise resolved when the response shape assertion completes.
+   */
+  it("returns signalConfig and signedLease while ignoring deviceConnectionInfo", async () => {
+    const postJson = vi.fn().mockResolvedValueOnce(createLeaseResponse());
+
+    await expect(
+      fetchLeasePackage(postJson, {
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        granteeHostId: sampleConfig.granteeHostId,
+        sessionToken: "erp-session-token",
+        stationId: sampleConfig.stationId,
+      }),
+    ).resolves.toEqual({
+      signalConfig: {
+        baseUrl: "http://127.0.0.1:9000",
+        topic: "stations/station-01",
+      },
+      signedLease: {
+        leaseId: "lease-01",
+        signature: "signed-payload",
+      },
+    });
+
+    expect(postJson).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * @brief Assert that JSON-string lease package fields are parsed before Driver Service receives them.
+   * @returns Promise resolved when the normalized lease package shape is asserted.
+   */
+  it("parses stringified signedLease and signalConfig from the lease response", async () => {
+    const postJson = vi.fn().mockResolvedValueOnce(createStringifiedLeaseResponse());
+
+    await expect(
+      fetchLeasePackage(postJson, {
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        granteeHostId: sampleConfig.granteeHostId,
+        sessionToken: "erp-session-token",
+        stationId: sampleConfig.stationId,
+      }),
+    ).resolves.toEqual({
+      signalConfig: {
+        signals: [
+          {
+            address: 100,
+            name: "pressure",
+          },
+        ],
+      },
+      signedLease: {
+        alg: "RS256",
+        kid: "lease-key-01",
+        payloadJson: JSON.stringify({
+          leaseId: "lease-01",
+          targetDeviceId: "device-01",
+          expiresAt: "2026-06-25T16:00:00Z",
+          fencingToken: 10,
+        }),
+        signature: "signed-payload",
+      },
+    });
+  });
+
+  /**
+   * @brief Assert that ERP placeholder leases stop before they reach Driver Service Real Mode.
+   * @returns Promise resolved when the placeholder lease rejection is asserted.
+   */
+  it("rejects ERP bootstrap placeholder lease packages before Driver Service calls", async () => {
+    const postJson = vi.fn().mockResolvedValueOnce(createBootstrapPlaceholderLeaseResponse());
+
+    await expect(
+      fetchLeasePackage(postJson, {
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        granteeHostId: sampleConfig.granteeHostId,
+        sessionToken: "erp-session-token",
+        stationId: sampleConfig.stationId,
+      }),
+    ).rejects.toMatchObject({
+      code: "ERP_LEASE_PLACEHOLDER",
+    });
+
+    expect(postJson).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * @brief Assert that the composed ERP bootstrap flow returns the login session alongside the lease package.
+   * @returns Promise resolved when the composed happy-path assertion completes.
+   */
+  it("returns sessionToken, signalConfig, and signedLease on the success path", async () => {
+    const postJson = vi
+      .fn()
+      .mockResolvedValueOnce(createLoginResponse())
+      .mockResolvedValueOnce(createLeaseResponse());
+    const getJson = vi.fn().mockResolvedValueOnce({
+      code: 200,
+      data: [{ dictValue: "4", dictLabel: "压机动作参数" }],
+    }).mockResolvedValueOnce({
+      code: 200,
+      data: [{ dictValue: "0", dictLabel: "正常作业" }],
+    }).mockResolvedValueOnce({
+      code: 200,
+      data: [{ craftCode: "WX1", craftName: "外协一" }],
+    }).mockResolvedValueOnce({
+      code: 200,
+      data: [{ userName: "liangy", nickName: "梁燕" }],
+    }).mockResolvedValueOnce({ code: 200, data: [] })
+      .mockResolvedValueOnce({ code: 200, data: {} })
+      .mockResolvedValueOnce({ code: 200, data: [] });
+
+    await expect(loadBootstrapSession(postJson, sampleConfig, getJson)).resolves.toEqual({
+      businessContext: {
+        shiftCode: "A",
+      },
+      defaultDeviceScope: {
+        deviceIds: ["device-01"],
+      },
+      sessionToken: "erp-session-token",
+      signalConfig: {
+        baseUrl: "http://127.0.0.1:9000",
+        topic: "stations/station-01",
+      },
+      signedLease: {
+        leaseId: "lease-01",
+        signature: "signed-payload",
+      },
+      parameterGroupOptions: [{ dictValue: "4", dictLabel: "压机动作参数" }],
+      pressMoldWorkTypeOptions: [{ dictValue: "0", dictLabel: "正常作业" }],
+      pressMoldCraftOptions: [{ dictValue: "WX1", dictLabel: "外协一" }],
+      pressMoldOperatorOptions: [{ dictValue: "liangy", dictLabel: "梁燕" }],
+      pressJobLookupData: {
+        operatorOptions: [],
+        processOptions: [],
+        teamOptions: [],
+      },
+      pressJobCurrentJobs: [],
+      stationContext: {
+        stationAccountId: "station-a",
+        stationId: "station-01",
+      },
+    });
+
+    expect(postJson).toHaveBeenCalledTimes(2);
+    // 先锁定第一次 auto-login 请求的地址和基于 native config 组装的请求体。
+    expect(postJson).toHaveBeenNthCalledWith(
+      1,
+      "http://127.0.0.1:8080/api/qt/bootstrap/auto-login",
+      {
+        granteeHostId: sampleConfig.granteeHostId,
+        stationAccountId: sampleConfig.stationAccountId,
+        stationId: sampleConfig.stationId,
+      },
+    );
+    // 再锁定第二次 lease-package 请求的地址和由登录结果衔接出的请求体。
+    expect(postJson).toHaveBeenNthCalledWith(
+      2,
+      "http://127.0.0.1:8080/api/qt/bootstrap/lease-package",
+      {
+        granteeHostId: sampleConfig.granteeHostId,
+        sessionToken: "erp-session-token",
+        stationId: sampleConfig.stationId,
+      },
+    );
+    expect(getJson).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/system/dict/data/type/parameter_group",
+      "erp-session-token",
+    );
+    expect(getJson).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/system/dict/data/type/mould_make_order_type",
+      "erp-session-token",
+    );
+    expect(getJson).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/moldStandardCraft/moldStandardCraftController/getCraftList",
+      "erp-session-token",
+    );
+    expect(getJson).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/system/user/getAllUserForOptions",
+      "erp-session-token",
+    );
+  });
+
+  /**
+   * @brief Assert that bootstrap ignores deviceConnectionInfo even when ERP auto-login returns it.
+   * @returns Promise resolved when the narrowed bootstrap payload assertion completes.
+   */
+  it("does not expose deviceConnectionInfo from the auto-login response", async () => {
+    const postJson = vi
+      .fn()
+      .mockResolvedValueOnce(createLoginResponseWithDeviceConnectionInfo())
+      .mockResolvedValueOnce(createLeaseResponse());
+
+    await expect(loadBootstrapSession(postJson, sampleConfig)).resolves.toEqual({
+      businessContext: {
+        shiftCode: "A",
+      },
+      defaultDeviceScope: {
+        deviceIds: ["device-01"],
+      },
+      parameterGroupOptions: [],
+      pressMoldWorkTypeOptions: [],
+      sessionToken: "erp-session-token",
+      signalConfig: {
+        baseUrl: "http://127.0.0.1:9000",
+        topic: "stations/station-01",
+      },
+      signedLease: {
+        leaseId: "lease-01",
+        signature: "signed-payload",
+      },
+      stationContext: {
+        stationAccountId: "station-a",
+        stationId: "station-01",
+      },
+    });
+
+    expect(postJson).toHaveBeenCalledTimes(2);
+  });
+});

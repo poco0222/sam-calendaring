@@ -1,0 +1,18 @@
+/**
+ * @file global.css - 定义 Qt App（Qt 应用）全局样式。
+ * @author PopoY
+ * @created 2026-06-25
+ * @brief 让 Qt WebEngine（Qt 网页引擎）视口匹配固定 1280x720 现场窗口。
+ */
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+}

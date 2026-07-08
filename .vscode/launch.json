@@ -1,0 +1,45 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug QT App",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/qt-app/native/build/qt_app_native",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}/qt-app/native/build",
+      "environment": [
+        {
+          "name": "QT_APP_FRONTEND_DIST",
+          "value": "${workspaceFolder}/qt-app/frontend/dist"
+        }
+      ],
+      "externalConsole": false,
+      "MIMode": "lldb",
+      "preLaunchTask": "qt-app: prelaunch debug"
+    },
+    {
+      "name": "Debug Driver Service",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "driver-service: build",
+      "program": "${workspaceFolder}/driver-service/src/Sam.Calendaring.DriverService/bin/Debug/net10.0/Sam.Calendaring.DriverService.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/driver-service/src/Sam.Calendaring.DriverService",
+      "stopAtEntry": false,
+      "console": "internalConsole",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Driver__Mode": "Real",
+        "Driver__Port": "5096"
+      }
+    },
+    {
+      "name": "Attach Driver Service",
+      "type": "coreclr",
+      "request": "attach",
+      "processId": "${command:pickProcess}"
+    }
+  ]
+}

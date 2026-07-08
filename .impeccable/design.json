@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-26T08:56:14+08:00",
+  "title": "Design System: QT App V1 Bootstrap",
+  "extensions": {
+    "colorMeta": {
+      "primary-control-blue": {
+        "role": "primary",
+        "displayName": "Control Blue",
+        "canonical": "#0078c8",
+        "tonalRamp": ["#00243f", "#003a63", "#005b94", "#0078c8", "#1995e0", "#5bb7ef", "#9bd8f7", "#d7f0ff"]
+      },
+      "success-signal-green": {
+        "role": "secondary",
+        "displayName": "Signal Green",
+        "canonical": "#52c41a",
+        "tonalRamp": ["#143600", "#225600", "#347d08", "#52c41a", "#73d13d", "#95de64", "#d9f7be", "#f6ffed"]
+      },
+      "warning-caution-amber": {
+        "role": "secondary",
+        "displayName": "Caution Amber",
+        "canonical": "#faad14",
+        "tonalRamp": ["#3f2600", "#613c00", "#ad6800", "#faad14", "#ffc53d", "#ffd666", "#fff1b8", "#fffbe6"]
+      },
+      "error-fault-red": {
+        "role": "secondary",
+        "displayName": "Fault Red",
+        "canonical": "#ff4d4f",
+        "tonalRamp": ["#3b0005", "#5c0011", "#a8071a", "#ff4d4f", "#ff7875", "#ffa39e", "#ffccc7", "#fff1f0"]
+      },
+      "light-surface": {
+        "role": "neutral",
+        "displayName": "Light Surface",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#141414", "#262626", "#595959", "#8c8c8c", "#bfbfbf", "#d9d9d9", "#f0f0f0", "#ffffff"]
+      },
+      "light-ink": {
+        "role": "neutral",
+        "displayName": "Light Ink",
+        "canonical": "#000000",
+        "tonalRamp": ["#000000", "#141414", "#262626", "#434343", "#595959", "#8c8c8c", "#bfbfbf", "#f0f0f0"]
+      },
+      "dark-field-bg": {
+        "role": "neutral",
+        "displayName": "Dark Field Background",
+        "canonical": "#0f172a",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#e2e8f0"]
+      },
+      "dark-panel": {
+        "role": "neutral",
+        "displayName": "Dark Panel",
+        "canonical": "#1e293b",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#e2e8f0"]
+      },
+      "dark-border": {
+        "role": "neutral",
+        "displayName": "Dark Border",
+        "canonical": "#334155",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#e2e8f0"]
+      },
+      "dark-ink": {
+        "role": "neutral",
+        "displayName": "Dark Ink",
+        "canonical": "#f8fafc",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#475569", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f8fafc"]
+      },
+      "dark-secondary-text": {
+        "role": "neutral",
+        "displayName": "Dark Secondary Text",
+        "canonical": "#cbd5e1",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#f8fafc"]
+      }
+    },
+    "typographyMeta": {
+      "title": {
+        "displayName": "Title",
+        "purpose": "Page-level title for the current dashboard surface."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Descriptions, table content, alert descriptions, and operator-facing status text."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Status tags, compact metadata, and small control labels."
+      }
+    },
+    "shadows": [
+      {
+        "name": "control-lift",
+        "value": "0 2px 8px rgba(15, 23, 42, 0.12)",
+        "purpose": "Small hover or focus-within lift for interactive containers only."
+      },
+      {
+        "name": "focus-ring",
+        "value": "0 0 0 2px rgba(0, 120, 200, 0.22)",
+        "purpose": "Keyboard focus and touch-assist focus treatment."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-transition",
+        "value": "150ms cubic-bezier(0.2, 0, 0, 1)",
+        "purpose": "Short product UI state transitions for hover, focus, and active changes."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "field-ipc",
+        "value": "1280x720"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Use for the current primary bootstrap action such as refreshing the snapshot.",
+      "html": "<button class=\"ds-btn-primary\">刷新快照</button>",
+      "css": ".ds-btn-primary { height: 32px; padding: 4px 15px; border: 1px solid #0078c8; border-radius: 6px; background: #0078c8; color: #ffffff; font: 400 14px/1.57 IBM Plex Sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; cursor: pointer; transition: background 150ms cubic-bezier(0.2, 0, 0, 1), box-shadow 150ms cubic-bezier(0.2, 0, 0, 1); } .ds-btn-primary:hover { background: #1995e0; border-color: #1995e0; } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 120, 200, 0.22); } .ds-btn-primary:active { background: #005b94; border-color: #005b94; }"
+    },
+    {
+      "name": "Default Button",
+      "kind": "button",
+      "refersTo": "button-default",
+      "description": "Use for secondary retry actions that should not compete with the primary action.",
+      "html": "<button class=\"ds-btn-default\">重试登录</button>",
+      "css": ".ds-btn-default { height: 32px; padding: 4px 15px; border: 1px solid #d9d9d9; border-radius: 6px; background: #ffffff; color: #000000; font: 400 14px/1.57 IBM Plex Sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; cursor: pointer; transition: border-color 150ms cubic-bezier(0.2, 0, 0, 1), color 150ms cubic-bezier(0.2, 0, 0, 1), box-shadow 150ms cubic-bezier(0.2, 0, 0, 1); } .ds-btn-default:hover { border-color: #0078c8; color: #0078c8; } .ds-btn-default:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 120, 200, 0.22); } .ds-btn-default:active { border-color: #005b94; color: #005b94; }"
+    },
+    {
+      "name": "Status Card",
+      "kind": "card",
+      "refersTo": "status-card",
+      "description": "Compact diagnostic container for one bootstrap status section.",
+      "html": "<section class=\"ds-status-card\"><header class=\"ds-status-card-head\"><strong>驱动服务状态</strong><span class=\"ds-status-tag ds-status-tag-success\">成功</span></header><dl><dt>租约状态</dt><dd>Active</dd><dt>设备会话状态</dt><dd>Connected</dd></dl></section>",
+      "css": ".ds-status-card { width: 320px; padding: 12px; border: 1px solid #d9d9d9; border-radius: 6px; background: #ffffff; color: #000000; font: 400 14px/1.57 IBM Plex Sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; transition: box-shadow 150ms cubic-bezier(0.2, 0, 0, 1), border-color 150ms cubic-bezier(0.2, 0, 0, 1); } .ds-status-card:hover { border-color: #b7dfff; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12); } .ds-status-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; } .ds-status-card dl { display: grid; grid-template-columns: 96px 1fr; gap: 4px 12px; margin: 0; } .ds-status-card dt { color: #595959; } .ds-status-card dd { margin: 0; } .ds-status-tag { display: inline-flex; align-items: center; height: 22px; padding: 0 7px; border-radius: 6px; font-size: 12px; } .ds-status-tag-success { background: #52c41a; color: #ffffff; }"
+    },
+    {
+      "name": "Signal Snapshot Table",
+      "kind": "custom",
+      "refersTo": "table-compact",
+      "description": "Read-only compact table for Driver Service signal snapshot values.",
+      "html": "<table class=\"ds-signal-table\"><thead><tr><th>信号</th><th>数值</th></tr></thead><tbody><tr><td>machineState</td><td>Ready</td></tr><tr><td>mesCommunication</td><td>true</td></tr></tbody></table>",
+      "css": ".ds-signal-table { width: 100%; border-collapse: collapse; background: #ffffff; color: #000000; font: 400 14px/1.57 IBM Plex Sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-signal-table th { padding: 8px; border-bottom: 1px solid #d9d9d9; text-align: left; font-weight: 600; background: #fafafa; } .ds-signal-table td { padding: 8px; border-bottom: 1px solid #f0f0f0; } .ds-signal-table tr:hover td { background: #e6f4ff; }"
+    },
+    {
+      "name": "Error Alert",
+      "kind": "custom",
+      "refersTo": "alert-error",
+      "description": "Operator-facing error block for mapped bootstrap and driver failures.",
+      "html": "<div class=\"ds-error-alert\" role=\"alert\"><strong>启动流程异常</strong><p>启动失败：请查看诊断日志后重试。</p></div>",
+      "css": ".ds-error-alert { padding: 8px 12px; border: 1px solid #ffccc7; border-radius: 6px; background: #fff1f0; color: #5c0011; font: 400 14px/1.57 IBM Plex Sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-error-alert strong { display: block; margin-bottom: 4px; color: #a8071a; font-weight: 600; } .ds-error-alert p { margin: 0; }"
+    },
+    {
+      "name": "Theme Segmented Control",
+      "kind": "custom",
+      "refersTo": "theme-segmented",
+      "description": "Icon-style display preference control for light, dark, and system theme modes.",
+      "html": "<div class=\"ds-theme-segmented\" role=\"group\" aria-label=\"主题模式\"><button aria-label=\"浅色\">☀</button><button aria-label=\"深色\">☾</button><button aria-label=\"跟随系统\" aria-pressed=\"true\">▣</button></div>",
+      "css": ".ds-theme-segmented { display: inline-flex; gap: 2px; padding: 2px; border-radius: 6px; background: #f0f0f0; font: 400 12px/1.5 IBM Plex Sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-theme-segmented button { width: 28px; height: 24px; border: 0; border-radius: 4px; background: transparent; color: #000000; cursor: pointer; } .ds-theme-segmented button:hover { color: #0078c8; } .ds-theme-segmented button[aria-pressed=\"true\"] { background: #ffffff; color: #0078c8; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12); } .ds-theme-segmented button:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 120, 200, 0.22); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Field Control Desk",
+    "overview": "`QT App V1 Bootstrap` 的视觉系统是一块现场控制台，而不是展示型 dashboard（仪表盘）。它服务于固定 1280x720 的 10-inch Windows touch IPC（10 寸 Windows 触控工控机）。系统需要有设计性，但必须克制，设计感来自清楚的 hierarchy（层级）、稳定的 alignment（对齐）、紧凑但可触控的 controls（控件）、明确的 state color（状态色）和中文文案。",
+    "keyCharacteristics": [
+      "Fixed field viewport（固定现场视口）：以 1280x720 为设计基线。",
+      "Compact diagnostic layout（紧凑诊断布局）：信息密度高，但状态和动作必须可扫读。",
+      "Restrained industrial color（克制工业色）：沿用现有 #0078c8 主色和 Ant Design 状态色。",
+      "Light lift, not decoration（轻层级，不装饰）：层级可用轻阴影和边界表达，但不能变成展示型卡片墙。",
+      "Chinese-first operator copy（中文优先操作文案）：错误和状态不能回退到英文原始异常。"
+    ],
+    "rules": [
+      {
+        "name": "The Status Means State Rule",
+        "body": "Control Blue、Signal Green、Caution Amber 和 Fault Red 只用于动作、选择和状态，不用于装饰。",
+        "section": "colors"
+      },
+      {
+        "name": "The No Spectacle Dark Rule",
+        "body": "dark theme（深色主题）必须保持现场可读，禁止做成过度炫酷 dark dashboard（深色仪表盘）。",
+        "section": "colors"
+      },
+      {
+        "name": "The One Operator Language Rule",
+        "body": "用户可见状态、错误和动作必须优先使用中文；不要把 raw English runtime error（英文运行时错误）暴露给操作员。",
+        "section": "typography"
+      },
+      {
+        "name": "The Lift Must Explain Itself Rule",
+        "body": "阴影必须表示可操作、当前、聚焦或临时浮层；静态装饰阴影禁止使用。",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep the interface as a Field Control Desk（现场控制台）：紧凑、清晰、状态优先。",
+      "Do use #0078c8 as Control Blue for primary action（主操作）、current selection（当前选择）和 info state（信息状态）。",
+      "Do preserve the single Ant Design component vocabulary（组件语言）：Button、Card、Table、Alert、Tag、Segmented、Descriptions。",
+      "Do render user-facing UI（用户界面） and error copy（错误文案） in Chinese."
+    ],
+    "donts": [
+      "Don't create traditional ERP-heavy form walls where every field has equal visual weight and operators must search for the current state.",
+      "Don't create over-styled dark dashboards that look impressive in screenshots but reduce trust, readability, or touch accuracy on field hardware.",
+      "Don't use low-contrast gray text, ambiguous status color, raw English runtime errors, or ordinary account/password login screens.",
+      "Don't suggest operators can manually override ip, port, or deviceId outside the signedLease（签名租约） and signalConfig（信号配置） path.",
+      "Don't use decorative cards, nested cards, broad shadows, gradient text, glass effects, or visual flourishes that do not help an operator answer the startup-state question faster."
+    ]
+  }
+}
