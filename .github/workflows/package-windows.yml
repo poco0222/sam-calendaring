@@ -1,0 +1,152 @@
+# @file package-windows.yml - Windows 10 exe packaging workflow（打包工作流）
+# @author PopoY
+# @created 2026-07-08
+# @purpose 在 GitHub Actions（自动化流水线）中打包 QT App（Qt 应用）和 Driver Service（驱动服务）的 Win10 x64 executable（可执行文件）。
+
+name: Package Windows exe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: package-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: 10.0.x
+  NODE_VERSION: '24'
+  PNPM_VERSION: 11.9.0
+  QT_VERSION: 6.10.*
+  QT_ARCH: win64_msvc2022_64
+  PACKAGE_NAME: sam-calendaring-win10-x64
+
+jobs:
+  package-windows:
+    name: Package Win10 x64 executable（打包 Win10 x64 可执行文件）
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout source（检出源码）
+        uses: actions/checkout@v5
+
+      - name: Setup .NET SDK（配置 .NET SDK）
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Setup Node.js（配置 Node.js）
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: qt-app/frontend/pnpm-lock.yaml
+
+      - name: Enable pnpm（启用 pnpm）
+        shell: pwsh
+        run: |
+          corepack enable
+          corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
+          pnpm --version
+
+      - name: Setup Qt（配置 Qt）
+        uses: jurplel/install-qt-action@v4.3.1
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: windows
+          target: desktop
+          arch: ${{ env.QT_ARCH }}
+          modules: qtwebengine qtwebchannel
+          cache: 'true'
+
+      - name: Prepare package directory（准备打包目录）
+        shell: pwsh
+        run: |
+          $packageRoot = Join-Path $env:GITHUB_WORKSPACE "artifacts\${{ env.PACKAGE_NAME }}"
+          "PACKAGE_ROOT=$packageRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
+
+      - name: Build frontend（构建前端）
+        working-directory: qt-app/frontend
+        shell: pwsh
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm test
+          pnpm build
+
+      - name: Test and publish Driver Service（测试并发布驱动服务）
+        working-directory: driver-service
+        shell: pwsh
+        run: |
+          dotnet restore DriverService.sln
+          dotnet test DriverService.sln -c Release --no-restore
+          dotnet publish src\Sam.Calendaring.DriverService\Sam.Calendaring.DriverService.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=false `
+            -p:DebugType=None `
+            -p:DebugSymbols=false `
+            -o "$env:PACKAGE_ROOT\driver-service"
+
+      - name: Build and test QT App native shell（构建并测试 Qt 原生壳）
+        working-directory: qt-app/native
+        shell: cmd
+        run: |
+          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+          ctest --test-dir build --output-on-failure
+
+      - name: Deploy QT App runtime（部署 Qt 应用运行时）
+        shell: pwsh
+        run: |
+          $qtPackageDir = Join-Path $env:PACKAGE_ROOT "qt-app\native\build"
+          $frontendPackageDir = Join-Path $env:PACKAGE_ROOT "qt-app\frontend"
+          New-Item -ItemType Directory -Force -Path $qtPackageDir, $frontendPackageDir | Out-Null
+
+          Copy-Item -Force "qt-app\native\build\qt_app_native.exe" $qtPackageDir
+          windeployqt --release "$qtPackageDir\qt_app_native.exe"
+
+          Copy-Item -Recurse -Force "qt-app\frontend\dist" "$frontendPackageDir\dist"
+
+          if (!(Test-Path "$qtPackageDir\qt_app_native.exe")) {
+            throw "QT App exe（Qt 应用可执行文件）未生成。"
+          }
+          if (!(Test-Path "$frontendPackageDir\dist\index.html")) {
+            throw "Frontend dist（前端构建产物）未复制。"
+          }
+          if (!(Test-Path "$env:PACKAGE_ROOT\driver-service\Sam.Calendaring.DriverService.exe")) {
+            throw "Driver Service exe（驱动服务可执行文件）未生成。"
+          }
+
+      - name: Write package notes（写入运行说明）
+        shell: pwsh
+        run: |
+          @"
+          @file Win10 package notes（Win10 打包说明）
+          @author PopoY
+          @created 2026-07-08
+
+          QT App（Qt 应用）入口:
+          qt-app\native\build\qt_app_native.exe
+
+          Driver Service（驱动服务）入口:
+          driver-service\Sam.Calendaring.DriverService.exe
+
+          说明:
+          1. 此 artifact（构建产物）面向 Windows 10 x64。
+          2. QT App（Qt 应用）会按现有代码从 ..\..\frontend\dist 加载前端页面。
+          3. Driver Service（驱动服务）按 self-contained（自包含）方式发布，不依赖目标机器预装 .NET runtime（运行时）。
+          "@ | Set-Content -Path "$env:PACKAGE_ROOT\RUNNING.txt" -Encoding UTF8
+
+      - name: Upload package artifact（上传打包产物）
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ env.PACKAGE_NAME }}
+          path: artifacts/${{ env.PACKAGE_NAME }}
+          if-no-files-found: error
+          retention-days: 14
