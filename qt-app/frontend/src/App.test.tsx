@@ -8,7 +8,7 @@
 // @ts-ignore @author PopoY: 当前项目未安装 Node types（Node 类型），此测试运行时由 Vitest（测试框架）提供 node:fs。
 import { existsSync, readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AntdRootProvider } from "./app/AntdRootProvider";
 import App, {
@@ -31,8 +31,8 @@ const appCss = existsSync(appCssUrl) ? readFileSync(appCssUrl, "utf8") : "";
 const appSourceUrl = new URL("./App.tsx", import.meta.url);
 const appSource = existsSync(appSourceUrl) ? readFileSync(appSourceUrl, "utf8") : "";
 
-vi.mock("./hooks/useBootstrapSession", () => ({
-  useBootstrapSession: () => ({
+const bootstrapSessionMock = vi.hoisted(() => ({
+  current: {
     status: "idle",
     config: {
       stationAccountId: "station-account-01",
@@ -45,7 +45,11 @@ vi.mock("./hooks/useBootstrapSession", () => ({
     data: null,
     error: null,
     retry: async () => {},
-  }),
+  } as UseBootstrapSessionResult,
+}));
+
+vi.mock("./hooks/useBootstrapSession", () => ({
+  useBootstrapSession: () => bootstrapSessionMock.current,
 }));
 
 vi.mock("./hooks/useDriverSession", async (importOriginal) => {
@@ -141,6 +145,8 @@ function createSharedBootstrapSession(
       configVersion: "v1",
     },
     data: {
+      bootstrapConfigEditable: false,
+      bootstrapConfigApprovalState: "readonly",
       sessionToken: "test-session-token",
       stationContext: {
         stationAccountId: "station-account-01",
@@ -177,6 +183,23 @@ function createSharedDriverSession(
   };
 }
 
+beforeEach(() => {
+  bootstrapSessionMock.current = {
+    status: "idle",
+    config: {
+      stationAccountId: "station-account-01",
+      granteeHostId: "host-01",
+      stationId: "station-01",
+      erpBaseUrl: "http://127.0.0.1:8080",
+      driverBaseUrl: "http://127.0.0.1:5000",
+      configVersion: "v1",
+    },
+    data: null,
+    error: null,
+    retry: async () => {},
+  };
+});
+
 describe("App Shell", () => {
   /**
    * @brief 断言一级导航和主题切换属于唯一全局 top bar（顶部栏）。
@@ -204,6 +227,65 @@ describe("App Shell", () => {
     expect(html).toContain("aria-label=\"浅色\"");
     expect(html).toContain("aria-label=\"深色\"");
     expect(html).toContain("aria-label=\"跟随系统\"");
+  });
+
+  /**
+   * @brief 配置缺失时只显示 FirstRunConfigPage（首次启动配置页），不显示主导航。
+   * @author PopoY
+   */
+  it("renders first-run config page instead of app navigation when config is missing", () => {
+    bootstrapSessionMock.current = {
+      status: "error",
+      config: {
+        stationAccountId: "",
+        granteeHostId: "host-01",
+        stationId: "station-01",
+        erpBaseUrl: "http://127.0.0.1:8080",
+        driverBaseUrl: "http://127.0.0.1:5000",
+        configVersion: "v1",
+      },
+      data: null,
+      error: { code: "CONFIG_INVALID", missingFields: ["stationAccountId"] },
+      retry: vi.fn(),
+    };
+
+    const html = renderApp();
+
+    expect(html).toContain("首次启动配置");
+    expect(html).not.toContain("启动仪表盘");
+    expect(html).not.toContain("诊断日志");
+    expect(html).not.toContain("压机作业");
+  });
+
+  /**
+   * @brief 非 CONFIG_INVALID（配置无效）错误即使携带 missingFields（缺失字段）也不触发首次启动页。
+   * @author PopoY
+   */
+  it("keeps app navigation for non-config errors that carry missing fields", () => {
+    bootstrapSessionMock.current = {
+      status: "error",
+      config: {
+        stationAccountId: "station-account-01",
+        granteeHostId: "host-01",
+        stationId: "station-01",
+        erpBaseUrl: "http://127.0.0.1:8080",
+        driverBaseUrl: "http://127.0.0.1:5000",
+        configVersion: "v1",
+      },
+      data: null,
+      error: {
+        code: "ERP_AUTO_LOGIN_FAILED",
+        missingFields: ["stationAccountId"],
+      },
+      retry: vi.fn(),
+    };
+
+    const html = renderApp();
+
+    expect(html).not.toContain("首次启动配置");
+    expect(html).toContain("启动仪表盘");
+    expect(html).toContain("诊断日志");
+    expect(html).toContain("压机作业");
   });
 
   /**

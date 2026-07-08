@@ -115,16 +115,18 @@
   min-height: 0;
 }
 
-.bootstrap-dashboard__error-panel {
+.bootstrap-dashboard__right-column {
   grid-column: 18 / -1;
-  /* PopoY: error panel（错误面板）补齐上排收窄后释放的高度。 */
+  /* PopoY: right column（右侧列）用固定比例保留启动配置首屏高度，错误内容过多时在本卡片内滚动。 */
   grid-row: 2 / 4;
+  display: grid;
+  grid-template-rows: minmax(0, 0.44fr) minmax(220px, 0.56fr);
+  gap: 8px;
   min-height: 0;
 }
 
 /* PopoY: grid（栅格）底行吃满剩余高度，避免 signal rows（信号行）改变 dashboard（仪表盘）布局。 */
-.bootstrap-dashboard__snapshot-panel > .ant-card,
-.bootstrap-dashboard__error-panel > .ant-card {
+.bootstrap-dashboard__snapshot-panel > .ant-card {
   height: 100%;
 }
 
@@ -138,6 +140,19 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+}
+
+.bootstrap-dashboard__right-column > .ant-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.bootstrap-dashboard__right-column > .ant-card > .ant-card-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .bootstrap-dashboard .ant-descriptions-item-label {

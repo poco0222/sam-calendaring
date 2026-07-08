@@ -21,6 +21,8 @@ const sampleConfig: NativeBootstrapConfig = {
 };
 
 const sampleSession: BootstrapSession = {
+  bootstrapConfigEditable: false,
+  bootstrapConfigApprovalState: "unavailable",
   sessionToken: "erp-session-token",
   stationContext: {
     stationAccountId: "station-a",
@@ -54,6 +56,28 @@ describe("loadValidatedBootstrapSession", () => {
     });
 
     expect(readConfig).toHaveBeenCalledTimes(1);
+    expect(loadSession).not.toHaveBeenCalled();
+  });
+
+  /**
+   * @brief 缺失 bootstrap config（启动配置）时保留已读取配置，便于 FirstRunConfigPage（首次启动配置页）预填。
+   * @author PopoY
+   */
+  it("returns missing config details without calling ERP", async () => {
+    const invalidConfig = { ...sampleConfig, stationAccountId: "", granteeHostId: "" };
+    const loadSession = vi.fn();
+
+    await expect(
+      loadValidatedBootstrapSession(
+        vi.fn().mockResolvedValue(invalidConfig),
+        loadSession,
+      ),
+    ).rejects.toMatchObject({
+      code: "CONFIG_INVALID",
+      config: invalidConfig,
+      missingFields: ["stationAccountId", "granteeHostId"],
+    });
+
     expect(loadSession).not.toHaveBeenCalled();
   });
 });

@@ -1,8 +1,8 @@
 #
-# @file QT App native shell build entry
+# @file QT App native shell（原生外壳）build entry（构建入口）
 # @author PopoY
 # @created 2026-06-25
-# @brief Build the minimal Qt WebEngine native shell for bootstrap V1.
+# @brief 构建 bootstrap V1（启动引导 V1）的最小 Qt WebEngine native shell（原生外壳）。
 #
 
 cmake_minimum_required(VERSION 3.21)
@@ -17,11 +17,13 @@ set(CMAKE_AUTORCC ON)
 
 enable_testing()
 
-find_package(Qt6 REQUIRED COMPONENTS Core WebEngineWidgets WebChannel)
+find_package(Qt6 REQUIRED COMPONENTS Core Network WebEngineWidgets WebChannel)
 
 qt_add_executable(qt_app_native
     src/appconfigbridge.cpp
     src/appconfigbridge.h
+    src/bootstraphostaddress.cpp
+    src/bootstraphostaddress.h
     src/frontendentrypath.cpp
     src/frontendentrypath.h
     src/main.cpp
@@ -33,20 +35,38 @@ target_link_libraries(qt_app_native
     PRIVATE
         Qt6::WebEngineWidgets
         Qt6::WebChannel
+        Qt6::Network
 )
 
 add_executable(config_bridge_spec
     src/appconfigbridge.cpp
     src/appconfigbridge.h
+    src/bootstraphostaddress.cpp
+    src/bootstraphostaddress.h
     tests/config_bridge.spec.cpp
 )
 
 target_link_libraries(config_bridge_spec
     PRIVATE
         Qt6::Core
+        Qt6::Network
 )
 
 add_test(NAME config_bridge_spec COMMAND config_bridge_spec)
+
+add_executable(bootstrap_host_address_spec
+    src/bootstraphostaddress.cpp
+    src/bootstraphostaddress.h
+    tests/bootstrap_host_address.spec.cpp
+)
+
+target_link_libraries(bootstrap_host_address_spec
+    PRIVATE
+        Qt6::Core
+        Qt6::Network
+)
+
+add_test(NAME bootstrap_host_address_spec COMMAND bootstrap_host_address_spec)
 
 add_executable(frontendentrypath_spec
     src/frontendentrypath.cpp

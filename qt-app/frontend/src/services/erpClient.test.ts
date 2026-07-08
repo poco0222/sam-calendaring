@@ -11,6 +11,7 @@ import type { NativeBootstrapConfig } from "../types/native";
 import {
   autoLogin,
   completePressJob,
+  fetchBootstrapConfigApproval,
   fetchLeasePackage,
   fetchParameterGroupOptions,
   fetchPressMoldWorkTypeOptions,
@@ -172,6 +173,72 @@ function createBootstrapPlaceholderLeaseResponse() {
 }
 
 describe("erpClient", () => {
+  /**
+   * @brief `approve.press.config=false` 表示关闭审批开关，启动配置允许编辑。
+   * @author PopoY
+   */
+  it("allows bootstrap config editing when approve.press.config is false", async () => {
+    const getJson = vi.fn().mockResolvedValue({ code: 200, data: " false " });
+
+    await expect(
+      fetchBootstrapConfigApproval(getJson, {
+        erpBaseUrl: "http://127.0.0.1:8080",
+        sessionToken: "session-token",
+      }),
+    ).resolves.toEqual({
+      bootstrapConfigEditable: true,
+      bootstrapConfigApprovalState: "editable",
+    });
+
+    expect(getJson).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/system/config/configKey/approve.press.config",
+      "session-token",
+    );
+  });
+
+  /**
+   * @brief 兼容 RuoYi AjaxResult（若依统一响应）把 String 配置值放在 msg（消息）字段的返回格式。
+   * @author PopoY
+   */
+  it("allows bootstrap config editing when approve.press.config false is returned in msg", async () => {
+    const getJson = vi.fn().mockResolvedValue({ code: 200, msg: " false " });
+
+    await expect(
+      fetchBootstrapConfigApproval(getJson, {
+        erpBaseUrl: "http://127.0.0.1:8080",
+        sessionToken: "session-token",
+      }),
+    ).resolves.toEqual({
+      bootstrapConfigEditable: true,
+      bootstrapConfigApprovalState: "editable",
+    });
+  });
+
+  /**
+   * @brief 缺失、非 false 或读取失败都按 readonly（只读）处理。
+   * @author PopoY
+   */
+  it.each([
+    [{ code: 200 }, "readonly"],
+    [{ code: 200, data: "" }, "readonly"],
+    [{ code: 200, data: "true" }, "readonly"],
+    [{ code: 200, msg: "true" }, "readonly"],
+    [{ code: 200, data: "FALSE" }, "readonly"],
+    [{ code: 200, data: "1" }, "readonly"],
+  ])("treats non-false values as readonly", async (response, state) => {
+    const getJson = vi.fn().mockResolvedValue(response);
+
+    await expect(
+      fetchBootstrapConfigApproval(getJson, {
+        erpBaseUrl: "http://127.0.0.1:8080",
+        sessionToken: "session-token",
+      }),
+    ).resolves.toEqual({
+      bootstrapConfigEditable: false,
+      bootstrapConfigApprovalState: state,
+    });
+  });
+
   /**
    * @brief 断言 press working（压机作业）Qt clients（客户端）发送认证头、关联头并收窄请求体。
    * @author PopoY
@@ -1214,6 +1281,9 @@ describe("erpClient", () => {
       .mockResolvedValueOnce(createLeaseResponse());
     const getJson = vi.fn().mockResolvedValueOnce({
       code: 200,
+      data: "false",
+    }).mockResolvedValueOnce({
+      code: 200,
       data: [{ dictValue: "4", dictLabel: "压机动作参数" }],
     }).mockResolvedValueOnce({
       code: 200,
@@ -1229,6 +1299,8 @@ describe("erpClient", () => {
       .mockResolvedValueOnce({ code: 200, data: [] });
 
     await expect(loadBootstrapSession(postJson, sampleConfig, getJson)).resolves.toEqual({
+      bootstrapConfigApprovalState: "editable",
+      bootstrapConfigEditable: true,
       businessContext: {
         shiftCode: "A",
       },
@@ -1282,6 +1354,10 @@ describe("erpClient", () => {
       },
     );
     expect(getJson).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/system/config/configKey/approve.press.config",
+      "erp-session-token",
+    );
+    expect(getJson).toHaveBeenCalledWith(
       "http://127.0.0.1:8080/system/dict/data/type/parameter_group",
       "erp-session-token",
     );
@@ -1300,6 +1376,23 @@ describe("erpClient", () => {
   });
 
   /**
+   * @brief auto-login（自动登录）成功后读取 config approval（配置审批开关），失败时不阻断启动。
+   * @author PopoY
+   */
+  it("keeps bootstrap successful when config approval read fails", async () => {
+    const postJson = vi
+      .fn()
+      .mockResolvedValueOnce(createLoginResponse())
+      .mockResolvedValueOnce(createLeaseResponse());
+    const getJson = vi.fn().mockRejectedValue(new Error("network"));
+
+    const session = await loadBootstrapSession(postJson, sampleConfig, getJson);
+
+    expect(session.bootstrapConfigEditable).toBe(false);
+    expect(session.bootstrapConfigApprovalState).toBe("unavailable");
+  });
+
+  /**
    * @brief Assert that bootstrap ignores deviceConnectionInfo even when ERP auto-login returns it.
    * @returns Promise resolved when the narrowed bootstrap payload assertion completes.
    */
@@ -1310,6 +1403,8 @@ describe("erpClient", () => {
       .mockResolvedValueOnce(createLeaseResponse());
 
     await expect(loadBootstrapSession(postJson, sampleConfig)).resolves.toEqual({
+      bootstrapConfigApprovalState: "unavailable",
+      bootstrapConfigEditable: false,
       businessContext: {
         shiftCode: "A",
       },

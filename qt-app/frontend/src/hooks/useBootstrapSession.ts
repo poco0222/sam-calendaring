@@ -14,7 +14,10 @@ import {
   postJson,
   type BootstrapSession,
 } from "../services/erpClient";
-import { readMissingBootstrapConfigFields } from "../services/bootstrapFlow";
+import {
+  REQUIRED_BOOTSTRAP_CONFIG_FIELDS,
+  readMissingBootstrapConfigFields,
+} from "../services/bootstrapFlow";
 import { logDiagnostic } from "../services/logging";
 import type { NativeBootstrapConfig } from "../types/native";
 
@@ -63,6 +66,14 @@ export type ValidatedBootstrapSession = {
 };
 
 /**
+ * @brief 描述 CONFIG_INVALID（配置无效）错误携带的已读取 native config（原生配置）。
+ * @author PopoY
+ */
+type BootstrapConfigError = ReturnType<typeof createBootstrapError> & {
+  config?: NativeBootstrapConfig;
+};
+
+/**
  * @brief Read native config, stop on missing required fields, then load the ERP bootstrap session.
  * @param readConfig Native config reader dependency.
  * @param loadSession ERP bootstrap session loader dependency.
@@ -79,8 +90,9 @@ export async function loadValidatedBootstrapSession(
     const error = createBootstrapError(
       "CONFIG_INVALID",
       `Missing bootstrap config: ${missingFields.join(", ")}`,
-    );
+    ) as BootstrapConfigError;
 
+    error.config = nextConfig;
     error.missingFields = missingFields;
     throw error;
   }
@@ -138,7 +150,7 @@ export function useBootstrapSession(): UseBootstrapSessionResult {
         return;
       }
 
-      setConfig(null);
+      setConfig(readBootstrapConfigFromError(caughtError));
       setData(null);
       setError(caughtError);
       setStatus("error");
@@ -161,6 +173,38 @@ export function useBootstrapSession(): UseBootstrapSessionResult {
     error,
     retry,
   };
+}
+
+/**
+ * @brief 从 CONFIG_INVALID（配置无效）错误读取可用于首次启动页预填的 native config（原生配置）。
+ * @author PopoY
+ * @param value bootstrap（启动）流程捕获的未知错误。
+ * @returns 携带完整六字段配置时返回该配置，否则返回 null。
+ */
+function readBootstrapConfigFromError(value: unknown): NativeBootstrapConfig | null {
+  if (typeof value !== "object" || value === null) {
+    return null;
+  }
+
+  const config = (value as { config?: unknown }).config;
+
+  return isNativeBootstrapConfig(config) ? config : null;
+}
+
+/**
+ * @brief 校验未知值是否为完整 NativeBootstrapConfig（原生启动配置）。
+ * @author PopoY
+ * @param value 待校验的 unknown（未知值）。
+ * @returns 六个 bootstrap config（启动配置）字段均为 string（字符串）时返回 true。
+ */
+function isNativeBootstrapConfig(value: unknown): value is NativeBootstrapConfig {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  return REQUIRED_BOOTSTRAP_CONFIG_FIELDS.every(
+    (fieldName) => typeof (value as Record<string, unknown>)[fieldName] === "string",
+  );
 }
 
 /**

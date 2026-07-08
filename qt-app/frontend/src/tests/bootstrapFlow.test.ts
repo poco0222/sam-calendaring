@@ -22,6 +22,8 @@ const sampleConfig: NativeBootstrapConfig = {
 };
 
 const sampleBootstrapSession: BootstrapSession = {
+  bootstrapConfigEditable: false,
+  bootstrapConfigApprovalState: "readonly",
   sessionToken: "erp-session-token",
   stationContext: {
     stationAccountId: "station-a",

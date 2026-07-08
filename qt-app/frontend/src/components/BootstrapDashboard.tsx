@@ -5,12 +5,17 @@
  * @brief 渲染紧凑 bootstrap dashboard（启动仪表盘）主界面。
  */
 
-import { Button, Col, Descriptions, Row, Space } from "antd";
+import { Alert, Button, Col, Descriptions, Row, Space } from "antd";
+import { useState } from "react";
 import type { UseBootstrapSessionResult } from "../hooks/useBootstrapSession";
 import {
   canRefreshSignalSnapshot,
   type UseDriverSessionResult,
 } from "../hooks/useDriverSession";
+import {
+  BootstrapConfigPanel,
+  formatApprovalStateText,
+} from "./BootstrapConfigPanel";
 import { ErrorPanel } from "./ErrorPanel";
 import {
   SignalSnapshotRefreshMeta,
@@ -41,6 +46,13 @@ export function BootstrapDashboard({
   const leasePackage = bootstrapSession?.data;
   const signalSnapshot = driverSession?.data?.signalSnapshot;
   const hasRuntimeError = Boolean(bootstrapSession?.error || driverSession?.error);
+  const bootstrapConfigEditable = Boolean(
+    bootstrapSession?.data?.bootstrapConfigEditable,
+  );
+  const bootstrapConfigApprovalState =
+    bootstrapSession?.data?.bootstrapConfigApprovalState ?? "unavailable";
+  const bootstrapConfigFormId = "bootstrap-config-panel-form";
+  const [configSaving, setConfigSaving] = useState(false);
 
   return (
     <Row className="bootstrap-dashboard" gutter={[12, 12]}>
@@ -152,7 +164,7 @@ export function BootstrapDashboard({
           />
         </StatusBlock>
       </Col>
-      <Col className="bootstrap-dashboard__error-panel" span={24} lg={7}>
+      <Col className="bootstrap-dashboard__right-column" span={24} lg={7}>
         <StatusBlock
           title="错误面板"
           status={hasRuntimeError ? "error" : undefined}
@@ -160,6 +172,39 @@ export function BootstrapDashboard({
           <ErrorPanel
             bootstrapError={bootstrapSession?.error}
             driverError={driverSession?.error}
+          />
+        </StatusBlock>
+        <StatusBlock
+          extra={
+            bootstrapConfigEditable ? (
+              <Button
+                className="bootstrap-config-panel__header-action"
+                form={bootstrapConfigFormId}
+                htmlType="submit"
+                loading={configSaving}
+                size="small"
+                type="primary"
+              >
+                保存配置
+              </Button>
+            ) : (
+              <Alert
+                className="bootstrap-config-panel__header-alert"
+                showIcon
+                title={formatApprovalStateText(bootstrapConfigApprovalState)}
+                type="info"
+              />
+            )
+          }
+          title="启动配置"
+        >
+          <BootstrapConfigPanel
+            config={config}
+            formId={bootstrapConfigFormId}
+            bootstrapConfigEditable={bootstrapConfigEditable}
+            bootstrapConfigApprovalState={bootstrapConfigApprovalState}
+            onSavingChange={setConfigSaving}
+            onSaved={() => bootstrapSession?.retry?.() ?? Promise.resolve()}
           />
         </StatusBlock>
       </Col>

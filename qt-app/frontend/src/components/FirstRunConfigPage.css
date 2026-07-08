@@ -1,0 +1,29 @@
+/**
+ * @file FirstRunConfigPage.css - 定义首次启动配置页样式。
+ * @author PopoY
+ * @created 2026-07-08
+ * @brief 使用全视口 blocking layout（阻塞布局）承载 bootstrap config（启动配置）表单。
+ */
+
+.first-run-config-page {
+  box-sizing: border-box;
+  display: grid;
+  align-items: center;
+  min-height: 100vh;
+  overflow: auto;
+  background: color-mix(in srgb, currentColor 3%, transparent);
+  padding: 24px;
+}
+
+.first-run-config-page__panel {
+  width: min(920px, 100%);
+  justify-self: center;
+}
+
+.first-run-config-page__intro.ant-typography {
+  margin-bottom: 12px;
+}
+
+.first-run-config-page__alert {
+  margin-bottom: 12px;
+}

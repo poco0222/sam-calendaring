@@ -74,6 +74,154 @@ describe("BootstrapDashboard", () => {
   });
 
   /**
+   * @brief 启动仪表盘右侧同时显示 ErrorPanel（错误面板）和 BootstrapConfigPanel（启动配置面板）。
+   * @author PopoY
+   */
+  it("renders error panel and bootstrap config panel in the right column", () => {
+    const html = renderDashboard(
+      <BootstrapDashboard
+        bootstrapSession={{
+          status: "success",
+          config: {
+            stationAccountId: "station-account-01",
+            granteeHostId: "host-01",
+            stationId: "station-01",
+            erpBaseUrl: "http://127.0.0.1:8080",
+            driverBaseUrl: "http://127.0.0.1:5000",
+            configVersion: "v1",
+          },
+          data: {
+            sessionToken: "secret-session-token",
+            stationContext: {
+              stationAccountId: "station-account-01",
+              stationId: "station-01",
+              granteeHostId: "host-01",
+            },
+            defaultDeviceScope: {
+              deviceIds: ["device-01"],
+            },
+            businessContext: {},
+            signedLease: {
+              leaseId: "lease-01",
+              targetDeviceId: "device-01",
+            },
+            signalConfig: {
+              signals: [{ name: "ready", address: 100 }],
+            },
+            bootstrapConfigEditable: false,
+            bootstrapConfigApprovalState: "readonly",
+          },
+          error: null,
+          retry: async () => {},
+        }}
+      />,
+    );
+
+    expect(html).toContain("错误面板");
+    expect(html).toContain("启动配置");
+    expect(html).toContain("配置修改未授权或开关不可用");
+    expect(html).not.toContain("secret-session-token");
+    expect(html).not.toContain("lease-01");
+    expect(html).not.toContain("signalConfig");
+  });
+
+  /**
+   * @brief 断言 readonly notice（只读提示）放在启动配置 Card header（卡片标题区），不侵占 Form（表单）。
+   * @author PopoY
+   */
+  it("renders readonly config notice in the startup config card header", () => {
+    const html = renderDashboard(
+      <BootstrapDashboard
+        bootstrapSession={{
+          status: "success",
+          config: {
+            stationAccountId: "station-account-01",
+            granteeHostId: "host-01",
+            stationId: "station-01",
+            erpBaseUrl: "http://127.0.0.1:8080",
+            driverBaseUrl: "http://127.0.0.1:5000",
+            configVersion: "v1",
+          },
+          data: {
+            sessionToken: "secret-session-token",
+            stationContext: {
+              stationAccountId: "station-account-01",
+              stationId: "station-01",
+              granteeHostId: "host-01",
+            },
+            defaultDeviceScope: { deviceIds: ["device-01"] },
+            businessContext: {},
+            signedLease: {
+              leaseId: "lease-01",
+              targetDeviceId: "device-01",
+            },
+            signalConfig: { signals: [{ name: "ready", address: 100 }] },
+            bootstrapConfigEditable: false,
+            bootstrapConfigApprovalState: "readonly",
+          },
+          error: null,
+          retry: async () => {},
+        }}
+      />,
+    );
+    const titleIndex = html.indexOf("启动配置");
+    const noticeIndex = html.indexOf("配置修改未授权或开关不可用", titleIndex);
+    const formPanelIndex = html.indexOf("aria-label=\"启动配置\"", titleIndex);
+
+    expect(titleIndex).toBeGreaterThanOrEqual(0);
+    expect(noticeIndex).toBeGreaterThan(titleIndex);
+    expect(formPanelIndex).toBeGreaterThan(noticeIndex);
+  });
+
+  /**
+   * @brief 断言 editable action（可编辑动作）放在启动配置 Card header（卡片标题区），不在 Form（表单）内占位。
+   * @author PopoY
+   */
+  it("renders startup config save action in the card header when editable", () => {
+    const html = renderDashboard(
+      <BootstrapDashboard
+        bootstrapSession={{
+          status: "success",
+          config: {
+            stationAccountId: "station-account-01",
+            granteeHostId: "host-01",
+            stationId: "station-01",
+            erpBaseUrl: "http://127.0.0.1:8080",
+            driverBaseUrl: "http://127.0.0.1:5000",
+            configVersion: "v1",
+          },
+          data: {
+            sessionToken: "secret-session-token",
+            stationContext: {
+              stationAccountId: "station-account-01",
+              stationId: "station-01",
+              granteeHostId: "host-01",
+            },
+            defaultDeviceScope: { deviceIds: ["device-01"] },
+            businessContext: {},
+            signedLease: {
+              leaseId: "lease-01",
+              targetDeviceId: "device-01",
+            },
+            signalConfig: { signals: [{ name: "ready", address: 100 }] },
+            bootstrapConfigEditable: true,
+            bootstrapConfigApprovalState: "editable",
+          },
+          error: null,
+          retry: async () => {},
+        }}
+      />,
+    );
+    const titleIndex = html.indexOf("启动配置");
+    const saveIndex = html.indexOf("保存配置", titleIndex);
+    const formPanelIndex = html.indexOf("aria-label=\"启动配置\"", titleIndex);
+
+    expect(titleIndex).toBeGreaterThanOrEqual(0);
+    expect(saveIndex).toBeGreaterThan(titleIndex);
+    expect(formPanelIndex).toBeGreaterThan(saveIndex);
+  });
+
+  /**
    * @brief 断言 ERP failure（ERP 失败）渲染中文业务文案，不泄露 raw runtime message（原始运行时消息）。
    * @author PopoY
    */
@@ -116,6 +264,8 @@ describe("BootstrapDashboard", () => {
             configVersion: "v1",
           },
           data: {
+            bootstrapConfigEditable: false,
+            bootstrapConfigApprovalState: "readonly",
             sessionToken: "secret-session-token",
             stationContext: {
               stationAccountId: "station-account-01",
@@ -154,8 +304,13 @@ describe("BootstrapDashboard", () => {
     expect(html).toContain("已获取");
     expect(html).not.toContain("aria-label=\"驱动服务状态\"");
 
+    expect(html).toContain("启动配置");
+    expect(html).toContain("工位账号 ID");
+    expect(html).toContain("station-account-01");
+    expect(html).toContain("工位/设备 ID");
+    expect(html).toContain("ERP 服务地址");
+    expect(html).toContain("驱动服务地址");
     expect(html).not.toContain("工位 ID");
-    expect(html).not.toContain("工位账号 ID");
     expect(html).not.toContain("登录方式");
     expect(html).not.toContain("工控机免登录");
     expect(html).not.toContain("登录结果");
@@ -207,6 +362,7 @@ describe("BootstrapDashboard", () => {
           },
           retry: async () => {},
           refreshSnapshot: async () => {},
+          applySignalSnapshotEvent: () => {},
         }}
       />,
     );
@@ -242,6 +398,7 @@ describe("BootstrapDashboard", () => {
           error: null,
           retry: async () => {},
           refreshSnapshot: async () => {},
+          applySignalSnapshotEvent: () => {},
         }}
       />,
     );
@@ -331,12 +488,35 @@ describe("BootstrapDashboard", () => {
     expect(dashboardCss).toContain(".bootstrap-dashboard > .ant-col:nth-child(3)");
     expect(dashboardCss).toContain("grid-column: 9 / 18");
     expect(dashboardCss).toContain(".bootstrap-dashboard__snapshot-panel {\n  grid-column: 1 / 18");
-    expect(dashboardCss).toContain(".bootstrap-dashboard__error-panel {\n  grid-column: 18 / -1");
+    expect(dashboardCss).toContain(".bootstrap-dashboard__right-column {\n  grid-column: 18 / -1");
     expect(dashboardCss).toContain("grid-row: 2 / 4");
+    expect(dashboardCss).toContain("display: grid");
+    expect(dashboardCss).toContain(
+      "grid-template-rows: minmax(0, 0.44fr) minmax(220px, 0.56fr)",
+    );
     expect(dashboardCss).toContain(".bootstrap-dashboard__snapshot-panel > .ant-card");
-    expect(dashboardCss).toContain(".bootstrap-dashboard__error-panel > .ant-card");
+    expect(dashboardCss).toContain(".bootstrap-dashboard__right-column > .ant-card");
+    expect(dashboardCss).toContain(
+      ".bootstrap-dashboard__right-column > .ant-card > .ant-card-body",
+    );
     expect(dashboardCss).toContain("height: 100%");
     expect(dashboardCss).not.toContain("overflow: auto");
+  });
+
+  /**
+   * @brief 断言 right column（右侧列）在 720px IPC（工控机）视口内为启动配置保留首屏高度。
+   * @author PopoY
+   */
+  it("keeps the bootstrap config panel visible in the 720px IPC viewport", () => {
+    expect(dashboardCss).toContain(
+      "grid-template-rows: minmax(0, 0.44fr) minmax(220px, 0.56fr)",
+    );
+    expect(dashboardCss).toContain(".bootstrap-dashboard__right-column > .ant-card {");
+    expect(dashboardCss).toContain("overflow: hidden");
+    expect(dashboardCss).toContain(
+      ".bootstrap-dashboard__right-column > .ant-card > .ant-card-body",
+    );
+    expect(dashboardCss).not.toContain("flex: 0 0 auto");
   });
 
   /**

@@ -17,7 +17,8 @@
 
 namespace {
 /**
- * @brief Keep one bootstrap field expectation together with its settings key.
+ * @brief 维护 bootstrap config（启动配置）字段、QSettings（Qt 配置存储）key（键）和预期值。
+ * @author PopoY
  */
 struct ConfigExpectation {
     std::string_view fieldName;
@@ -35,17 +36,19 @@ constexpr ConfigExpectation kExpectations[] = {
 };
 
 /**
- * @brief Create a unique application scope so the spec never touches user settings.
- * @return Unique application name for the isolated settings scope.
+ * @brief 创建独立 application scope（应用作用域），避免测试写入用户真实配置。
+ * @author PopoY
+ * @return 独立 QSettings（Qt 配置存储）应用名。
  */
 QString buildUniqueApplicationName() {
     return QStringLiteral("config-bridge-spec-%1").arg(QCoreApplication::applicationPid());
 }
 
 /**
- * @brief Print one assertion failure and stop the spec with a non-zero exit code.
- * @param message Human-readable failure detail.
- * @return Process exit code for the failing spec.
+ * @brief 输出断言失败信息，并用非零 exit code（退出码）结束 spec（规格测试）。
+ * @author PopoY
+ * @param message 中文或中英混合的失败详情。
+ * @return 失败 spec（规格测试）的进程退出码。
  */
 int failSpec(const QString &message) {
     std::cerr << message.toStdString() << std::endl;
@@ -54,10 +57,11 @@ int failSpec(const QString &message) {
 }  // namespace
 
 /**
- * @brief Execute the minimal config bridge spec without QTest.
- * @param argc Process argument count.
- * @param argv Process argument values.
- * @return EXIT_SUCCESS when every bootstrap field round-trips correctly.
+ * @brief 执行不依赖 QTest（Qt 测试框架）的最小 config bridge（配置桥）spec（规格测试）。
+ * @author PopoY
+ * @param argc process argument count（进程参数数量）。
+ * @param argv process argument values（进程参数值）。
+ * @return 六个 bootstrap config（启动配置）字段读写正确时返回 EXIT_SUCCESS（成功退出码）。
  */
 int main(int argc, char *argv[]) {
     QCoreApplication app(argc, argv);
@@ -77,7 +81,7 @@ int main(int argc, char *argv[]) {
     {
         QSettings bootstrapSettings;
 
-        // PopoY: write every bootstrap key into an isolated temp scope before reading through the bridge.
+        // PopoY: 先把 bootstrap key（启动配置键）写入隔离临时作用域，再通过 bridge（桥）读取。
         for (const ConfigExpectation &expectation : kExpectations) {
             bootstrapSettings.setValue(QString::fromUtf8(expectation.settingsKey.data()),
                                        QString::fromUtf8(expectation.expectedValue.data()));
@@ -102,6 +106,41 @@ int main(int argc, char *argv[]) {
             return failSpec(QStringLiteral("field %1 expected %2 but got %3")
                                 .arg(fieldName, expectedValue, actualValue));
         }
+    }
+
+    /**
+     * @brief 验证 saveBootstrapConfig（保存启动配置）只写入六个白名单字段。
+     * @author PopoY
+     */
+    const QVariantMap input{
+        {QStringLiteral("stationAccountId"), QStringLiteral("station-new")},
+        {QStringLiteral("granteeHostId"), QStringLiteral("host-new")},
+        {QStringLiteral("stationId"), QStringLiteral("station-id-new")},
+        {QStringLiteral("erpBaseUrl"), QStringLiteral("https://erp-new.example.test")},
+        {QStringLiteral("driverBaseUrl"), QStringLiteral("https://driver-new.example.test")},
+        {QStringLiteral("configVersion"), QStringLiteral("2026.07.08")},
+        {QStringLiteral("sessionToken"), QStringLiteral("must-not-be-saved")},
+    };
+    const QVariantMap saveResult = bridge.saveBootstrapConfig(input);
+
+    if (!saveResult.value(QStringLiteral("ok")).toBool()) {
+        return failSpec(saveResult.value(QStringLiteral("errorMessage")).toString());
+    }
+
+    const QVariantMap savedConfig = bridge.readBootstrapConfig();
+    for (const ConfigExpectation &expectation : kExpectations) {
+        const QString fieldName = QString::fromUtf8(expectation.fieldName.data());
+        const QString expectedValue = input.value(fieldName).toString();
+        const QString actualValue = savedConfig.value(fieldName).toString();
+
+        if (actualValue != expectedValue) {
+            return failSpec(QStringLiteral("%1 was not saved").arg(fieldName));
+        }
+    }
+
+    QSettings savedSettings;
+    if (savedSettings.contains(QStringLiteral("bootstrap/sessionToken"))) {
+        return failSpec(QStringLiteral("sessionToken must not be saved"));
     }
 
     return EXIT_SUCCESS;

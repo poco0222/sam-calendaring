@@ -30,6 +30,8 @@ const sampleConfig: NativeBootstrapConfig = {
 };
 
 const sampleBootstrapSession: BootstrapSession = {
+  bootstrapConfigEditable: false,
+  bootstrapConfigApprovalState: "readonly",
   sessionToken: "erp-session-token",
   stationContext: {
     stationAccountId: "station-a",
@@ -63,8 +65,9 @@ const sampleBootstrapSession: BootstrapSession = {
 };
 
 /**
- * @brief Build a static dashboard HTML snapshot for checklist assertions.
- * @returns Server-rendered HTML string for the bootstrap dashboard.
+ * @brief 构建 checklist assertions（验收断言）使用的 static dashboard HTML（静态仪表盘 HTML）快照。
+ * @author PopoY
+ * @returns bootstrap dashboard（启动仪表盘）的 server-rendered HTML（服务端渲染 HTML）字符串。
  */
 function renderDashboard(): string {
   const dashboardProps: BootstrapDashboardProps = {
@@ -99,6 +102,7 @@ function renderDashboard(): string {
       error: null,
       retry: async () => {},
       refreshSnapshot: async () => {},
+      applySignalSnapshotEvent: () => {},
     },
   };
   const DashboardComponent = BootstrapDashboard as ComponentType<BootstrapDashboardProps>;
@@ -114,7 +118,8 @@ function renderDashboard(): string {
 
 describe("Task7 acceptance checklist", () => {
   /**
-   * @brief Assert that the bootstrap dashboard does not fall back to a password login page.
+   * @brief 断言 bootstrap dashboard（启动仪表盘）不会回退到 password login page（密码登录页）。
+   * @author PopoY
    */
   it("does not render a password login page", () => {
     const html = renderDashboard();
@@ -125,8 +130,9 @@ describe("Task7 acceptance checklist", () => {
   });
 
   /**
-   * @brief Assert that missing native config blocks the composed flow before ERP requests start.
-   * @returns Promise resolved when the ConfigInvalid state is asserted.
+   * @brief 断言缺失 native config（原生配置）会在 ERP requests（ERP 请求）开始前阻断组合流程。
+   * @author PopoY
+   * @returns ConfigInvalid state（配置无效状态）断言完成后 resolved（完成）的 Promise（承诺）。
    */
   it("stops the flow when required config is missing", async () => {
     const loadBootstrapSessionSpy = vi.fn();
@@ -146,8 +152,9 @@ describe("Task7 acceptance checklist", () => {
   });
 
   /**
-   * @brief Assert that an ERP login failure short-circuits the lease request.
-   * @returns Promise resolved when the single-call ERP assertion completes.
+   * @brief 断言 ERP login failure（ERP 登录失败）会 short-circuit（短路）lease request（租约请求）。
+   * @author PopoY
+   * @returns 单次 ERP call（ERP 调用）断言完成后 resolved（完成）的 Promise（承诺）。
    */
   it("stops the lease fetch after login failure", async () => {
     const postJson = vi.fn().mockRejectedValueOnce(new Error("401"));
@@ -160,8 +167,9 @@ describe("Task7 acceptance checklist", () => {
   });
 
   /**
-   * @brief Assert that the composed flow never exposes ERP deviceConnectionInfo fields.
-   * @returns Promise resolved when the narrowed bootstrap session shape is asserted.
+   * @brief 断言 composed flow（组合流程）不会暴露 ERP deviceConnectionInfo（设备连接信息）字段。
+   * @author PopoY
+   * @returns narrowed bootstrap session shape（收窄后的启动会话结构）断言完成后 resolved（完成）的 Promise（承诺）。
    */
   it("ignores ERP deviceConnectionInfo fields", async () => {
     const postJson = vi
@@ -217,6 +225,8 @@ describe("Task7 acceptance checklist", () => {
       businessContext: {
         shiftCode: "A",
       },
+      bootstrapConfigEditable: false,
+      bootstrapConfigApprovalState: "unavailable",
       parameterGroupOptions: [],
       pressMoldWorkTypeOptions: [],
       signalConfig: {
@@ -235,8 +245,9 @@ describe("Task7 acceptance checklist", () => {
   });
 
   /**
-   * @brief Assert that an invalid lease stops the composed flow before snapshot retrieval starts.
-   * @returns Promise resolved when the DriverRejected state and snapshot short-circuit are asserted.
+   * @brief 断言 invalid lease（无效租约）会在 snapshot retrieval（快照获取）开始前停止组合流程。
+   * @author PopoY
+   * @returns DriverRejected state（驱动拒绝状态）和 snapshot short-circuit（快照短路）断言完成后的 Promise（承诺）。
    */
   it("stops before snapshot when the driver rejects the lease", async () => {
     const getSignalSnapshotSpy = vi.fn();
@@ -261,7 +272,8 @@ describe("Task7 acceptance checklist", () => {
   });
 
   /**
-   * @brief Assert that a successful bootstrap renders the first signal snapshot in the dashboard.
+   * @brief 断言 successful bootstrap（启动成功）会在 dashboard（仪表盘）渲染首个 signal snapshot（信号快照）。
+   * @author PopoY
    */
   it("renders the first signal snapshot after a successful bootstrap", () => {
     const html = renderDashboard();
@@ -272,7 +284,8 @@ describe("Task7 acceptance checklist", () => {
   });
 
   /**
-   * @brief Assert that driver apply requests never expose raw endpoint override fields.
+   * @brief 断言 driver apply requests（驱动应用请求）不会暴露 raw endpoint override fields（原始端点覆盖字段）。
+   * @author PopoY
    */
   it("does not allow raw ip, port, or deviceId overrides", () => {
     const request = buildApplyLeaseRequest({

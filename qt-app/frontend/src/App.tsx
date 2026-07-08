@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQtAppThemeMode, type QtAppThemeMode } from "./app/AntdRootProvider";
 import { BootstrapDashboard } from "./components/BootstrapDashboard";
 import { DiagnosticLogsPage } from "./components/DiagnosticLogsPage";
+import { FirstRunConfigPage } from "./components/FirstRunConfigPage";
 import { PressJobPage } from "./components/PressJobPage";
 import type {
   PressJobFilterState,
@@ -38,6 +39,11 @@ import {
   type UseDriverSessionResult,
 } from "./hooks/useDriverSession";
 import {
+  REQUIRED_BOOTSTRAP_CONFIG_FIELDS,
+  readMissingBootstrapConfigFields,
+  type RequiredBootstrapConfigField,
+} from "./services/bootstrapFlow";
+import {
   fetchPressLockedMolds,
   fetchPressJobCurrentJobs,
   fetchPressJobTeamOptions,
@@ -60,6 +66,7 @@ import {
 } from "./services/driverClient";
 import { subscribeDriverDeviceEvents } from "./services/driverDeviceEventsClient";
 import { logDiagnostic } from "./services/logging";
+import type { NativeBootstrapConfig } from "./types/native";
 import "./App.css";
 
 type AppView = "dashboard" | "diagnostics" | "pressJob";
@@ -471,6 +478,26 @@ export default function App() {
   const deviceSession = formatAppShellDisplayValue(
     driverSession.data?.applyResult?.deviceSessionState,
   );
+  // @author PopoY: 所有 Hooks（钩子）已完成后再 gate（门控）首启页，避免违反 React Hooks rules（规则）。
+  const firstRunConfig =
+    bootstrapSession.config ?? readBootstrapConfigFromError(bootstrapSession.error);
+  const missingFieldsFromConfig = firstRunConfig
+    ? readMissingBootstrapConfigFields(firstRunConfig)
+    : [];
+  const missingConfigFields =
+    missingFieldsFromConfig.length > 0
+      ? missingFieldsFromConfig
+      : readBootstrapErrorMissingFields(bootstrapSession.error);
+
+  if (firstRunConfig && missingConfigFields.length > 0) {
+    return (
+      <FirstRunConfigPage
+        initialConfig={firstRunConfig}
+        missingFields={missingConfigFields}
+        onSaved={bootstrapSession.retry}
+      />
+    );
+  }
 
   return (
     <main className={`qt-app-shell qt-app-shell--${currentView}`}>
@@ -561,6 +588,95 @@ export default function App() {
 }
 
 /**
+ * @brief 从 CONFIG_INVALID（配置无效）错误读取 missingFields（缺失字段）。
+ * @author PopoY
+ * @param error bootstrap session（启动会话）捕获的未知错误。
+ * @returns 有效字段名数组；错误结构不匹配时返回空数组。
+ */
+function readBootstrapErrorMissingFields(
+  error: unknown,
+): RequiredBootstrapConfigField[] {
+  if (!isBootstrapConfigInvalidError(error)) {
+    return [];
+  }
+
+  const missingFields = error.missingFields;
+
+  if (!Array.isArray(missingFields)) {
+    return [];
+  }
+
+  return missingFields.filter(isRequiredBootstrapConfigField);
+}
+
+/**
+ * @brief 从 CONFIG_INVALID（配置无效）错误读取可预填的 native config（原生配置）。
+ * @author PopoY
+ * @param error bootstrap session（启动会话）捕获的未知错误。
+ * @returns 完整 native config（原生配置）或 null。
+ */
+function readBootstrapConfigFromError(
+  error: unknown,
+): NativeBootstrapConfig | null {
+  if (!isBootstrapConfigInvalidError(error)) {
+    return null;
+  }
+
+  const config = error.config;
+
+  return isNativeBootstrapConfig(config) ? config : null;
+}
+
+/**
+ * @brief 判断 unknown（未知错误）是否为 CONFIG_INVALID（配置无效）错误。
+ * @author PopoY
+ * @param error bootstrap session（启动会话）捕获的未知错误。
+ * @returns code（错误码）严格等于 CONFIG_INVALID 时返回 true。
+ */
+function isBootstrapConfigInvalidError(error: unknown): error is {
+  code: "CONFIG_INVALID";
+  config?: unknown;
+  missingFields?: unknown;
+} {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { code?: unknown }).code === "CONFIG_INVALID"
+  );
+}
+
+/**
+ * @brief 校验 required field（必填字段）是否属于 bootstrap config（启动配置）白名单。
+ * @author PopoY
+ * @param value 待校验字段名。
+ * @returns 属于六个启动配置字段时返回 true。
+ */
+function isRequiredBootstrapConfigField(
+  value: unknown,
+): value is RequiredBootstrapConfigField {
+  return (
+    typeof value === "string" &&
+    REQUIRED_BOOTSTRAP_CONFIG_FIELDS.includes(value as RequiredBootstrapConfigField)
+  );
+}
+
+/**
+ * @brief 校验 unknown（未知值）是否为完整 native bootstrap config（原生启动配置）。
+ * @author PopoY
+ * @param value 待校验的 unknown（未知值）。
+ * @returns 六个 bootstrap config（启动配置）字段均为 string（字符串）时返回 true。
+ */
+function isNativeBootstrapConfig(value: unknown): value is NativeBootstrapConfig {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  return REQUIRED_BOOTSTRAP_CONFIG_FIELDS.every(
+    (fieldName) => typeof (value as Record<string, unknown>)[fieldName] === "string",
+  );
+}
+
+/**
  * @brief 处理 Driver event（驱动事件），先应用 signal snapshot（信号快照）再保留 pressDownCount monitor（下压计数监测）链路。
  * @author PopoY
  * @param input Driver event（驱动事件）处理所需的回调和去重状态。
@@ -583,9 +699,11 @@ export function handleDriverDeviceEvent(input: {
     recordPressJobParameters: input.recordPressJobParameters,
     recordedStartParameterKeys: input.recordedStartParameterKeys,
     stationAccountId: input.stationAccountId,
-  }).catch(() => {
-    // @author PopoY: handlePressParameterThresholdReached（下压计数处理）已写安全 diagnostic（诊断），这里避免 SSE callback（事件回调）泄露 unhandled rejection（未处理拒绝）。
-  });
+  })
+    .then(() => undefined)
+    .catch(() => {
+      // @author PopoY: handlePressParameterThresholdReached（下压计数处理）已写安全 diagnostic（诊断），这里避免 SSE callback（事件回调）泄露 unhandled rejection（未处理拒绝）。
+    });
 }
 
 /**

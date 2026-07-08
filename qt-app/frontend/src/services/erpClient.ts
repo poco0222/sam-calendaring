@@ -52,6 +52,8 @@ const PRESS_JOB_DEVICE_TYPE = "0";
 const PRESS_JOB_TEAM_OPTIONS_PATH = `/fm/pline/getPlnListByDept2/${PRESS_JOB_TEAM_DEPT_ID}`;
 const PRESS_JOB_CURRENT_USER_PATH = "/rel/qtrel/getQtUserInfo";
 const PRESS_JOB_CURRENT_JOBS_PATH = "/modbus/device/getPressJobByHandleIp";
+const BOOTSTRAP_CONFIG_APPROVAL_PATH =
+  "/system/config/configKey/approve.press.config";
 const PRESS_MOLD_CANDIDATES_PATH = "/api/qt/press-working/mold-candidates";
 const PRESS_MOLD_INFO_ROWS_PATH = "/api/qt/press-working/mold-info-rows";
 const PRESS_MOLD_LOCKS_PATH = "/api/qt/press-working/mold-locks";
@@ -111,11 +113,31 @@ export type ErpJsonRequestOptions = {
 };
 
 /**
+ * @brief 表示 bootstrap config approval（启动配置审批）读取后的编辑状态。
+ * @author PopoY
+ */
+export type BootstrapConfigApprovalState =
+  | "editable"
+  | "readonly"
+  | "unavailable";
+
+/**
+ * @brief 封装 dashboard config panel（仪表盘配置面板）需要的审批结果。
+ * @author PopoY
+ */
+export type BootstrapConfigApproval = {
+  bootstrapConfigEditable: boolean;
+  bootstrapConfigApprovalState: BootstrapConfigApprovalState;
+};
+
+/**
  * @brief Combine the ERP login payload with the lease package required by later bootstrap tasks.
  * @author PopoY
  */
 export type BootstrapSession = AutoLoginResponse &
   LeasePackage & {
+    bootstrapConfigEditable: boolean;
+    bootstrapConfigApprovalState: BootstrapConfigApprovalState;
     parameterGroupOptions?: ParameterGroupOption[];
     pressMoldWorkTypeOptions?: ErpDictOption[];
     pressMoldCraftOptions?: ErpDictOption[];
@@ -491,6 +513,51 @@ export async function fetchPressMoldOperatorOptions(
 }
 
 /**
+ * @brief 读取 ERP config key（ERP 配置键），false 表示关闭审批并允许编辑启动配置。
+ * @author PopoY
+ * @param readJson 现有 GET JSON（GET 请求）辅助函数。
+ * @param input ERP base URL（基础地址）和 sessionToken（会话令牌）。
+ * @returns 可编辑状态；失败由调用方降级为 unavailable（不可用）。
+ */
+export async function fetchBootstrapConfigApproval(
+  readJson: GetJson,
+  input: FetchPressJobLookupDataInput,
+): Promise<BootstrapConfigApproval> {
+  const response = await readJson<unknown>(
+    buildErpUrl(input.erpBaseUrl, BOOTSTRAP_CONFIG_APPROVAL_PATH),
+    input.sessionToken,
+  );
+  const configValue = readBootstrapConfigApprovalValue(response);
+  const editable = String(configValue ?? "").trim() === "false";
+
+  return {
+    bootstrapConfigEditable: editable,
+    bootstrapConfigApprovalState: editable ? "editable" : "readonly",
+  };
+}
+
+/**
+ * @brief 读取 approve.press.config 的真实值，兼容 RuoYi AjaxResult（若依统一响应）String overload（字符串重载）。
+ * @author PopoY
+ * @param response ERP config key（配置键）接口的原始响应。
+ * @returns config value（配置值），非 AjaxResult（统一响应）时返回原值。
+ */
+function readBootstrapConfigApprovalValue(response: unknown): unknown {
+  const responseRecord = readRecord(response);
+
+  if (!responseRecord || !("code" in responseRecord)) {
+    return response;
+  }
+
+  if (responseRecord.code !== 200) {
+    throw new Error(readAjaxResultMessage(responseRecord));
+  }
+
+  // PopoY: String config value（字符串配置值）在 RuoYi AjaxResult.success(String) 中会进入 msg（消息）字段。
+  return "data" in responseRecord ? responseRecord.data : responseRecord.msg;
+}
+
+/**
  * @brief Fetch sam-erp press job lookup data（压机作业查询数据）for first-screen team/operator/process display.
  * @author PopoY
  * @param readJson JSON GET helper used by production and tests.
@@ -858,6 +925,18 @@ export async function loadBootstrapSession(
     stationId: config.stationId,
     granteeHostId: config.granteeHostId,
   });
+  const bootstrapConfigApproval: BootstrapConfigApproval = readJson
+    ? await fetchBootstrapConfigApproval(readJson, {
+        erpBaseUrl: config.erpBaseUrl,
+        sessionToken: loginSession.sessionToken,
+      }).catch(() => ({
+        bootstrapConfigEditable: false,
+        bootstrapConfigApprovalState: "unavailable",
+      }))
+    : {
+        bootstrapConfigEditable: false,
+        bootstrapConfigApprovalState: "unavailable",
+      };
   const parameterGroupOptions = readJson
     ? await fetchParameterGroupOptions(readJson, {
         erpBaseUrl: config.erpBaseUrl,
@@ -902,6 +981,7 @@ export async function loadBootstrapSession(
   return {
     ...loginSession,
     ...leasePackage,
+    ...bootstrapConfigApproval,
     parameterGroupOptions,
     pressMoldWorkTypeOptions,
     ...(readJson
