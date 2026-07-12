@@ -1,0 +1,9 @@
+{
+  // @file VS Code workspace extensions（工作区扩展推荐）
+  // @author PopoY
+  // @created 2026-07-12
+  // @brief 注册 Qt C++ debug adapter（调试适配器）所需的官方扩展。
+  "recommendations": [
+    "ms-vscode.cpptools"
+  ]
+}

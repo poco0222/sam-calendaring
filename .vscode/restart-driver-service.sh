@@ -8,17 +8,21 @@
 set -eu
 set -o pipefail
 
-readonly DRIVER_DLL="/Users/PopoY/workingFiles/Projects/SAM/sam-calendaring/driver-service/src/Sam.Calendaring.DriverService/bin/Debug/net10.0/Sam.Calendaring.DriverService.dll"
-readonly START_SCRIPT="/Users/PopoY/.local/bin/sam-calendaring-driver-start.sh"
-readonly LAUNCH_AGENT_PLIST="/Users/PopoY/Library/LaunchAgents/com.popoy.sam-calendaring-driver.plist"
+readonly WORKSPACE_ROOT="${0:A:h:h}"
+readonly DRIVER_DLL="${WORKSPACE_ROOT}/driver-service/src/Sam.Calendaring.DriverService/bin/Debug/net10.0/Sam.Calendaring.DriverService.dll"
+readonly START_SCRIPT="${0:A:h}/start-driver-service.sh"
 readonly LAUNCH_AGENT_LABEL="com.popoy.sam-calendaring-driver"
 readonly HEALTH_URL="http://127.0.0.1:5096/health"
 readonly STDOUT_LOG="/tmp/sam-calendaring-driver.log"
 readonly STDERR_LOG="/tmp/sam-calendaring-driver.err.log"
 
-# PopoY: LaunchAgent（用户级服务）保留为手动启动器；plist 已关闭 RunAtLoad（加载即运行）和 KeepAlive（保活）。
-launchctl enable "gui/$(id -u)/${LAUNCH_AGENT_LABEL}" >/dev/null 2>&1 || true
-launchctl bootout "gui/$(id -u)" "${LAUNCH_AGENT_PLIST}" >/dev/null 2>&1 || true
+if [[ ! -x "${START_SCRIPT}" ]]; then
+  echo "Driver Service 启动脚本不存在或不可执行: ${START_SCRIPT}" >&2
+  exit 1
+fi
+
+# PopoY: 清理上一次 ad-hoc launchd job（临时服务任务），无需依赖用户目录下的外部 plist（服务配置）。
+launchctl remove "${LAUNCH_AGENT_LABEL}" >/dev/null 2>&1 || true
 
 # PopoY: 只结束当前 Driver Service（驱动服务）进程，不碰其他 dotnet（.NET 运行时）服务或无关 port（端口）。
 existing_pids="$(pgrep -f "${DRIVER_DLL}" || true)"
@@ -41,8 +45,11 @@ if [[ -n "${remaining_pids}" ]]; then
 fi
 
 # PopoY: 由 launchd（macOS 服务管理器）托管进程，避免 VS Code task（任务）退出时带走后台进程。
-launchctl bootstrap "gui/$(id -u)" "${LAUNCH_AGENT_PLIST}"
-launchctl kickstart -k "gui/$(id -u)/${LAUNCH_AGENT_LABEL}"
+launchctl submit \
+  -l "${LAUNCH_AGENT_LABEL}" \
+  -o "${STDOUT_LOG}" \
+  -e "${STDERR_LOG}" \
+  -- "${START_SCRIPT}"
 
 # PopoY: 等待 health check（健康检查）成功，防止 Qt App（Qt 应用）先于驱动可用状态启动。
 for _ in {1..40}; do

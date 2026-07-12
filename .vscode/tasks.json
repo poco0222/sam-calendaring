@@ -17,7 +17,7 @@
     {
       "label": "native: configure",
       "type": "process",
-      "command": "/Users/PopoY/Qt/6.10.2/macos/bin/qt-cmake",
+      "command": "/Users/popoy/WorkSpace/DevTools/Qt/Tools/CMake/CMake.app/Contents/bin/cmake",
       "args": [
         "-S",
         ".",
@@ -26,7 +26,9 @@
         "-G",
         "Ninja",
         "-D",
-        "CMAKE_MAKE_PROGRAM=/Users/PopoY/Qt/Tools/Ninja/ninja"
+        "CMAKE_PREFIX_PATH=/Users/popoy/WorkSpace/DevTools/Qt/6.10.2/macos",
+        "-D",
+        "CMAKE_MAKE_PROGRAM=/Users/popoy/WorkSpace/DevTools/Qt/Tools/Ninja/ninja"
       ],
       "options": {
         "cwd": "${workspaceFolder}/qt-app/native"
@@ -36,7 +38,7 @@
     {
       "label": "native: build",
       "type": "process",
-      "command": "/Users/PopoY/Qt/6.10.2/macos/bin/qt-cmake",
+      "command": "/Users/popoy/WorkSpace/DevTools/Qt/Tools/CMake/CMake.app/Contents/bin/cmake",
       "args": [
         "--build",
         "build"

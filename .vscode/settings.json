@@ -1,3 +1,10 @@
 {
-    "cmake.sourceDirectory": "/Users/PopoY/workingFiles/Projects/SAM/sam-calendaring/qt-app/native"
+  "cmake.sourceDirectory": "${workspaceFolder}/qt-app/native",
+  "cmake.buildDirectory": "${workspaceFolder}/qt-app/native/build",
+  "cmake.cmakePath": "/Users/popoy/WorkSpace/DevTools/Qt/Tools/CMake/CMake.app/Contents/bin/cmake",
+  "cmake.generator": "Ninja",
+  "cmake.configureSettings": {
+    "CMAKE_PREFIX_PATH": "/Users/popoy/WorkSpace/DevTools/Qt/6.10.2/macos",
+    "CMAKE_MAKE_PROGRAM": "/Users/popoy/WorkSpace/DevTools/Qt/Tools/Ninja/ninja"
+  }
 }

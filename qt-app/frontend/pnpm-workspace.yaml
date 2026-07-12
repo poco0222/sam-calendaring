@@ -1,2 +1,7 @@
+# @file pnpm dependency build policy（依赖构建策略）
+# @author PopoY
+# @created 2026-07-12
+# @brief 仅允许 Vite（前端构建工具）必需的 esbuild 安装脚本。
+
 allowBuilds:
-  esbuild: set this to true or false
+  esbuild: true
