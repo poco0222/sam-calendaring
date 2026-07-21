@@ -2499,7 +2499,7 @@ export function PressJobPage({
             dataSource={currentJobRows}
             locale={{ emptyText: "暂无当前作业" }}
             pagination={false}
-            rowKey="localJobSessionId"
+            rowKey={resolvePlannedDurationDraftKey}
             size="small"
           />
         </div>

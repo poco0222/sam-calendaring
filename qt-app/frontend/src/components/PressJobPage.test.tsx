@@ -2016,6 +2016,23 @@ describe("PressJobPage", () => {
   });
 
   /**
+   * @brief 断言当前作业 Table（表格）实际复用稳定的预计时长 draft key（草稿键）作为 React row key（行键）。
+   * @author PopoY
+   */
+  it("uses stable planned duration draft keys for current job table rows", () => {
+    const currentJobTableSource = extractSourceBetween(
+      pageSource,
+      "<Table<PressJobCurrentJobRow>",
+      "/>",
+    );
+
+    expect(currentJobTableSource).toContain(
+      "rowKey={resolvePlannedDurationDraftKey}",
+    );
+    expect(currentJobTableSource).not.toContain('rowKey="localJobSessionId"');
+  });
+
+  /**
    * @brief 断言旧 refresh effect（刷新副作用）不能消费保存后才登记的未激活 marker（标记）。
    * @author PopoY
    */
