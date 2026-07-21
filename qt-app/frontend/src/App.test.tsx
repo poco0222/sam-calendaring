@@ -12,13 +12,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AntdRootProvider } from "./app/AntdRootProvider";
 import App, {
+  applySavedPressJobExpectedDuration,
   createPressJobPageDriverSession,
   handleDriverDeviceEvent,
   handlePressParameterThresholdReached,
+  refreshLatestPressJobCurrentRows,
 } from "./App";
 import { BootstrapDashboard } from "./components/BootstrapDashboard";
 import { PressJobPage } from "./components/PressJobPage";
 import type { PressDeviceEvent } from "./domain/driver";
+import type { PressJobCurrentJobRow } from "./domain/pressJob";
 import type { UseBootstrapSessionResult } from "./hooks/useBootstrapSession";
 import {
   applySignalSnapshotEventToData,
@@ -123,6 +126,23 @@ function extractLastSourceBetween(
   return startIndex >= 0 && endIndex > startIndex
     ? source.slice(startIndex, endIndex)
     : "";
+}
+
+/**
+ * @brief 创建可手动完成的 Promise（异步结果），稳定复现 GET/PUT 乱序。
+ * @author PopoY
+ * @returns 可读取 promise（异步结果）并主动 resolve（完成）的测试控制器。
+ */
+function createDeferred<T>(): {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+} {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((nextResolve) => {
+    resolve = nextResolve;
+  });
+
+  return { promise, resolve };
 }
 
 /**
@@ -327,7 +347,7 @@ describe("App Shell", () => {
     expect(appSource).toContain("submitPressMoldLock(postErpJson");
     expect(appSource).toContain("const refreshPressJobCurrentJobs = useCallback");
     expect(appSource).toContain("fetchPressJobCurrentJobs(getJson");
-    expect(appSource).toContain("setPressJobCurrentRows(nextRows)");
+    expect(appSource).toContain("refreshLatestPressJobCurrentRows(");
     expect(appSource).toContain("const recordPressMoldLockDiagnostic = useCallback");
     expect(appSource).toContain("sessionToken: bootstrapSession.data.sessionToken");
     expect(appSource).toContain("moldNo: input.moldNo");
@@ -345,6 +365,98 @@ describe("App Shell", () => {
     );
     expect(refreshCallbackSource).not.toContain("bootstrapSession.retry");
     expect(refreshCallbackSource).not.toContain("applyLeaseAndConfig");
+  });
+
+  /**
+   * @brief 保存成功后使旧 GET 失效并同步 App 行；随后新 GET 仍可接管最新 ERP 值。
+   * @author PopoY
+   */
+  it("does not let an old current-jobs GET overwrite a saved expected duration", async () => {
+    const requestVersionRef = { current: 0 };
+    const oldGet = createDeferred<PressJobCurrentJobRow[]>();
+    let currentRows: PressJobCurrentJobRow[] = [
+      {
+        localJobSessionId: "press-job-row-0",
+        pressJobId: 101,
+        plannedDurationHours: "1",
+      },
+    ];
+    const setRows = (
+      update: (rows: PressJobCurrentJobRow[]) => PressJobCurrentJobRow[],
+    ) => {
+      currentRows = update(currentRows);
+    };
+    const oldRefresh = refreshLatestPressJobCurrentRows(
+      requestVersionRef,
+      () => oldGet.promise,
+      (nextRows) => {
+        currentRows = nextRows;
+      },
+    );
+    const updateExpectedDuration = vi.fn().mockResolvedValue(undefined);
+
+    await updateExpectedDuration({ id: 101, expectedDuration: "3" });
+    applySavedPressJobExpectedDuration(requestVersionRef, setRows, {
+      id: 101,
+      expectedDuration: "3",
+    });
+
+    expect(currentRows[0]?.plannedDurationHours).toBe("3");
+
+    const oldRows: PressJobCurrentJobRow[] = [
+      {
+        localJobSessionId: "press-job-row-0",
+        pressJobId: 101,
+        plannedDurationHours: "1",
+      },
+    ];
+    oldGet.resolve(oldRows);
+    await expect(oldRefresh).resolves.toBe(oldRows);
+    expect(currentRows[0]?.plannedDurationHours).toBe("3");
+
+    const latestRows: PressJobCurrentJobRow[] = [
+      {
+        localJobSessionId: "press-job-row-0",
+        pressJobId: 101,
+        plannedDurationHours: "4",
+      },
+    ];
+    await refreshLatestPressJobCurrentRows(
+      requestVersionRef,
+      async () => latestRows,
+      (nextRows) => {
+        currentRows = nextRows;
+      },
+    );
+
+    expect(currentRows).toBe(latestRows);
+    expect(updateExpectedDuration).toHaveBeenCalledOnce();
+  });
+
+  /**
+   * @brief App refresh（刷新）与预计时长更新必须共享同一个 request version ref（请求版本引用）。
+   * @author PopoY
+   */
+  it("wires current-job refresh and expected-duration update to one version ref", () => {
+    const bootstrapRowsSyncSource = extractSourceBetween(
+      appSource,
+      "const diagnosticStationAccountId",
+      "PressJobPage（压机作业页）只接收脱敏",
+    );
+    const callbacksSource = extractSourceBetween(
+      appSource,
+      "const refreshPressJobCurrentJobs",
+      "const pressJobExpectedDurationProps",
+    );
+
+    expect(bootstrapRowsSyncSource).toContain(
+      "pressJobCurrentRowsRefreshVersionRef.current += 1",
+    );
+    expect(callbacksSource).toContain("refreshLatestPressJobCurrentRows(");
+    expect(callbacksSource).toContain("applySavedPressJobExpectedDuration(");
+    expect(
+      callbacksSource.match(/pressJobCurrentRowsRefreshVersionRef/g),
+    ).toHaveLength(3);
   });
 
   /**

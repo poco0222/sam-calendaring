@@ -103,6 +103,7 @@ export default function App() {
   const [pressJobCurrentRows, setPressJobCurrentRows] = useState<
     PressJobCurrentJobRow[]
   >([]);
+  const pressJobCurrentRowsRefreshVersionRef = useRef(0);
   // @author PopoY: 将压机筛选状态放在 App Shell（应用外壳），避免页面切换卸载后丢失。
   const [pressJobFilters, setPressJobFilters] = useState<PressJobFilterState>({});
   const { themeMode, setThemeMode } = useQtAppThemeMode();
@@ -128,7 +129,9 @@ export default function App() {
     bootstrapSession.data?.stationContext.stationAccountId ??
     bootstrapSession.config?.stationAccountId ??
     UNKNOWN_STATION_ACCOUNT_ID;
+  // @author PopoY: bootstrap rows（启动行）接管状态时失效旧会话仍 pending（等待中）的 current jobs GET。
   useEffect(() => {
+    pressJobCurrentRowsRefreshVersionRef.current += 1;
     setPressJobCurrentRows(bootstrapSession.data?.pressJobCurrentJobs ?? []);
   }, [bootstrapSession.data?.pressJobCurrentJobs]);
   // @author PopoY: PressJobPage（压机作业页）只接收脱敏 bootstrap view model（启动视图模型）。
@@ -265,18 +268,24 @@ export default function App() {
     [bootstrapSession.config, bootstrapSession.data],
   );
   const refreshPressJobCurrentJobs = useCallback(async () => {
-    if (!bootstrapSession.config || !bootstrapSession.data) {
+    const config = bootstrapSession.config;
+    const data = bootstrapSession.data;
+
+    if (!config || !data) {
+      pressJobCurrentRowsRefreshVersionRef.current += 1;
       setPressJobCurrentRows([]);
       return [];
     }
 
-    const nextRows = await fetchPressJobCurrentJobs(getJson, {
-      erpBaseUrl: bootstrapSession.config.erpBaseUrl,
-      sessionToken: bootstrapSession.data.sessionToken,
-    });
-
-    setPressJobCurrentRows(nextRows);
-    return nextRows;
+    return refreshLatestPressJobCurrentRows(
+      pressJobCurrentRowsRefreshVersionRef,
+      () =>
+        fetchPressJobCurrentJobs(getJson, {
+          erpBaseUrl: config.erpBaseUrl,
+          sessionToken: data.sessionToken,
+        }),
+      setPressJobCurrentRows,
+    );
   }, [bootstrapSession.config, bootstrapSession.data]);
   // @author PopoY: UI request（界面请求）只含业务字段，sessionToken（会话令牌）由 App 闭包补入认证 header（请求头）。
   const updatePressJobExpectedDuration = useCallback(
@@ -285,11 +294,16 @@ export default function App() {
         throw new Error("预计时长更新前启动会话未就绪。");
       }
 
-      return submitPressJobExpectedDuration({
+      await submitPressJobExpectedDuration({
         erpBaseUrl: bootstrapSession.config.erpBaseUrl,
         sessionToken: bootstrapSession.data.sessionToken,
         request,
       });
+      applySavedPressJobExpectedDuration(
+        pressJobCurrentRowsRefreshVersionRef,
+        setPressJobCurrentRows,
+        request,
+      );
     },
     [bootstrapSession.config, bootstrapSession.data],
   );
@@ -604,6 +618,65 @@ export default function App() {
       </section>
     </main>
   );
+}
+
+/**
+ * @brief 仅允许最新 current jobs GET（当前作业读取）覆盖 App 行状态。
+ * @author PopoY
+ * @param requestVersionRef App 持有的单调请求版本引用。
+ * @param loadRows 执行一次 ERP current jobs GET（当前作业读取）。
+ * @param applyRows 将最新响应写入 App 行状态。
+ * @returns 本次 GET 返回的行；陈旧响应仍返回给调用者但不写入状态。
+ */
+export async function refreshLatestPressJobCurrentRows(
+  requestVersionRef: { current: number },
+  loadRows: () => Promise<PressJobCurrentJobRow[]>,
+  applyRows: (rows: PressJobCurrentJobRow[]) => void,
+): Promise<PressJobCurrentJobRow[]> {
+  const requestVersion = ++requestVersionRef.current;
+  const rows = await loadRows();
+
+  if (requestVersion === requestVersionRef.current) {
+    applyRows(rows);
+  }
+
+  return rows;
+}
+
+/**
+ * @brief 按 ERP pressJobId（压机作业 ID）同步已保存的预计时长。
+ * @author PopoY
+ * @param rows App 当前作业行。
+ * @param request 已成功提交的预计时长白名单请求。
+ * @returns 仅目标作业预计时长被替换的新行数组。
+ */
+export function replacePressJobExpectedDuration(
+  rows: PressJobCurrentJobRow[],
+  request: PressJobExpectedDurationUpdateRequest,
+): PressJobCurrentJobRow[] {
+  return rows.map((row) =>
+    row.pressJobId === request.id
+      ? { ...row, plannedDurationHours: request.expectedDuration }
+      : row,
+  );
+}
+
+/**
+ * @brief PUT（更新）成功后使旧 GET 失效，并把保存值同步为 App source of truth（应用真值来源）。
+ * @author PopoY
+ * @param requestVersionRef refresh（刷新）与更新共享的请求版本引用。
+ * @param applyRows React rows state（行状态）更新入口。
+ * @param request 已成功提交的预计时长请求。
+ */
+export function applySavedPressJobExpectedDuration(
+  requestVersionRef: { current: number },
+  applyRows: (
+    update: (rows: PressJobCurrentJobRow[]) => PressJobCurrentJobRow[],
+  ) => void,
+  request: PressJobExpectedDurationUpdateRequest,
+): void {
+  requestVersionRef.current += 1;
+  applyRows((rows) => replacePressJobExpectedDuration(rows, request));
 }
 
 /**
