@@ -53,7 +53,9 @@ output/
 # Agent tool state（代理工具状态）；保留 .impeccable/design.json（设计系统快照）
 .superpowers/
 .impeccable/live/
-.codegraph
+.codegraph/
+.comet/
+openspec/
 
 # Runtime data（运行时数据）和 local database（本地数据库）
 *.db
