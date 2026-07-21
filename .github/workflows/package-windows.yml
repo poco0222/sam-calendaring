@@ -2,7 +2,7 @@
 # @author PopoY
 # @created 2026-07-08
 # @editor PopoY
-# @edited 2026-07-21 14:49:21
+# @edited 2026-07-21 15:45:09
 # @purpose 在 GitHub Actions（自动化流水线）中打包 QT App（Qt 应用）和 Driver Service（驱动服务）的 Win10 x64 executable（可执行文件）。
 
 name: Package Windows exe
@@ -28,7 +28,7 @@ env:
 jobs:
   package-windows:
     name: Package Win10 x64 executable（打包 Win10 x64 可执行文件）
-    runs-on: windows-latest
+    runs-on: windows-2022
     timeout-minutes: 45
 
     steps:
@@ -59,7 +59,7 @@ jobs:
           host: windows
           target: desktop
           arch: ${{ env.QT_ARCH }}
-          modules: qtwebengine qtwebchannel
+          modules: qtwebengine qtwebchannel qtpositioning
           cache: 'true'
 
       - name: Prepare package directory（准备打包目录）
@@ -96,10 +96,10 @@ jobs:
         working-directory: qt-app/native
         shell: cmd
         run: |
-          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-          cmake --build build
-          ctest --test-dir build --output-on-failure
+          call "%ProgramFiles%\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" || exit /b 1
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release || exit /b 1
+          cmake --build build || exit /b 1
+          ctest --test-dir build --output-on-failure || exit /b 1
 
       - name: Deploy QT App runtime（部署 Qt 应用运行时）
         shell: pwsh
