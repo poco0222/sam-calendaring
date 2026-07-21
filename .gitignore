@@ -1,6 +1,8 @@
 # @file Git ignore（Git 忽略规则）
 # @author PopoY
 # @created 2026-07-08
+# @editor PopoY
+# @edited 2026-07-21 15:02:56
 # @purpose 忽略本地 dependency（依赖）、build output（构建产物）、log（日志）和 secret（敏感配置）。
 
 # OS（操作系统）本地文件
@@ -53,9 +55,8 @@ output/
 # Agent tool state（代理工具状态）；保留 .impeccable/design.json（设计系统快照）
 .superpowers/
 .impeccable/live/
-.codegraph/
-.comet/
-openspec/
+.codegraph
+.comet/current-change.json
 
 # Runtime data（运行时数据）和 local database（本地数据库）
 *.db
