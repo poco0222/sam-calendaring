@@ -1,5 +1,6 @@
 {
   "openspec_proposal": "openspec/changes/fix-windows-package-pnpm-setup/proposal.md",
   "openspec_design": "openspec/changes/fix-windows-package-pnpm-setup/design.md",
-  "openspec_tasks": "openspec/changes/fix-windows-package-pnpm-setup/tasks.md"
+  "openspec_tasks": "openspec/changes/fix-windows-package-pnpm-setup/tasks.md",
+  "archive_directory": "openspec/changes/archive/2026-07-21-fix-windows-package-pnpm-setup"
 }
