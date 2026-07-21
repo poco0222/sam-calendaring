@@ -38,6 +38,7 @@ import type {
   PressJobCompleteRequest,
   PressJobCompleteResult,
   PressJobCurrentJobRow,
+  PressJobExpectedDurationUpdateRequest,
   PressJobLookupData,
   PressJobOperatorOption,
   PressJobParameterRecordRequest,
@@ -146,6 +147,9 @@ export type PressJobPageProps = {
   filterState?: PressJobFilterState;
   loadPressJobTeamOptions?: (teamId: string) => Promise<PressJobTeamOptions>;
   onFilterStateChange?: (nextFilterState: PressJobFilterStateChange) => void;
+  updatePressJobExpectedDuration?: (
+    request: PressJobExpectedDurationUpdateRequest,
+  ) => Promise<void>;
   searchPressMoldCandidates?: (input: {
     moldNo: string;
     lockedMoldNos: string[];
@@ -475,6 +479,7 @@ export function PressJobPage({
   searchPressMoldCandidates,
   searchPressMoldInfoRows,
   unlockPressMolds,
+  updatePressJobExpectedDuration,
   updatePressMachineStatus,
 }: PressJobPageProps = {}) {
   const { message: messageApi, modal } = AntdApp.useApp();
@@ -489,6 +494,9 @@ export function PressJobPage({
   const [plannedDurationDrafts, setPlannedDurationDrafts] = useState<
     Record<string, string>
   >({});
+  const [savingPlannedDurationRowId, setSavingPlannedDurationRowId] = useState<
+    string | null
+  >(null);
   const [activePlannedDurationRowId, setActivePlannedDurationRowId] = useState<
     string | null
   >(null);
@@ -548,6 +556,7 @@ export function PressJobPage({
   const pendingSelectedMoldNoRef = useRef<string | null>(null);
   const signalSnapshot = driverSession?.data?.signalSnapshot;
   const signalValues = signalSnapshot?.signalValues ?? null;
+  const pressJobLineStatus = resolvePressJobLineStatus(signalValues);
   const currentJobRows =
     injectedCurrentJobRows ??
     bootstrapSession?.data?.pressJobCurrentJobs ?? EMPTY_CURRENT_JOB_ROWS;
@@ -1014,29 +1023,30 @@ export function PressJobPage({
   };
 
   /**
-   * @brief 关闭 NumericKeypad（数字键盘）前提交预计时长 draft（草稿）的展示规整。
+   * @brief 隐藏预计时长 NumericKeypad（数字键盘）并释放 input focus（输入焦点）。
+   * @author PopoY
+   */
+  const finishPlannedDurationKeypad = () => {
+    const plannedDurationInput = activePlannedDurationInputRef.current;
+
+    activePlannedDurationInputRef.current = null;
+    setActivePlannedDurationRowId(null);
+    setPlannedDurationKeypadPosition(null);
+    plannedDurationInput?.blur();
+  };
+
+  /**
+   * @brief 关闭 NumericKeypad（数字键盘）并丢弃当前未确认 draft（草稿）。
    * @author PopoY
    */
   const closePlannedDurationKeypad = () => {
     if (activePlannedDurationRowId) {
-      setPlannedDurationDrafts((currentDrafts) => {
-        const currentDraft = currentDrafts[activePlannedDurationRowId];
-
-        if (currentDraft === undefined) {
-          return currentDrafts;
-        }
-
-        return {
-          ...currentDrafts,
-          [activePlannedDurationRowId]: commitPlannedDurationInput(currentDraft),
-        };
-      });
+      setPlannedDurationDrafts((currentDrafts) =>
+        discardPlannedDurationDraft(currentDrafts, activePlannedDurationRowId),
+      );
     }
 
-    setActivePlannedDurationRowId(null);
-    setPlannedDurationKeypadPosition(null);
-    activePlannedDurationInputRef.current?.blur();
-    activePlannedDurationInputRef.current = null;
+    finishPlannedDurationKeypad();
   };
 
   /**
@@ -1044,7 +1054,9 @@ export function PressJobPage({
    * @author PopoY
    */
   const handlePlannedDurationBlur = () => {
-    closePlannedDurationKeypad();
+    if (activePlannedDurationInputRef.current) {
+      closePlannedDurationKeypad();
+    }
   };
 
   /**
@@ -1076,6 +1088,53 @@ export function PressJobPage({
   const activePlannedDurationValue = activePlannedDurationRow
     ? getPlannedDurationValue(activePlannedDurationRow)
     : "";
+
+  /**
+   * @brief 确认预计时长，先规整并校验，再按 pressJobId（压机作业 ID）决定保存 ERP 或保留本地值。
+   * @author PopoY
+   */
+  const confirmPlannedDurationInput = async () => {
+    if (!activePlannedDurationRow) {
+      return;
+    }
+
+    const isSaving =
+      savingPlannedDurationRowId === activePlannedDurationRow.localJobSessionId;
+    if (!isSaving) {
+      setSavingPlannedDurationRowId(activePlannedDurationRow.localJobSessionId);
+    }
+
+    const result = await savePressJobExpectedDuration({
+      isSaving,
+      row: activePlannedDurationRow,
+      updatePressJobExpectedDuration,
+      value: getPlannedDurationValue(activePlannedDurationRow),
+    });
+    if (result.status === "pending") {
+      return;
+    }
+
+    setSavingPlannedDurationRowId(null);
+    setPlannedDurationDrafts((currentDrafts) => ({
+      ...currentDrafts,
+      [activePlannedDurationRow.localJobSessionId]: result.expectedDuration,
+    }));
+
+    if (result.status === "invalid") {
+      messageApi.warning("请输入正整数或一位小数的预计时长。");
+      return;
+    }
+
+    if (result.status === "local") {
+      messageApi.info("预计时长将在开始加工时提交。");
+    } else if (result.status === "saved") {
+      messageApi.success("预计时长保存成功");
+    } else if (result.status === "failed") {
+      messageApi.error("预计时长保存失败，请重试。");
+    }
+
+    finishPlannedDurationKeypad();
+  };
 
   /**
    * @brief 更新单行 mold info（模具明细）的工艺选择，只写本地 Table（表格）状态。
@@ -1159,8 +1218,8 @@ export function PressJobPage({
       title: "当前状态",
       dataIndex: "status",
       width: 120,
-      render: (status: PressJobCurrentJobRow["status"]) => (
-        <Tag>{formatPressJobStatusText(status)}</Tag>
+      render: () => (
+        <Tag color={pressJobLineStatus.color}>{pressJobLineStatus.text}</Tag>
       ),
     },
   ];
@@ -2309,7 +2368,7 @@ export function PressJobPage({
         </Space>
         <div className="press-job-page__status">
           <Typography.Text strong>当前状态：</Typography.Text>
-          <Tag>未启动</Tag>
+          <Tag color={pressJobLineStatus.color}>{pressJobLineStatus.text}</Tag>
         </div>
       </section>
 
@@ -2545,7 +2604,7 @@ export function PressJobPage({
         <NumericKeypad
           onChange={handlePlannedDurationKeypadChange}
           onClose={closePlannedDurationKeypad}
-          onConfirm={closePlannedDurationKeypad}
+          onConfirm={confirmPlannedDurationInput}
           style={plannedDurationKeypadPosition}
           value={activePlannedDurationValue}
         />
@@ -4976,6 +5035,81 @@ export function commitPlannedDurationInput(value: string): string {
 }
 
 /**
+ * @brief 执行预计时长保存的最小业务逻辑，返回页面可直接消费的安全结果。
+ * @author PopoY
+ * @param input 当前行、输入值、请求状态和 ERP 更新回调。
+ * @returns 规整后的展示值与保存状态。
+ */
+export async function savePressJobExpectedDuration(input: {
+  isSaving: boolean;
+  row: PressJobCurrentJobRow;
+  updatePressJobExpectedDuration?: (
+    request: PressJobExpectedDurationUpdateRequest,
+  ) => Promise<void>;
+  value: string;
+}): Promise<{
+  expectedDuration: string;
+  status: "failed" | "invalid" | "local" | "pending" | "saved";
+}> {
+  const expectedDuration = commitPlannedDurationInput(input.value);
+
+  if (input.isSaving) {
+    return { expectedDuration, status: "pending" };
+  }
+
+  if (!isValidExpectedDuration(expectedDuration)) {
+    return { expectedDuration, status: "invalid" };
+  }
+
+  if (input.row.pressJobId === undefined) {
+    return { expectedDuration, status: "local" };
+  }
+
+  if (!input.updatePressJobExpectedDuration) {
+    return {
+      expectedDuration: formatCurrentJobCell(
+        input.row.plannedDurationHours,
+        "",
+      ),
+      status: "failed",
+    };
+  }
+
+  try {
+    await input.updatePressJobExpectedDuration({
+      id: input.row.pressJobId,
+      expectedDuration,
+    });
+    return { expectedDuration, status: "saved" };
+  } catch {
+    return {
+      expectedDuration: formatCurrentJobCell(
+        input.row.plannedDurationHours,
+        "",
+      ),
+      status: "failed",
+    };
+  }
+}
+
+/**
+ * @brief 丢弃单行预计时长 draft（草稿），保留其他作业行编辑值。
+ * @author PopoY
+ * @param drafts 当前预计时长草稿映射。
+ * @param rowId 需要丢弃草稿的当前作业行 ID。
+ * @returns 删除目标行后的新草稿映射。
+ */
+export function discardPlannedDurationDraft(
+  drafts: Record<string, string>,
+  rowId: string,
+): Record<string, string> {
+  const nextDrafts = { ...drafts };
+
+  delete nextDrafts[rowId];
+  return nextDrafts;
+}
+
+/**
  * @brief 根据触发 input（输入框）位置计算 NumericKeypad（数字键盘）fixed position（固定定位）。
  * @author PopoY
  * @param triggerRect 触发输入框的 viewport rect（视口矩形）。
@@ -5008,22 +5142,57 @@ export function resolveNumericKeypadPosition(
 }
 
 /**
- * @brief 按 sam-erp 状态码展示 Current Job（当前作业）中文状态。
+ * @brief 从 Driver snapshot（驱动快照）解析是否出线状态，未知值保持中性避免误报。
  * @author PopoY
- * @param status ERP 返回的作业状态码。
- * @returns 中文状态文本。
+ * @param signalValues scalar（标量）或带 metadata（元数据）的信号映射。
+ * @returns 操作区和当前作业表共用的状态文案与 Tag color（标签颜色）。
  */
-function formatPressJobStatusText(status: string | undefined): string {
-  const statusTextMap: Record<string, string> = {
-    "0": "待开始",
-    "1": "进行中",
-    "2": "暂停",
-    "3": "完成",
-    "4": "终止",
-    "9": "维修中",
-  };
+export function resolvePressJobLineStatus(
+  signalValues?: Record<string, unknown> | null,
+): { color?: "error" | "success"; text: "已出线" | "已入线" | "未知" } {
+  let value = signalValues?.["是否出线"];
 
-  return status ? statusTextMap[status] ?? status : "未启动";
+  if (value === undefined && signalValues) {
+    for (const candidate of Object.values(signalValues)) {
+      if (
+        !candidate ||
+        typeof candidate !== "object" ||
+        Array.isArray(candidate)
+      ) {
+        continue;
+      }
+
+      const signal = candidate as Record<string, unknown>;
+      if (
+        signal.signalName === "是否出线" ||
+        signal.name === "是否出线" ||
+        signal.semanticKey === "是否出线"
+      ) {
+        value = signal.value;
+        break;
+      }
+    }
+  }
+
+  if (
+    value === false ||
+    value === 0 ||
+    (typeof value === "string" &&
+      ["0", "false"].includes(value.trim().toLowerCase()))
+  ) {
+    return { color: "success", text: "已入线" };
+  }
+
+  if (
+    value === true ||
+    value === 1 ||
+    (typeof value === "string" &&
+      ["1", "true"].includes(value.trim().toLowerCase()))
+  ) {
+    return { color: "error", text: "已出线" };
+  }
+
+  return { text: "未知" };
 }
 
 /**

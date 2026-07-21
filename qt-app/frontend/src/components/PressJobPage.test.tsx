@@ -24,6 +24,7 @@ import {
   createPressMoldLockSelection,
   createPressMoldUnlockDiagnosticSummary,
   createPressMoldUnlockRequest,
+  discardPlannedDurationDraft,
   executePressJobLineOutWorkflow,
   executePressJobMoveOutWorkflow,
   executePressJobStartWorkflow,
@@ -44,6 +45,7 @@ import {
   resolveNumericKeypadPosition,
   resolveActivePressJobTeamOptions,
   runCompletePressJobWorkflow,
+  savePressJobExpectedDuration,
   submitPressMoldLockWithRefresh,
   submitPressMoldUnlockWithRefresh,
   validateCompletePressJobPreflight,
@@ -76,6 +78,41 @@ function renderPage(page = <PressJobPage />): string {
     <AntdRootProvider>
       {page}
     </AntdRootProvider>,
+  );
+}
+
+/**
+ * @brief 按指定 signalValues（信号值）渲染压机出入线状态，固定 ERP status（状态）以隔离实时信号语义。
+ * @author PopoY
+ * @param signalValues Driver snapshot（驱动快照）中的信号值。
+ * @returns server-rendered HTML（服务端渲染 HTML）。
+ */
+function renderPressJobLineStatus(
+  signalValues: Record<string, unknown>,
+): string {
+  return renderPage(
+    <PressJobPage
+      currentJobRows={[
+        {
+          localJobSessionId: "job-line-status",
+          plannedDurationHours: "2",
+          pressName: "压机 1",
+          status: "1",
+        },
+      ]}
+      driverSession={{
+        data: {
+          applyResult: null,
+          signalSnapshot: {
+            correlationId: "cid-line-status",
+            resultCode: "OK",
+            signalValues,
+          },
+        },
+        error: null,
+        status: "success",
+      }}
+    />,
   );
 }
 
@@ -652,7 +689,7 @@ describe("PressJobPage", () => {
     expect(html).toContain("aria-label=\"预计时长 一号压机\"");
     expect(html).toContain("1.0");
     expect(html).toContain("2026-06-30 08:00:00");
-    expect(html).toContain("进行中");
+    expect(html).toContain("未知");
     expect(html).not.toContain("暂无当前作业");
     expect(html).not.toContain("9001");
     expect(html).not.toContain("192.168");
@@ -1506,7 +1543,8 @@ describe("PressJobPage", () => {
     expect(pageSource).toContain("handlePlannedDurationKeypadChange");
     expect(pageSource).toContain("setActivePlannedDurationRowId(null)");
     expect(pageSource).toContain("activePlannedDurationInputRef");
-    expect(pageSource).toContain("activePlannedDurationInputRef.current?.blur()");
+    expect(pageSource).toContain("finishPlannedDurationKeypad");
+    expect(pageSource).toContain("plannedDurationInput?.blur()");
     expect(pageCss).toContain(".press-job-page__planned-duration-input");
     expect(pageCss).toContain("width: 88px");
     expect(pageCss).toContain("min-height: 28px");
@@ -1561,6 +1599,230 @@ describe("PressJobPage", () => {
     expect(commitPlannedDurationInput(".")).toBe("");
     expect(commitPlannedDurationInput("2.")).toBe("2");
     expect(commitPlannedDurationInput(".5")).toBe("0.5");
+  });
+
+  /**
+   * @brief 断言 scalar（标量）是否出线信号按明确布尔语义展示，操作区与表格保持一致。
+   * @author PopoY
+   */
+  it.each([
+    [false, "已入线", "success"],
+    [0, "已入线", "success"],
+    ["0", "已入线", "success"],
+    ["false", "已入线", "success"],
+    [true, "已出线", "error"],
+    [1, "已出线", "error"],
+    ["1", "已出线", "error"],
+    ["true", "已出线", "error"],
+  ])("renders line status value %j as %s", (value, statusText, color) => {
+    const html = renderPressJobLineStatus({ "是否出线": value });
+    const statusHtml = [
+      extractAriaSectionHtml(html, "压机作业操作区"),
+      extractAriaSectionHtml(html, "当前作业信息"),
+    ].join("\n");
+
+    expect(statusHtml.match(new RegExp(statusText, "g"))).toHaveLength(2);
+    expect(statusHtml.match(new RegExp(`ant-tag-${color}`, "g"))).toHaveLength(2);
+  });
+
+  /**
+   * @brief 断言 metadata（元数据）对象可通过三种名称字段定位是否出线信号，map key（映射键）可保持 signalCode（信号编码）。
+   * @author PopoY
+   */
+  it.each(["signalName", "name", "semanticKey"])(
+    "locates line status by object field %s",
+    (fieldName) => {
+      const html = renderPressJobLineStatus({
+        LINE_STATUS_CODE: {
+          [fieldName]: "是否出线",
+          signalCode: "LINE_STATUS_CODE",
+          value: true,
+        },
+      });
+      const statusHtml = [
+        extractAriaSectionHtml(html, "压机作业操作区"),
+        extractAriaSectionHtml(html, "当前作业信息"),
+      ].join("\n");
+
+      expect(statusHtml.match(/已出线/g)).toHaveLength(2);
+      expect(statusHtml.match(/ant-tag-error/g)).toHaveLength(2);
+    },
+  );
+
+  /**
+   * @brief 断言缺失或不可识别的是否出线信号保持 neutral（中性）未知状态，不回退 ERP status（状态）误报。
+   * @author PopoY
+   */
+  it.each([
+    {},
+    { "是否出线": "yes" },
+    { LINE_STATUS_CODE: { signalName: "其他信号", value: true } },
+  ])("renders unknown for missing or unrecognized line status %#", (signalValues) => {
+    const html = renderPressJobLineStatus(signalValues);
+    const statusHtml = [
+      extractAriaSectionHtml(html, "压机作业操作区"),
+      extractAriaSectionHtml(html, "当前作业信息"),
+    ].join("\n");
+
+    expect(statusHtml.match(/未知/g)).toHaveLength(2);
+    expect(statusHtml).not.toContain("已入线");
+    expect(statusHtml).not.toContain("已出线");
+    expect(statusHtml).not.toContain("ant-tag-success");
+    expect(statusHtml).not.toContain("ant-tag-error");
+  });
+
+  /**
+   * @brief 断言实时是否出线状态只替换展示，ERP status（状态）仍驱动既有流程判断与实际时长。
+   * @author PopoY
+   */
+  it("keeps ERP status for workflow guards and actual duration", () => {
+    const currentJobColumnsSource = extractSourceBetween(
+      pageSource,
+      "const currentJobColumns:",
+      "const moldInfoColumns:",
+    );
+
+    expect(pageSource).toContain("resolvePressJobLineStatus(signalValues)");
+    expect(currentJobColumnsSource).toContain(
+      "formatPressJobActualDurationHours(row.startedAt, Date.now(), row.status)",
+    );
+    expect(pageSource).toContain('row?.status?.trim() === "0"');
+    expect(pageSource).toContain('row?.status?.trim() === "1"');
+  });
+
+  /**
+   * @brief 断言 NumericKeypad（数字键盘）确认复用规整与校验，并按 pressJobId（压机作业 ID）保存或仅保留本地值。
+   * @author PopoY
+   */
+  it("saves normalized planned duration through the injected ERP callback", () => {
+    const plannedDurationSource = extractSourceBetween(
+      pageSource,
+      "function getPlannedDurationValue",
+      "const currentJobColumns:",
+    );
+
+    expect(pageSource).toContain("PressJobExpectedDurationUpdateRequest");
+    expect(pageSource).toContain("updatePressJobExpectedDuration?: (");
+    expect(plannedDurationSource).toContain("confirmPlannedDurationInput");
+    expect(pageSource).toContain(
+      "const expectedDuration = commitPlannedDurationInput(input.value)",
+    );
+    expect(plannedDurationSource).toContain(
+      "value: getPlannedDurationValue(activePlannedDurationRow)",
+    );
+    expect(plannedDurationSource).toContain("savePressJobExpectedDuration({");
+    expect(pageSource).toContain("isValidExpectedDuration(expectedDuration)");
+    expect(pageSource).toContain("input.row.pressJobId");
+    expect(pageSource).toContain("input.updatePressJobExpectedDuration({");
+    expect(pageSource).toContain("id: input.row.pressJobId");
+    expect(plannedDurationSource).toContain('messageApi.success("预计时长保存成功")');
+    expect(plannedDurationSource).toContain(
+      'messageApi.info("预计时长将在开始加工时提交。")',
+    );
+    expect(pageSource).toContain("onConfirm={confirmPlannedDurationInput}");
+  });
+
+  /**
+   * @brief 断言预计时长无效、保存失败、关闭草稿和重复确认均遵守最小安全边界。
+   * @author PopoY
+   */
+  it("guards invalid, failed, cancelled and duplicate planned duration saves", () => {
+    const plannedDurationSource = extractSourceBetween(
+      pageSource,
+      "function getPlannedDurationValue",
+      "const currentJobColumns:",
+    );
+
+    expect(plannedDurationSource).toContain("savingPlannedDurationRowId");
+    expect(plannedDurationSource).toContain("const isSaving =");
+    expect(plannedDurationSource).toContain('result.status === "pending"');
+    expect(plannedDurationSource).toContain(
+      'messageApi.warning("请输入正整数或一位小数的预计时长。")',
+    );
+    expect(pageSource).toContain("input.row.plannedDurationHours");
+    expect(plannedDurationSource).toContain(
+      'messageApi.error("预计时长保存失败，请重试。")',
+    );
+    expect(plannedDurationSource).toContain(
+      "discardPlannedDurationDraft(currentDrafts, activePlannedDurationRowId)",
+    );
+    expect(pageSource).toContain("onClose={closePlannedDurationKeypad}");
+  });
+
+  /**
+   * @brief 通过 executable logic（可执行逻辑）验证预计时长成功、失败、仅本地、无效和请求中边界。
+   * @author PopoY
+   */
+  it("executes planned duration save outcomes without duplicate ERP calls", async () => {
+    const updatePressJobExpectedDuration = vi.fn(async () => {});
+    const row = {
+      localJobSessionId: "job-duration-01",
+      plannedDurationHours: "1.5",
+      pressJobId: 17,
+    };
+
+    await expect(
+      savePressJobExpectedDuration({
+        isSaving: false,
+        row,
+        updatePressJobExpectedDuration,
+        value: "2.",
+      }),
+    ).resolves.toEqual({ expectedDuration: "2", status: "saved" });
+    expect(updatePressJobExpectedDuration).toHaveBeenCalledWith({
+      id: 17,
+      expectedDuration: "2",
+    });
+
+    updatePressJobExpectedDuration.mockRejectedValueOnce(new Error("ERP failed"));
+    await expect(
+      savePressJobExpectedDuration({
+        isSaving: false,
+        row,
+        updatePressJobExpectedDuration,
+        value: "3.5",
+      }),
+    ).resolves.toEqual({ expectedDuration: "1.5", status: "failed" });
+
+    updatePressJobExpectedDuration.mockClear();
+    await expect(
+      savePressJobExpectedDuration({
+        isSaving: false,
+        row: { ...row, pressJobId: undefined },
+        updatePressJobExpectedDuration,
+        value: ".5",
+      }),
+    ).resolves.toEqual({ expectedDuration: "0.5", status: "local" });
+    await expect(
+      savePressJobExpectedDuration({
+        isSaving: false,
+        row,
+        updatePressJobExpectedDuration,
+        value: "0",
+      }),
+    ).resolves.toEqual({ expectedDuration: "0", status: "invalid" });
+    await expect(
+      savePressJobExpectedDuration({
+        isSaving: true,
+        row,
+        updatePressJobExpectedDuration,
+        value: "4",
+      }),
+    ).resolves.toEqual({ expectedDuration: "4", status: "pending" });
+    expect(updatePressJobExpectedDuration).not.toHaveBeenCalled();
+  });
+
+  /**
+   * @brief 通过 executable logic（可执行逻辑）验证点击关闭只丢弃目标行草稿且不修改原对象。
+   * @author PopoY
+   */
+  it("discards only the active planned duration draft on close", () => {
+    const drafts = { "job-01": "2.5", "job-02": "3" };
+
+    expect(discardPlannedDurationDraft(drafts, "job-01")).toEqual({
+      "job-02": "3",
+    });
+    expect(drafts).toEqual({ "job-01": "2.5", "job-02": "3" });
   });
 
   /**
@@ -2523,7 +2785,7 @@ describe("PressJobPage", () => {
     expect(html).toContain("出线");
     expect(html.match(/press-job-page__action-icon/g)?.length ?? 0).toBe(8);
     expect(html).toContain("当前状态：");
-    expect(html).toContain("未启动");
+    expect(html).toContain("未知");
 
     expect(html).toContain("aria-label=\"当前作业信息\"");
     expect(html).toContain("压机");
