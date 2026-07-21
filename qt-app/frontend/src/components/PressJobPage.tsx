@@ -440,8 +440,13 @@ const NUMERIC_KEYPAD_TRIGGER_GAP = 8;
 
 type NumericKeypadTriggerRect = Pick<DOMRect, "bottom" | "left" | "top">;
 type NumericKeypadPosition = Pick<CSSProperties, "left" | "top">;
-type PlannedDurationEditBaseline = { hadDraft: boolean; value: string };
+type PlannedDurationEditBaseline = {
+  hadDraft: boolean;
+  value: string;
+  wasPersisted?: boolean;
+};
 type PlannedDurationSaveRequestRef = { current: object | null };
+type PlannedDurationCurrentRowsRef = { current: PressJobCurrentJobRow[] };
 type PressJobTourKey = "start" | "complete" | "unlock" | "lock";
 type PressJobTourStepGuard = () => string | null;
 type PressJobTourStep = TourStepProps & {
@@ -552,6 +557,8 @@ export function PressJobPage({
   const lockedMoldLoadVersionRef = useRef(0);
   const activePlannedDurationInputRef = useRef<HTMLInputElement | null>(null);
   const plannedDurationSaveRequestRef = useRef<object | null>(null);
+  const plannedDurationCurrentRowsRef = useRef<PressJobCurrentJobRow[]>([]);
+  const persistedPlannedDurationDraftKeysRef = useRef<Set<string>>(new Set());
   const plannedDurationEditBaselineRef = useRef<
     (PlannedDurationEditBaseline & { rowId: string }) | null
   >(null);
@@ -566,6 +573,7 @@ export function PressJobPage({
   const currentJobRows =
     injectedCurrentJobRows ??
     bootstrapSession?.data?.pressJobCurrentJobs ?? EMPTY_CURRENT_JOB_ROWS;
+  plannedDurationCurrentRowsRef.current = currentJobRows;
   const parameterGroupOptions =
     bootstrapSession?.data?.parameterGroupOptions ?? [];
   const pressMoldWorkTypeOptions =
@@ -988,8 +996,10 @@ export function PressJobPage({
    * @returns 预计时长输入框展示值。
    */
   function getPlannedDurationValue(row: PressJobCurrentJobRow): string {
+    const draftKey = resolvePlannedDurationDraftKey(row);
+
     return (
-      plannedDurationDrafts[row.localJobSessionId] ??
+      plannedDurationDrafts[draftKey] ??
       formatCurrentJobCell(row.plannedDurationHours, "")
     );
   }
@@ -997,24 +1007,24 @@ export function PressJobPage({
   /**
    * @brief 更新预计时长 draft（草稿），只保留数字和单个 decimal point（小数点）。
    * @author PopoY
-   * @param rowId 当前作业行 ID。
+   * @param draftKey 当前作业稳定 draft key（草稿键）。
    * @param nextValue 下一个输入值。
    */
-  const updatePlannedDurationDraft = (rowId: string, nextValue: string) => {
+  const updatePlannedDurationDraft = (draftKey: string, nextValue: string) => {
     setPlannedDurationDrafts((currentDrafts) => ({
       ...currentDrafts,
-      [rowId]: normalizePlannedDurationInput(nextValue),
+      [draftKey]: normalizePlannedDurationInput(nextValue),
     }));
   };
 
   /**
    * @brief 预计时长 input（输入框）聚焦时打开 NumericKeypad（数字键盘）。
    * @author PopoY
-   * @param rowId 当前作业行 ID。
+   * @param row 当前作业行。
    * @param inputElement 当前触发的 input（输入框）。
    */
   const handlePlannedDurationFocus = (
-    rowId: string,
+    row: PressJobCurrentJobRow,
     inputElement: HTMLInputElement,
   ) => {
     if (plannedDurationSaveRequestRef.current) {
@@ -1022,23 +1032,20 @@ export function PressJobPage({
       return;
     }
 
-    const row = currentJobRows.find(
-      (currentRow) => currentRow.localJobSessionId === rowId,
-    );
-    if (!row) {
-      return;
-    }
+    const draftKey = resolvePlannedDurationDraftKey(row);
+    const wasPersisted = persistedPlannedDurationDraftKeysRef.current.delete(draftKey);
 
     plannedDurationEditBaselineRef.current = {
       hadDraft: Object.prototype.hasOwnProperty.call(
         plannedDurationDrafts,
-        rowId,
+        draftKey,
       ),
-      rowId,
+      rowId: draftKey,
       value: getPlannedDurationValue(row),
+      wasPersisted,
     };
     activePlannedDurationInputRef.current = inputElement;
-    setActivePlannedDurationRowId(rowId);
+    setActivePlannedDurationRowId(draftKey);
     setPlannedDurationKeypadPosition(
       resolveNumericKeypadPosition(
         inputElement.getBoundingClientRect(),
@@ -1091,6 +1098,9 @@ export function PressJobPage({
           baseline?.rowId === rowId ? baseline : undefined,
         ),
       );
+      if (baseline?.rowId === rowId && baseline.wasPersisted) {
+        persistedPlannedDurationDraftKeysRef.current.add(rowId);
+      }
     }
 
     finishPlannedDurationKeypad(rowId, plannedDurationInput);
@@ -1109,11 +1119,14 @@ export function PressJobPage({
   /**
    * @brief 处理预计时长 input（输入框）原生输入。
    * @author PopoY
-   * @param rowId 当前作业行 ID。
+   * @param row 当前作业行。
    * @param nextValue 下一个输入值。
    */
-  const handlePlannedDurationInputChange = (rowId: string, nextValue: string) => {
-    updatePlannedDurationDraft(rowId, nextValue);
+  const handlePlannedDurationInputChange = (
+    row: PressJobCurrentJobRow,
+    nextValue: string,
+  ) => {
+    updatePlannedDurationDraft(resolvePlannedDurationDraftKey(row), nextValue);
   };
 
   /**
@@ -1130,7 +1143,8 @@ export function PressJobPage({
   };
 
   const activePlannedDurationRow = currentJobRows.find(
-    (row) => row.localJobSessionId === activePlannedDurationRowId,
+    (row) =>
+      resolvePlannedDurationDraftKey(row) === activePlannedDurationRowId,
   );
   const activePlannedDurationValue = activePlannedDurationRow
     ? getPlannedDurationValue(activePlannedDurationRow)
@@ -1146,7 +1160,7 @@ export function PressJobPage({
     }
 
     const row = activePlannedDurationRow;
-    const rowId = row.localJobSessionId;
+    const rowId = resolvePlannedDurationDraftKey(row);
     const plannedDurationInput = activePlannedDurationInputRef.current;
     const baseline = plannedDurationEditBaselineRef.current;
     const rowBaseline: PlannedDurationEditBaseline =
@@ -1160,17 +1174,32 @@ export function PressJobPage({
 
     const result = await savePressJobExpectedDuration({
       baseline: rowBaseline,
+      currentJobRowsRef: plannedDurationCurrentRowsRef,
       isSaving: false,
       requestRef: plannedDurationSaveRequestRef,
       row,
       updatePressJobExpectedDuration,
       value: getPlannedDurationValue(row),
     });
-    if (result.status === "pending" || result.status === "stale") {
+    if (result.status === "pending") {
+      return;
+    }
+
+    if (result.status === "stale") {
+      setSavingPlannedDurationRowId(null);
+      setPlannedDurationDrafts((currentDrafts) =>
+        discardPlannedDurationDraft(currentDrafts, rowId),
+      );
+      finishPlannedDurationKeypad(rowId, plannedDurationInput);
       return;
     }
 
     setSavingPlannedDurationRowId(null);
+    if (result.status === "saved") {
+      persistedPlannedDurationDraftKeysRef.current.add(rowId);
+    } else if (result.status === "failed" && rowBaseline.wasPersisted) {
+      persistedPlannedDurationDraftKeysRef.current.add(rowId);
+    }
     setPlannedDurationDrafts((currentDrafts) =>
       result.status === "failed"
         ? discardPlannedDurationDraft(
@@ -1241,10 +1270,10 @@ export function PressJobPage({
             inputMode="decimal"
             onBlur={handlePlannedDurationBlur}
             onChange={(event) =>
-              handlePlannedDurationInputChange(row.localJobSessionId, event.target.value)
+              handlePlannedDurationInputChange(row, event.target.value)
             }
             onFocus={(event) =>
-              handlePlannedDurationFocus(row.localJobSessionId, event.currentTarget)
+              handlePlannedDurationFocus(row, event.currentTarget)
             }
             value={getPlannedDurationValue(row)}
           />
@@ -1435,6 +1464,20 @@ export function PressJobPage({
       setSelectedUnlockMoldNos(nextSelectedRowKeys.map(String));
     },
   };
+
+  useEffect(() => {
+    if (persistedPlannedDurationDraftKeysRef.current.size === 0) {
+      return;
+    }
+
+    const persistedDraftKeys = new Set(
+      persistedPlannedDurationDraftKeysRef.current,
+    );
+    persistedPlannedDurationDraftKeysRef.current.clear();
+    setPlannedDurationDrafts((currentDrafts) =>
+      dropPersistedPlannedDurationDrafts(currentDrafts, persistedDraftKeys),
+    );
+  }, [currentJobRows]);
 
   /**
    * @brief 点击 Unlock Drawer（解锁抽屉）表格行时切换 selection（选择）状态。
@@ -5051,6 +5094,47 @@ function formatCurrentJobCell(value: unknown, fallback = "-"): string {
 }
 
 /**
+ * @brief 生成预计时长稳定 draft key（草稿键），ERP 作业优先使用 pressJobId（压机作业 ID）。
+ * @author PopoY
+ * @param row 当前作业行。
+ * @returns ERP 作业键或无 ID 作业的本地会话键。
+ */
+export function resolvePlannedDurationDraftKey(
+  row: Pick<PressJobCurrentJobRow, "localJobSessionId" | "pressJobId">,
+): string {
+  return row.pressJobId === undefined
+    ? `local:${row.localJobSessionId}`
+    : `erp:${row.pressJobId}`;
+}
+
+/**
+ * @brief 刷新 current jobs（当前作业）时，仅清理已由 ERP 保存成功的 draft（草稿）。
+ * @author PopoY
+ * @param drafts 当前预计时长草稿映射。
+ * @param persistedDraftKeys 已确认等待刷新清理的 ERP 草稿键。
+ * @returns 删除已确认 ERP 草稿后的映射；无匹配项时复用原映射。
+ */
+export function dropPersistedPlannedDurationDrafts(
+  drafts: Record<string, string>,
+  persistedDraftKeys: ReadonlySet<string>,
+): Record<string, string> {
+  let nextDrafts = drafts;
+
+  for (const draftKey of persistedDraftKeys) {
+    if (!Object.prototype.hasOwnProperty.call(drafts, draftKey)) {
+      continue;
+    }
+
+    if (nextDrafts === drafts) {
+      nextDrafts = { ...drafts };
+    }
+    delete nextDrafts[draftKey];
+  }
+
+  return nextDrafts;
+}
+
+/**
  * @brief 归一化预计时长 input（输入框），保留前导负号供后续校验拒绝负数。
  * @author PopoY
  * @param value 原始输入值。
@@ -5110,6 +5194,7 @@ export function commitPlannedDurationInput(value: string): string {
  */
 export async function savePressJobExpectedDuration(input: {
   baseline?: PlannedDurationEditBaseline;
+  currentJobRowsRef?: PlannedDurationCurrentRowsRef;
   isSaving: boolean;
   requestRef?: PlannedDurationSaveRequestRef;
   row: PressJobCurrentJobRow;
@@ -5135,6 +5220,14 @@ export async function savePressJobExpectedDuration(input: {
   if (input.requestRef) {
     input.requestRef.current = requestIdentity;
   }
+  const isCompletionStale = () =>
+    (input.requestRef !== undefined &&
+      input.requestRef.current !== requestIdentity) ||
+    (input.row.pressJobId !== undefined &&
+      input.currentJobRowsRef !== undefined &&
+      !input.currentJobRowsRef.current.some(
+        (currentRow) => currentRow.pressJobId === input.row.pressJobId,
+      ));
 
   try {
     if (!isValidExpectedDuration(expectedDuration)) {
@@ -5154,13 +5247,13 @@ export async function savePressJobExpectedDuration(input: {
       expectedDuration,
     });
 
-    if (input.requestRef && input.requestRef.current !== requestIdentity) {
+    if (isCompletionStale()) {
       return { expectedDuration: baseline.value, status: "stale" };
     }
 
     return { expectedDuration, status: "saved" };
   } catch {
-    if (input.requestRef && input.requestRef.current !== requestIdentity) {
+    if (isCompletionStale()) {
       return { expectedDuration: baseline.value, status: "stale" };
     }
 

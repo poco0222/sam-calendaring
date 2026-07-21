@@ -25,6 +25,7 @@ import {
   createPressMoldUnlockDiagnosticSummary,
   createPressMoldUnlockRequest,
   discardPlannedDurationDraft,
+  dropPersistedPlannedDurationDrafts,
   executePressJobLineOutWorkflow,
   executePressJobMoveOutWorkflow,
   executePressJobStartWorkflow,
@@ -35,6 +36,7 @@ import {
   isCurrentJobStateKnown,
   readPrimaryCurrentJob,
   resolveMoldInfoRowProcessId,
+  resolvePlannedDurationDraftKey,
   createPressJobTeamChangeState,
   normalizePlannedDurationInput,
   PressJobPage,
@@ -1955,6 +1957,138 @@ describe("PressJobPage", () => {
     expect(failed).toEqual({ expectedDuration: "1", status: "failed" });
     expect(draftsAfterFailure).not.toHaveProperty(row.localJobSessionId);
     expect(draftsAfterFailure[row.localJobSessionId] ?? "4").toBe("4");
+  });
+
+  /**
+   * @brief 断言 ERP draft（草稿）按 pressJobId（压机作业 ID）稳定隔离，刷新后重新展示数据库值。
+   * @author PopoY
+   */
+  it("keys ERP duration drafts by press job id and drops persisted values on refresh", () => {
+    const originalRow = {
+      localJobSessionId: "shared-row",
+      plannedDurationHours: "1",
+      pressJobId: 101,
+    };
+    const replacementRow = {
+      localJobSessionId: "shared-row",
+      plannedDurationHours: "4",
+      pressJobId: 202,
+    };
+    const reorderedOriginalRow = {
+      ...originalRow,
+      localJobSessionId: "reordered-row",
+    };
+    const localRow = {
+      localJobSessionId: "local-row",
+      plannedDurationHours: "5",
+    };
+
+    expect(resolvePlannedDurationDraftKey(originalRow)).toBe(
+      resolvePlannedDurationDraftKey(reorderedOriginalRow),
+    );
+    expect(resolvePlannedDurationDraftKey(originalRow)).not.toBe(
+      resolvePlannedDurationDraftKey(replacementRow),
+    );
+    expect(resolvePlannedDurationDraftKey(localRow)).not.toBe(
+      resolvePlannedDurationDraftKey(originalRow),
+    );
+
+    const erpDraftKey = resolvePlannedDurationDraftKey(originalRow);
+    const localDraftKey = resolvePlannedDurationDraftKey(localRow);
+    const draftsBeforeRefresh = {
+      [erpDraftKey]: "2",
+      [localDraftKey]: "6",
+      "erp:303": "7",
+    };
+    const draftsAfterRefresh = dropPersistedPlannedDurationDrafts(
+      draftsBeforeRefresh,
+      new Set([erpDraftKey]),
+    );
+
+    expect(draftsAfterRefresh[erpDraftKey] ?? "3").toBe("3");
+    expect(draftsAfterRefresh[localDraftKey]).toBe("6");
+    expect(draftsAfterRefresh["erp:303"]).toBe("7");
+    expect(draftsBeforeRefresh[erpDraftKey]).toBe("2");
+  });
+
+  /**
+   * @brief 断言 deferred PUT（延迟更新）按 ERP 作业身份识别 stale completion（陈旧完成），而非数组位置。
+   * @author PopoY
+   */
+  it("treats replacement jobs as stale while allowing the same ERP job to reorder", async () => {
+    const replacedDeferred = createDeferred<void>();
+    const replacedRequestRef = { current: null as object | null };
+    const replacedRowsRef = {
+      current: [
+        {
+          localJobSessionId: "shared-row",
+          plannedDurationHours: "1",
+          pressJobId: 101,
+        },
+      ],
+    };
+    const replacedSave = savePressJobExpectedDuration({
+      baseline: { hadDraft: false, value: "1" },
+      currentJobRowsRef: replacedRowsRef,
+      isSaving: false,
+      requestRef: replacedRequestRef,
+      row: replacedRowsRef.current[0],
+      updatePressJobExpectedDuration: () => replacedDeferred.promise,
+      value: "2",
+    });
+
+    replacedRowsRef.current = [
+      {
+        localJobSessionId: "shared-row",
+        plannedDurationHours: "8",
+        pressJobId: 202,
+      },
+    ];
+    replacedDeferred.resolve();
+
+    await expect(replacedSave).resolves.toEqual({
+      expectedDuration: "1",
+      status: "stale",
+    });
+    expect(replacedRequestRef.current).toBeNull();
+
+    const reorderedDeferred = createDeferred<void>();
+    const reorderedRowsRef = {
+      current: [
+        {
+          localJobSessionId: "row-101-before",
+          plannedDurationHours: "1",
+          pressJobId: 101,
+        },
+        {
+          localJobSessionId: "row-202-before",
+          plannedDurationHours: "8",
+          pressJobId: 202,
+        },
+      ],
+    };
+    const reorderedSave = savePressJobExpectedDuration({
+      baseline: { hadDraft: false, value: "1" },
+      currentJobRowsRef: reorderedRowsRef,
+      isSaving: false,
+      row: reorderedRowsRef.current[0],
+      updatePressJobExpectedDuration: () => reorderedDeferred.promise,
+      value: "2",
+    });
+
+    reorderedRowsRef.current = [
+      reorderedRowsRef.current[1],
+      {
+        ...reorderedRowsRef.current[0],
+        localJobSessionId: "row-101-after",
+      },
+    ];
+    reorderedDeferred.resolve();
+
+    await expect(reorderedSave).resolves.toEqual({
+      expectedDuration: "2",
+      status: "saved",
+    });
   });
 
   /**
