@@ -963,6 +963,7 @@ describe("erpClient", () => {
     vi.stubGlobal("fetch", fetchMock);
     await expect(
       updatePressJobExpectedDuration({
+        correlationId: "press-job-duration-01",
         erpBaseUrl: sampleConfig.erpBaseUrl,
         sessionToken: "erp-session-token",
         request: {
@@ -981,6 +982,7 @@ describe("erpClient", () => {
           "Content-Type": "application/json",
           Accept: "application/json",
           Authorization: "Bearer erp-session-token",
+          "X-Correlation-Id": "press-job-duration-01",
         },
         body: JSON.stringify({ id: 101, expectedDuration: "2.5" }),
       },
@@ -1003,6 +1005,7 @@ describe("erpClient", () => {
     );
     await expect(
       updatePressJobExpectedDuration({
+        correlationId: "press-job-duration-error",
         erpBaseUrl: sampleConfig.erpBaseUrl,
         sessionToken: "erp-session-token",
         request: { id: 101, expectedDuration: "3" },

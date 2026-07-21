@@ -13,6 +13,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AntdRootProvider } from "./app/AntdRootProvider";
 import App, {
   applySavedPressJobExpectedDuration,
+  createPressJobExpectedDurationCorrelationId,
   createPressJobPageDriverSession,
   handleDriverDeviceEvent,
   handlePressParameterThresholdReached,
@@ -457,6 +458,50 @@ describe("App Shell", () => {
     expect(
       callbacksSource.match(/pressJobCurrentRowsRefreshVersionRef/g),
     ).toHaveLength(3);
+  });
+
+  /**
+   * @brief 预计时长 PUT（更新）每次在 App layer（应用层）生成独立关联 ID，且不向页面暴露关联配置或令牌。
+   * @author PopoY
+   */
+  it("adds a safe correlation ID to each expected-duration client call", () => {
+    const randomUuid = vi
+      .spyOn(globalThis.crypto, "randomUUID")
+      .mockReturnValueOnce("00000000-0000-4000-8000-000000000001")
+      .mockReturnValueOnce("00000000-0000-4000-8000-000000000002");
+    const callbackSource = extractSourceBetween(
+      appSource,
+      "const updatePressJobExpectedDuration = useCallback",
+      "const pressJobExpectedDurationProps",
+    );
+    const generatorSource = extractSourceBetween(
+      appSource,
+      "export function createPressJobExpectedDurationCorrelationId",
+      "export async function refreshLatestPressJobCurrentRows",
+    );
+    const pressJobPropsSource = extractLastSourceBetween(
+      appSource,
+      "<PressJobPage",
+      "/>",
+    );
+
+    expect([
+      createPressJobExpectedDurationCorrelationId(),
+      createPressJobExpectedDurationCorrelationId(),
+    ]).toEqual([
+      "press-job-duration-00000000-0000-4000-8000-000000000001",
+      "press-job-duration-00000000-0000-4000-8000-000000000002",
+    ]);
+    expect(randomUuid).toHaveBeenCalledTimes(2);
+    expect(callbackSource).toContain(
+      "correlationId: createPressJobExpectedDurationCorrelationId()",
+    );
+    expect(callbackSource).toContain("request,");
+    expect(generatorSource).toContain("crypto.randomUUID()");
+    expect(generatorSource).toContain("press-job-duration-");
+    expect(generatorSource).not.toContain("sessionToken");
+    expect(pressJobPropsSource).not.toContain("correlationId");
+    expect(pressJobPropsSource).not.toContain("sessionToken");
   });
 
   /**

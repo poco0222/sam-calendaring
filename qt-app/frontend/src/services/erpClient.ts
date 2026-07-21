@@ -204,6 +204,7 @@ export type FetchPressJobCurrentJobsInput = FetchPressJobLookupDataInput;
  * @author PopoY
  */
 export type UpdatePressJobExpectedDurationInput = FetchPressJobLookupDataInput & {
+  correlationId: string;
   request: PressJobExpectedDurationUpdateRequest;
 };
 
@@ -694,7 +695,12 @@ export async function updatePressJobExpectedDuration(
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        { bearerToken: input.sessionToken },
+        {
+          bearerToken: input.sessionToken,
+          headers: {
+            "X-Correlation-Id": input.correlationId,
+          },
+        },
       ),
       body: JSON.stringify({
         id: input.request.id,

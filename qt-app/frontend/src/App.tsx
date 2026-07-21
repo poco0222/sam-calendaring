@@ -295,6 +295,7 @@ export default function App() {
       }
 
       await submitPressJobExpectedDuration({
+        correlationId: createPressJobExpectedDurationCorrelationId(),
         erpBaseUrl: bootstrapSession.config.erpBaseUrl,
         sessionToken: bootstrapSession.data.sessionToken,
         request,
@@ -618,6 +619,19 @@ export default function App() {
       </section>
     </main>
   );
+}
+
+/**
+ * @brief 为预计时长外部请求创建不含业务或敏感信息的 correlationId（关联 ID）。
+ * @author PopoY
+ * @returns 带稳定动作前缀的唯一关联 ID。
+ */
+export function createPressJobExpectedDurationCorrelationId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `press-job-duration-${crypto.randomUUID()}`;
+  }
+
+  return `press-job-duration-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
 }
 
 /**
