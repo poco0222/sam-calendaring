@@ -1,5 +1,6 @@
 {
   "openspec_proposal": "openspec/changes/fix-bootstrap-config-lockout/proposal.md",
   "openspec_design": "openspec/changes/fix-bootstrap-config-lockout/design.md",
-  "openspec_tasks": "openspec/changes/fix-bootstrap-config-lockout/tasks.md"
+  "openspec_tasks": "openspec/changes/fix-bootstrap-config-lockout/tasks.md",
+  "archive_directory": "openspec/changes/archive/2026-07-21-fix-bootstrap-config-lockout"
 }
