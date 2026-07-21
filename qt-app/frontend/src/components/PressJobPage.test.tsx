@@ -1781,7 +1781,7 @@ describe("PressJobPage", () => {
     expect(plannedDurationSource).toContain(
       'messageApi.warning("请输入正整数或一位小数的预计时长。")',
     );
-    expect(pageSource).toContain("input.confirmedValue");
+    expect(pageSource).toContain("input.baseline");
     expect(plannedDurationSource).toContain(
       'messageApi.error("预计时长保存失败，请重试。")',
     );
@@ -1879,7 +1879,7 @@ describe("PressJobPage", () => {
       .mockRejectedValueOnce(new Error("ERP failed"));
 
     const saved = await savePressJobExpectedDuration({
-      confirmedValue: "1",
+      baseline: { hadDraft: false, value: "1" },
       isSaving: false,
       row,
       updatePressJobExpectedDuration,
@@ -1888,7 +1888,7 @@ describe("PressJobPage", () => {
     expect(saved).toEqual({ expectedDuration: "2", status: "saved" });
     await expect(
       savePressJobExpectedDuration({
-        confirmedValue: saved.expectedDuration,
+        baseline: { hadDraft: true, value: saved.expectedDuration },
         isSaving: false,
         row,
         updatePressJobExpectedDuration,
@@ -1897,7 +1897,7 @@ describe("PressJobPage", () => {
     ).resolves.toEqual({ expectedDuration: "2", status: "failed" });
 
     const local = await savePressJobExpectedDuration({
-      confirmedValue: "1",
+      baseline: { hadDraft: false, value: "1" },
       isSaving: false,
       row: { ...row, pressJobId: undefined },
       updatePressJobExpectedDuration,
@@ -1909,9 +1909,52 @@ describe("PressJobPage", () => {
         { [row.localJobSessionId]: "3" },
         row.localJobSessionId,
         null,
-        local.expectedDuration,
+        { hadDraft: true, value: local.expectedDuration },
       ),
     ).toEqual({ [row.localJobSessionId]: "2.5" });
+  });
+
+  /**
+   * @brief 断言 ERP 来源基线在关闭或失败时删除 draft（草稿），避免遮蔽后续 ERP 刷新值。
+   * @author PopoY
+   */
+  it("drops ERP-sourced drafts so refreshed duration remains visible", async () => {
+    const row = {
+      localJobSessionId: "job-duration-erp-baseline",
+      plannedDurationHours: "1",
+      pressJobId: 19,
+    };
+    const baseline = { hadDraft: false, value: "1" };
+    const draftBeforeClose = { [row.localJobSessionId]: "3" };
+    const draftsAfterClose = discardPlannedDurationDraft(
+      draftBeforeClose,
+      row.localJobSessionId,
+      null,
+      baseline,
+    );
+
+    expect(draftsAfterClose).not.toHaveProperty(row.localJobSessionId);
+    expect(draftsAfterClose[row.localJobSessionId] ?? "4").toBe("4");
+
+    const failed = await savePressJobExpectedDuration({
+      baseline,
+      isSaving: false,
+      row,
+      updatePressJobExpectedDuration: vi.fn(async () => {
+        throw new Error("ERP failed");
+      }),
+      value: "3",
+    });
+    const draftsAfterFailure = discardPlannedDurationDraft(
+      { [row.localJobSessionId]: "3" },
+      row.localJobSessionId,
+      null,
+      baseline,
+    );
+
+    expect(failed).toEqual({ expectedDuration: "1", status: "failed" });
+    expect(draftsAfterFailure).not.toHaveProperty(row.localJobSessionId);
+    expect(draftsAfterFailure[row.localJobSessionId] ?? "4").toBe("4");
   });
 
   /**
@@ -1934,7 +1977,7 @@ describe("PressJobPage", () => {
     };
 
     const firstSave = savePressJobExpectedDuration({
-      confirmedValue: "1",
+      baseline: { hadDraft: false, value: "1" },
       isSaving: false,
       requestRef,
       row: rowA,
@@ -1942,7 +1985,7 @@ describe("PressJobPage", () => {
       value: "2",
     });
     const duplicateSave = savePressJobExpectedDuration({
-      confirmedValue: "1",
+      baseline: { hadDraft: false, value: "1" },
       isSaving: false,
       requestRef,
       row: rowA,
@@ -1950,7 +1993,7 @@ describe("PressJobPage", () => {
       value: "3",
     });
     const crossRowSave = savePressJobExpectedDuration({
-      confirmedValue: "4",
+      baseline: { hadDraft: false, value: "4" },
       isSaving: false,
       requestRef,
       row: rowB,
@@ -1993,7 +2036,7 @@ describe("PressJobPage", () => {
       pressJobId: 23,
     };
     const save = savePressJobExpectedDuration({
-      confirmedValue: "1",
+      baseline: { hadDraft: false, value: "1" },
       isSaving: false,
       requestRef,
       row,
@@ -2007,7 +2050,7 @@ describe("PressJobPage", () => {
         { [row.localJobSessionId]: "2" },
         row.localJobSessionId,
         requestRef,
-        "1",
+        { hadDraft: false, value: "1" },
       ),
     ).toEqual({ [row.localJobSessionId]: "2" });
 

@@ -440,6 +440,7 @@ const NUMERIC_KEYPAD_TRIGGER_GAP = 8;
 
 type NumericKeypadTriggerRect = Pick<DOMRect, "bottom" | "left" | "top">;
 type NumericKeypadPosition = Pick<CSSProperties, "left" | "top">;
+type PlannedDurationEditBaseline = { hadDraft: boolean; value: string };
 type PlannedDurationSaveRequestRef = { current: object | null };
 type PressJobTourKey = "start" | "complete" | "unlock" | "lock";
 type PressJobTourStepGuard = () => string | null;
@@ -551,10 +552,9 @@ export function PressJobPage({
   const lockedMoldLoadVersionRef = useRef(0);
   const activePlannedDurationInputRef = useRef<HTMLInputElement | null>(null);
   const plannedDurationSaveRequestRef = useRef<object | null>(null);
-  const plannedDurationEditBaselineRef = useRef<{
-    rowId: string;
-    value: string;
-  } | null>(null);
+  const plannedDurationEditBaselineRef = useRef<
+    (PlannedDurationEditBaseline & { rowId: string }) | null
+  >(null);
   const activeMoldNoInputRef = useRef<HTMLElement | null>(null);
   // @author PopoY: 用 ref（引用）同步拦截 Select focus（选择器聚焦）触发的 popup（浮层）。
   const moldNoKeypadOpenRef = useRef(false);
@@ -1030,6 +1030,10 @@ export function PressJobPage({
     }
 
     plannedDurationEditBaselineRef.current = {
+      hadDraft: Object.prototype.hasOwnProperty.call(
+        plannedDurationDrafts,
+        rowId,
+      ),
       rowId,
       value: getPlannedDurationValue(row),
     };
@@ -1084,7 +1088,7 @@ export function PressJobPage({
           currentDrafts,
           rowId,
           plannedDurationSaveRequestRef,
-          baseline?.rowId === rowId ? baseline.value : undefined,
+          baseline?.rowId === rowId ? baseline : undefined,
         ),
       );
     }
@@ -1145,13 +1149,17 @@ export function PressJobPage({
     const rowId = row.localJobSessionId;
     const plannedDurationInput = activePlannedDurationInputRef.current;
     const baseline = plannedDurationEditBaselineRef.current;
+    const rowBaseline: PlannedDurationEditBaseline =
+      baseline?.rowId === rowId
+        ? baseline
+        : {
+            hadDraft: false,
+            value: formatCurrentJobCell(row.plannedDurationHours, ""),
+          };
     setSavingPlannedDurationRowId(rowId);
 
     const result = await savePressJobExpectedDuration({
-      confirmedValue:
-        baseline?.rowId === rowId
-          ? baseline.value
-          : formatCurrentJobCell(row.plannedDurationHours, ""),
+      baseline: rowBaseline,
       isSaving: false,
       requestRef: plannedDurationSaveRequestRef,
       row,
@@ -1163,10 +1171,16 @@ export function PressJobPage({
     }
 
     setSavingPlannedDurationRowId(null);
-    setPlannedDurationDrafts((currentDrafts) => ({
-      ...currentDrafts,
-      [rowId]: result.expectedDuration,
-    }));
+    setPlannedDurationDrafts((currentDrafts) =>
+      result.status === "failed"
+        ? discardPlannedDurationDraft(
+            currentDrafts,
+            rowId,
+            plannedDurationSaveRequestRef,
+            rowBaseline,
+          )
+        : { ...currentDrafts, [rowId]: result.expectedDuration },
+    );
 
     if (result.status === "invalid") {
       messageApi.warning("请输入正整数或一位小数的预计时长。");
@@ -5037,10 +5051,10 @@ function formatCurrentJobCell(value: unknown, fallback = "-"): string {
 }
 
 /**
- * @brief 归一化预计时长 input（输入框）内容，避免非数字字符进入本地 draft（草稿）。
+ * @brief 归一化预计时长 input（输入框），保留前导负号供后续校验拒绝负数。
  * @author PopoY
  * @param value 原始输入值。
- * @returns 只包含数字和最多一个小数点的输入值。
+ * @returns 只包含可选前导负号、数字和最多一个小数点的输入值。
  */
 export function normalizePlannedDurationInput(value: string): string {
   let normalizedValue = "";
@@ -5095,7 +5109,7 @@ export function commitPlannedDurationInput(value: string): string {
  * @returns 规整后的展示值与保存状态。
  */
 export async function savePressJobExpectedDuration(input: {
-  confirmedValue?: string;
+  baseline?: PlannedDurationEditBaseline;
   isSaving: boolean;
   requestRef?: PlannedDurationSaveRequestRef;
   row: PressJobCurrentJobRow;
@@ -5108,9 +5122,10 @@ export async function savePressJobExpectedDuration(input: {
   status: "failed" | "invalid" | "local" | "pending" | "saved" | "stale";
 }> {
   const expectedDuration = commitPlannedDurationInput(input.value);
-  const confirmedValue =
-    input.confirmedValue ??
-    formatCurrentJobCell(input.row.plannedDurationHours, "");
+  const baseline = input.baseline ?? {
+    hadDraft: false,
+    value: formatCurrentJobCell(input.row.plannedDurationHours, ""),
+  };
 
   if (input.isSaving || input.requestRef?.current) {
     return { expectedDuration, status: "pending" };
@@ -5131,7 +5146,7 @@ export async function savePressJobExpectedDuration(input: {
     }
 
     if (!input.updatePressJobExpectedDuration) {
-      return { expectedDuration: confirmedValue, status: "failed" };
+      return { expectedDuration: baseline.value, status: "failed" };
     }
 
     await input.updatePressJobExpectedDuration({
@@ -5140,16 +5155,16 @@ export async function savePressJobExpectedDuration(input: {
     });
 
     if (input.requestRef && input.requestRef.current !== requestIdentity) {
-      return { expectedDuration: confirmedValue, status: "stale" };
+      return { expectedDuration: baseline.value, status: "stale" };
     }
 
     return { expectedDuration, status: "saved" };
   } catch {
     if (input.requestRef && input.requestRef.current !== requestIdentity) {
-      return { expectedDuration: confirmedValue, status: "stale" };
+      return { expectedDuration: baseline.value, status: "stale" };
     }
 
-    return { expectedDuration: confirmedValue, status: "failed" };
+    return { expectedDuration: baseline.value, status: "failed" };
   } finally {
     if (input.requestRef?.current === requestIdentity) {
       input.requestRef.current = null;
@@ -5158,24 +5173,26 @@ export async function savePressJobExpectedDuration(input: {
 }
 
 /**
- * @brief 丢弃单行预计时长 draft（草稿），保留其他作业行编辑值。
+ * @brief 按编辑基线恢复单行 draft（草稿）；保存中保持不变，ERP 来源删除，本地来源恢复。
  * @author PopoY
  * @param drafts 当前预计时长草稿映射。
- * @param rowId 需要丢弃草稿的当前作业行 ID。
- * @returns 删除目标行后的新草稿映射。
+ * @param rowId 需要恢复或删除草稿的当前作业行 ID。
+ * @param requestRef 当前保存请求引用；保存中不得改变草稿。
+ * @param baseline 编辑开始时捕获的草稿来源和值。
+ * @returns 保存中返回原映射；本地来源恢复值，ERP 来源删除目标行。
  */
 export function discardPlannedDurationDraft(
   drafts: Record<string, string>,
   rowId: string,
   requestRef?: PlannedDurationSaveRequestRef | null,
-  confirmedValue?: string,
+  baseline?: PlannedDurationEditBaseline,
 ): Record<string, string> {
   if (requestRef?.current) {
     return drafts;
   }
 
-  if (confirmedValue !== undefined) {
-    return { ...drafts, [rowId]: confirmedValue };
+  if (baseline?.hadDraft) {
+    return { ...drafts, [rowId]: baseline.value };
   }
 
   const nextDrafts = { ...drafts };
