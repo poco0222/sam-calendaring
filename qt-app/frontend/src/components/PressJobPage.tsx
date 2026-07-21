@@ -442,11 +442,18 @@ type NumericKeypadTriggerRect = Pick<DOMRect, "bottom" | "left" | "top">;
 type NumericKeypadPosition = Pick<CSSProperties, "left" | "top">;
 type PlannedDurationEditBaseline = {
   hadDraft: boolean;
+  persistedMarkerArmed?: boolean;
   value: string;
-  wasPersisted?: boolean;
 };
 type PlannedDurationSaveRequestRef = { current: object | null };
 type PlannedDurationCurrentRowsRef = { current: PressJobCurrentJobRow[] };
+type PlannedDurationSaveStatus =
+  | "failed"
+  | "invalid"
+  | "local"
+  | "pending"
+  | "saved"
+  | "stale";
 type PressJobTourKey = "start" | "complete" | "unlock" | "lock";
 type PressJobTourStepGuard = () => string | null;
 type PressJobTourStep = TourStepProps & {
@@ -558,7 +565,9 @@ export function PressJobPage({
   const activePlannedDurationInputRef = useRef<HTMLInputElement | null>(null);
   const plannedDurationSaveRequestRef = useRef<object | null>(null);
   const plannedDurationCurrentRowsRef = useRef<PressJobCurrentJobRow[]>([]);
-  const persistedPlannedDurationDraftKeysRef = useRef<Set<string>>(new Set());
+  const persistedPlannedDurationDraftMarkersRef = useRef<Map<string, boolean>>(
+    new Map(),
+  );
   const plannedDurationEditBaselineRef = useRef<
     (PlannedDurationEditBaseline & { rowId: string }) | null
   >(null);
@@ -1033,16 +1042,18 @@ export function PressJobPage({
     }
 
     const draftKey = resolvePlannedDurationDraftKey(row);
-    const wasPersisted = persistedPlannedDurationDraftKeysRef.current.delete(draftKey);
+    const persistedMarkerArmed =
+      persistedPlannedDurationDraftMarkersRef.current.get(draftKey);
+    persistedPlannedDurationDraftMarkersRef.current.delete(draftKey);
 
     plannedDurationEditBaselineRef.current = {
       hadDraft: Object.prototype.hasOwnProperty.call(
         plannedDurationDrafts,
         draftKey,
       ),
+      persistedMarkerArmed,
       rowId: draftKey,
       value: getPlannedDurationValue(row),
-      wasPersisted,
     };
     activePlannedDurationInputRef.current = inputElement;
     setActivePlannedDurationRowId(draftKey);
@@ -1098,8 +1109,14 @@ export function PressJobPage({
           baseline?.rowId === rowId ? baseline : undefined,
         ),
       );
-      if (baseline?.rowId === rowId && baseline.wasPersisted) {
-        persistedPlannedDurationDraftKeysRef.current.add(rowId);
+      if (
+        baseline?.rowId === rowId &&
+        baseline.persistedMarkerArmed !== undefined
+      ) {
+        persistedPlannedDurationDraftMarkersRef.current.set(
+          rowId,
+          baseline.persistedMarkerArmed,
+        );
       }
     }
 
@@ -1181,50 +1198,28 @@ export function PressJobPage({
       updatePressJobExpectedDuration,
       value: getPlannedDurationValue(row),
     });
-    if (result.status === "pending") {
-      return;
-    }
-
-    if (result.status === "stale") {
-      setSavingPlannedDurationRowId(null);
-      setPlannedDurationDrafts((currentDrafts) =>
-        discardPlannedDurationDraft(currentDrafts, rowId),
-      );
-      finishPlannedDurationKeypad(rowId, plannedDurationInput);
-      return;
-    }
-
-    setSavingPlannedDurationRowId(null);
-    if (result.status === "saved") {
-      persistedPlannedDurationDraftKeysRef.current.add(rowId);
-    } else if (result.status === "failed" && rowBaseline.wasPersisted) {
-      persistedPlannedDurationDraftKeysRef.current.add(rowId);
-    }
-    setPlannedDurationDrafts((currentDrafts) =>
-      result.status === "failed"
-        ? discardPlannedDurationDraft(
-            currentDrafts,
-            rowId,
-            plannedDurationSaveRequestRef,
-            rowBaseline,
-          )
-        : { ...currentDrafts, [rowId]: result.expectedDuration },
-    );
-
-    if (result.status === "invalid") {
-      messageApi.warning("请输入正整数或一位小数的预计时长。");
-      return;
-    }
-
-    if (result.status === "local") {
-      messageApi.info("预计时长将在开始加工时提交。");
-    } else if (result.status === "saved") {
-      messageApi.success("预计时长保存成功");
-    } else if (result.status === "failed") {
-      messageApi.error("预计时长保存失败，请重试。");
-    }
-
-    finishPlannedDurationKeypad(rowId, plannedDurationInput);
+    applyPlannedDurationSaveCompletion({
+      baseline: rowBaseline,
+      draftMarkers: persistedPlannedDurationDraftMarkersRef.current,
+      finishKeypad: () =>
+        finishPlannedDurationKeypad(rowId, plannedDurationInput),
+      notify: (feedback) => {
+        if (feedback === "invalid") {
+          messageApi.warning("请输入正整数或一位小数的预计时长。");
+        } else if (feedback === "local") {
+          messageApi.info("预计时长将在开始加工时提交。");
+        } else if (feedback === "saved") {
+          messageApi.success("预计时长保存成功");
+        } else {
+          messageApi.error("预计时长保存失败，请重试。");
+        }
+      },
+      requestRef: plannedDurationSaveRequestRef,
+      result,
+      rowId,
+      setDrafts: setPlannedDurationDrafts,
+      setSavingRowId: setSavingPlannedDurationRowId,
+    });
   };
 
   /**
@@ -1466,18 +1461,25 @@ export function PressJobPage({
   };
 
   useEffect(() => {
-    if (persistedPlannedDurationDraftKeysRef.current.size === 0) {
+    const persistedDraftKeys =
+      consumeArmedPersistedPlannedDurationDraftMarkers(
+        persistedPlannedDurationDraftMarkersRef.current,
+      );
+    if (persistedDraftKeys.size === 0) {
       return;
     }
 
-    const persistedDraftKeys = new Set(
-      persistedPlannedDurationDraftKeysRef.current,
-    );
-    persistedPlannedDurationDraftKeysRef.current.clear();
     setPlannedDurationDrafts((currentDrafts) =>
       dropPersistedPlannedDurationDrafts(currentDrafts, persistedDraftKeys),
     );
   }, [currentJobRows]);
+
+  // @author PopoY: refresh cleanup（刷新清理）必须先运行，避免旧 refresh 消费同批保存刚登记的 marker（标记）。
+  useEffect(() => {
+    armPersistedPlannedDurationDraftMarkers(
+      persistedPlannedDurationDraftMarkersRef.current,
+    );
+  });
 
   /**
    * @brief 点击 Unlock Drawer（解锁抽屉）表格行时切换 selection（选择）状态。
@@ -5132,6 +5134,109 @@ export function dropPersistedPlannedDurationDrafts(
   }
 
   return nextDrafts;
+}
+
+/**
+ * @brief 消费已激活的 persisted draft marker（持久化草稿标记），未激活标记留给 commit effect（提交副作用）。
+ * @author PopoY
+ * @param markers 按 draft key（草稿键）记录的 marker 激活状态。
+ * @returns 当前 refresh（刷新）可以清理的草稿键。
+ */
+export function consumeArmedPersistedPlannedDurationDraftMarkers(
+  markers: Map<string, boolean>,
+): Set<string> {
+  const persistedDraftKeys = new Set<string>();
+
+  for (const [draftKey, armed] of markers) {
+    if (armed) {
+      persistedDraftKeys.add(draftKey);
+      markers.delete(draftKey);
+    }
+  }
+
+  return persistedDraftKeys;
+}
+
+/**
+ * @brief 在 commit（提交）后的 effect（副作用）中激活新登记的 persisted draft marker（持久化草稿标记）。
+ * @author PopoY
+ * @param markers 按 draft key（草稿键）记录的 marker 激活状态。
+ */
+export function armPersistedPlannedDurationDraftMarkers(
+  markers: Map<string, boolean>,
+): void {
+  for (const [draftKey, armed] of markers) {
+    if (!armed) {
+      markers.set(draftKey, true);
+    }
+  }
+}
+
+/**
+ * @brief 将预计时长 completion（完成）结果应用到组件状态和反馈。
+ * @author PopoY
+ * @param input 保存结果、编辑基线和组件状态回调。
+ */
+export function applyPlannedDurationSaveCompletion(input: {
+  baseline: PlannedDurationEditBaseline;
+  draftMarkers: Map<string, boolean>;
+  finishKeypad: () => void;
+  notify: (feedback: "failed" | "invalid" | "local" | "saved") => void;
+  requestRef?: PlannedDurationSaveRequestRef | null;
+  result: { expectedDuration: string; status: PlannedDurationSaveStatus };
+  rowId: string;
+  setDrafts: (
+    updateDrafts: (
+      currentDrafts: Record<string, string>,
+    ) => Record<string, string>,
+  ) => void;
+  setSavingRowId: (rowId: string | null) => void;
+}): void {
+  if (input.result.status === "pending") {
+    return;
+  }
+
+  input.setSavingRowId(null);
+  if (input.result.status === "stale") {
+    input.setDrafts((currentDrafts) =>
+      discardPlannedDurationDraft(currentDrafts, input.rowId),
+    );
+    input.finishKeypad();
+    return;
+  }
+
+  if (input.result.status === "saved") {
+    input.draftMarkers.set(input.rowId, false);
+  } else if (
+    input.result.status === "failed" &&
+    input.baseline.persistedMarkerArmed !== undefined
+  ) {
+    input.draftMarkers.set(
+      input.rowId,
+      input.baseline.persistedMarkerArmed,
+    );
+  }
+  input.setDrafts((currentDrafts) =>
+    input.result.status === "failed"
+      ? discardPlannedDurationDraft(
+          currentDrafts,
+          input.rowId,
+          input.requestRef,
+          input.baseline,
+        )
+      : {
+          ...currentDrafts,
+          [input.rowId]: input.result.expectedDuration,
+        },
+  );
+
+  if (input.result.status === "invalid") {
+    input.notify("invalid");
+    return;
+  }
+
+  input.notify(input.result.status);
+  input.finishKeypad();
 }
 
 /**

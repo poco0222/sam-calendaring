@@ -12,7 +12,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import { AntdRootProvider } from "../app/AntdRootProvider";
 import {
+  applyPlannedDurationSaveCompletion,
+  armPersistedPlannedDurationDraftMarkers,
   commitPlannedDurationInput,
+  consumeArmedPersistedPlannedDurationDraftMarkers,
   createPressDeviceActionIdentity,
   createPressMoldCandidateSearchInput,
   createPressMoldInfoSearchInput,
@@ -1778,8 +1781,9 @@ describe("PressJobPage", () => {
 
     expect(plannedDurationSource).toContain("plannedDurationSaveRequestRef");
     expect(plannedDurationSource).toContain("plannedDurationEditBaselineRef");
-    expect(plannedDurationSource).toContain('result.status === "pending"');
-    expect(plannedDurationSource).toContain('result.status === "stale"');
+    expect(plannedDurationSource).toContain(
+      "applyPlannedDurationSaveCompletion({",
+    );
     expect(plannedDurationSource).toContain(
       'messageApi.warning("请输入正整数或一位小数的预计时长。")',
     );
@@ -2009,6 +2013,150 @@ describe("PressJobPage", () => {
     expect(draftsAfterRefresh[localDraftKey]).toBe("6");
     expect(draftsAfterRefresh["erp:303"]).toBe("7");
     expect(draftsBeforeRefresh[erpDraftKey]).toBe("2");
+  });
+
+  /**
+   * @brief 断言旧 refresh effect（刷新副作用）不能消费保存后才登记的未激活 marker（标记）。
+   * @author PopoY
+   */
+  it("arms persisted duration markers after queued refresh cleanup", () => {
+    const persistedMarkers = new Map<string, boolean>();
+    const draftKey = "erp:101";
+    const queuedRefreshCleanup = () =>
+      consumeArmedPersistedPlannedDurationDraftMarkers(persistedMarkers);
+
+    // @author PopoY: refresh 已排队后保存才完成，旧 refresh 只能看到并跳过 unarmed marker（未激活标记）。
+    persistedMarkers.set(draftKey, false);
+    expect(queuedRefreshCleanup()).toEqual(new Set());
+    expect(persistedMarkers.get(draftKey)).toBe(false);
+
+    armPersistedPlannedDurationDraftMarkers(persistedMarkers);
+    expect(persistedMarkers.get(draftKey)).toBe(true);
+    expect(
+      consumeArmedPersistedPlannedDurationDraftMarkers(persistedMarkers),
+    ).toEqual(new Set([draftKey]));
+    expect(persistedMarkers.has(draftKey)).toBe(false);
+
+    const markerEffectsSource = extractSourceBetween(
+      pageSource,
+      "consumeArmedPersistedPlannedDurationDraftMarkers(",
+      "点击 Unlock Drawer",
+    );
+    expect(
+      markerEffectsSource.indexOf(
+        "consumeArmedPersistedPlannedDurationDraftMarkers(",
+      ),
+    ).toBeLessThan(
+      markerEffectsSource.indexOf("armPersistedPlannedDurationDraftMarkers("),
+    );
+  });
+
+  /**
+   * @brief 断言正常保存 commit（提交）先激活 marker，紧随其后的第一次真实刷新即可消费。
+   * @author PopoY
+   */
+  it("consumes an armed persisted duration marker on the next refresh", () => {
+    const draftKey = "erp:102";
+    const persistedMarkers = new Map([[draftKey, false]]);
+
+    armPersistedPlannedDurationDraftMarkers(persistedMarkers);
+
+    expect(
+      consumeArmedPersistedPlannedDurationDraftMarkers(persistedMarkers),
+    ).toEqual(new Set([draftKey]));
+  });
+
+  /**
+   * @brief 断言组件实际复用的 completion helper（完成辅助函数）执行 saving、draft、marker、keypad 和 feedback 决策。
+   * @author PopoY
+   */
+  it("applies planned duration completion decisions to component state", () => {
+    const runCompletion = (
+      status: "failed" | "invalid" | "local" | "pending" | "saved" | "stale",
+      baseline: {
+        hadDraft: boolean;
+        persistedMarkerArmed?: boolean;
+        value: string;
+      } = {
+        hadDraft: true,
+        persistedMarkerArmed: true,
+        value: "1",
+      },
+    ) => {
+      let drafts: Record<string, string> = {
+        "erp:101": "3",
+        "erp:202": "8",
+      };
+      const markers = new Map<string, boolean>();
+      const finishKeypad = vi.fn();
+      const feedback = vi.fn();
+      const setSavingRowId = vi.fn();
+
+      applyPlannedDurationSaveCompletion({
+        baseline,
+        draftMarkers: markers,
+        finishKeypad,
+        notify: feedback,
+        requestRef: null,
+        result: { expectedDuration: status === "invalid" ? "0" : "2", status },
+        rowId: "erp:101",
+        setDrafts: (updateDrafts) => {
+          drafts = updateDrafts(drafts);
+        },
+        setSavingRowId,
+      });
+
+      return { drafts, feedback, finishKeypad, markers, setSavingRowId };
+    };
+
+    const stale = runCompletion("stale");
+    expect(stale.setSavingRowId).toHaveBeenCalledWith(null);
+    expect(stale.drafts).toEqual({ "erp:202": "8" });
+    expect(stale.finishKeypad).toHaveBeenCalledOnce();
+    expect(stale.feedback).not.toHaveBeenCalled();
+
+    const invalid = runCompletion("invalid");
+    expect(invalid.setSavingRowId).toHaveBeenCalledWith(null);
+    expect(invalid.drafts["erp:101"]).toBe("0");
+    expect(invalid.finishKeypad).not.toHaveBeenCalled();
+    expect(invalid.markers.size).toBe(0);
+    expect(invalid.feedback).toHaveBeenCalledWith("invalid");
+
+    const saved = runCompletion("saved");
+    expect(saved.drafts["erp:101"]).toBe("2");
+    expect(saved.markers.get("erp:101")).toBe(false);
+    expect(saved.finishKeypad).toHaveBeenCalledOnce();
+    expect(saved.feedback).toHaveBeenCalledWith("saved");
+
+    const failed = runCompletion("failed");
+    expect(failed.drafts["erp:101"]).toBe("1");
+    expect(failed.markers.get("erp:101")).toBe(true);
+    expect(failed.finishKeypad).toHaveBeenCalledOnce();
+    expect(failed.feedback).toHaveBeenCalledWith("failed");
+
+    const failedUnarmed = runCompletion("failed", {
+      hadDraft: true,
+      persistedMarkerArmed: false,
+      value: "1",
+    });
+    expect(failedUnarmed.markers.get("erp:101")).toBe(false);
+
+    const failedWithoutMarker = runCompletion("failed", {
+      hadDraft: false,
+      value: "1",
+    });
+    expect(failedWithoutMarker.markers.size).toBe(0);
+
+    const local = runCompletion("local");
+    expect(local.drafts["erp:101"]).toBe("2");
+    expect(local.feedback).toHaveBeenCalledWith("local");
+    expect(local.finishKeypad).toHaveBeenCalledOnce();
+
+    const pending = runCompletion("pending");
+    expect(pending.setSavingRowId).not.toHaveBeenCalled();
+    expect(pending.drafts["erp:101"]).toBe("3");
+    expect(pending.feedback).not.toHaveBeenCalled();
+    expect(pending.finishKeypad).not.toHaveBeenCalled();
   });
 
   /**
