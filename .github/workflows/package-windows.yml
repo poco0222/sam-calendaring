@@ -1,6 +1,8 @@
 # @file package-windows.yml - Windows 10 exe packaging workflow（打包工作流）
 # @author PopoY
 # @created 2026-07-08
+# @editor PopoY
+# @edited 2026-07-21 14:49:21
 # @purpose 在 GitHub Actions（自动化流水线）中打包 QT App（Qt 应用）和 Driver Service（驱动服务）的 Win10 x64 executable（可执行文件）。
 
 name: Package Windows exe
@@ -38,19 +40,17 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
+      - name: Setup pnpm（配置 pnpm）
+        uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: Setup Node.js（配置 Node.js）
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
           cache-dependency-path: qt-app/frontend/pnpm-lock.yaml
-
-      - name: Enable pnpm（启用 pnpm）
-        shell: pwsh
-        run: |
-          corepack enable
-          corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
-          pnpm --version
 
       - name: Setup Qt（配置 Qt）
         uses: jurplel/install-qt-action@v4.3.1
