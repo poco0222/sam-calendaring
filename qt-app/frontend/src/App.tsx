@@ -27,6 +27,7 @@ import type { LogRecord } from "./domain/logRecord";
 import type {
   PressJobCurrentJobRow,
   PressJobCompleteRequest,
+  PressJobExpectedDurationUpdateRequest,
   PressJobParameterRecordRequest,
   PressJobStartRequest,
   PressMachineStatusUpdateRequest,
@@ -56,6 +57,7 @@ import {
   startPressJob as submitStartPressJob,
   unlockPressMolds as submitPressMoldUnlock,
   updatePressMachineStatus as submitPressMachineStatus,
+  updatePressJobExpectedDuration as submitPressJobExpectedDuration,
   postJson as postErpJson,
 } from "./services/erpClient";
 import {
@@ -276,6 +278,22 @@ export default function App() {
     setPressJobCurrentRows(nextRows);
     return nextRows;
   }, [bootstrapSession.config, bootstrapSession.data]);
+  // @author PopoY: UI request（界面请求）只含业务字段，sessionToken（会话令牌）由 App 闭包补入认证 header（请求头）。
+  const updatePressJobExpectedDuration = useCallback(
+    async (request: PressJobExpectedDurationUpdateRequest) => {
+      if (!bootstrapSession.config || !bootstrapSession.data) {
+        throw new Error("预计时长更新前启动会话未就绪。");
+      }
+
+      return submitPressJobExpectedDuration({
+        erpBaseUrl: bootstrapSession.config.erpBaseUrl,
+        sessionToken: bootstrapSession.data.sessionToken,
+        request,
+      });
+    },
+    [bootstrapSession.config, bootstrapSession.data],
+  );
+  const pressJobExpectedDurationProps = { updatePressJobExpectedDuration };
   const executePressDeviceCommand = useCallback(
     async (request: PressDeviceCommandRequest) => {
       if (!bootstrapSession.config) {
@@ -557,6 +575,7 @@ export default function App() {
           <DiagnosticLogsPage driverBaseUrl={bootstrapSession.config?.driverBaseUrl} />
         ) : (
           <PressJobPage
+            {...pressJobExpectedDurationProps}
             bootstrapSession={pressJobPageBootstrapSession}
             completePressJob={completePressJob}
             driverSession={pressJobPageDriverSession}

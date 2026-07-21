@@ -64,6 +64,7 @@ export type PressJobTeamOptions = {
  */
 export type PressJobCurrentJobRow = {
   localJobSessionId: string;
+  pressJobId?: number;
   pressName?: string;
   moldNo?: string;
   needParameterRecords?: boolean;
@@ -71,6 +72,15 @@ export type PressJobCurrentJobRow = {
   actualDurationHours?: string;
   startedAt?: string;
   status?: string;
+};
+
+/**
+ * @brief 定义 ERP expected duration（预计时长）更新请求白名单字段。
+ * @author PopoY
+ */
+export type PressJobExpectedDurationUpdateRequest = {
+  id: number;
+  expectedDuration: string;
 };
 
 /**

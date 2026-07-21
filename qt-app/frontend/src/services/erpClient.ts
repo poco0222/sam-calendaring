@@ -23,6 +23,7 @@ import type {
   PressMoldUnlockRequest,
   PressMoldUnlockResult,
   PressJobCurrentJobRow,
+  PressJobExpectedDurationUpdateRequest,
   PressJobCompleteRequest,
   PressJobCompleteResult,
   PressJobLookupData,
@@ -52,6 +53,7 @@ const PRESS_JOB_DEVICE_TYPE = "0";
 const PRESS_JOB_TEAM_OPTIONS_PATH = `/fm/pline/getPlnListByDept2/${PRESS_JOB_TEAM_DEPT_ID}`;
 const PRESS_JOB_CURRENT_USER_PATH = "/rel/qtrel/getQtUserInfo";
 const PRESS_JOB_CURRENT_JOBS_PATH = "/modbus/device/getPressJobByHandleIp";
+const PRESS_JOB_EXPECTED_DURATION_PATH = "/modbus/pressjob";
 const BOOTSTRAP_CONFIG_APPROVAL_PATH =
   "/system/config/configKey/approve.press.config";
 const PRESS_MOLD_CANDIDATES_PATH = "/api/qt/press-working/mold-candidates";
@@ -196,6 +198,14 @@ export type FetchPressJobTeamOptionsInput = FetchPressJobLookupDataInput & {
  * @author PopoY
  */
 export type FetchPressJobCurrentJobsInput = FetchPressJobLookupDataInput;
+
+/**
+ * @brief Define expected duration（预计时长）update input，sessionToken（会话令牌）不进入 UI request（界面请求）。
+ * @author PopoY
+ */
+export type UpdatePressJobExpectedDurationInput = FetchPressJobLookupDataInput & {
+  request: PressJobExpectedDurationUpdateRequest;
+};
 
 /**
  * @brief Define the request shape needed to search press mold candidates（压机模具候选）.
@@ -665,6 +675,39 @@ export async function fetchPressJobCurrentJobs(
   );
 
   return narrowPressJobCurrentJobs(response);
+}
+
+/**
+ * @brief 更新 ERP press job（压机作业）的 expected duration（预计时长）。
+ * @author PopoY
+ * @param input ERP 地址、认证令牌和已收窄请求体。
+ */
+export async function updatePressJobExpectedDuration(
+  input: UpdatePressJobExpectedDurationInput,
+): Promise<void> {
+  const response = await fetch(
+    buildErpUrl(input.erpBaseUrl, PRESS_JOB_EXPECTED_DURATION_PATH),
+    {
+      method: "PUT",
+      headers: buildErpJsonHeaders(
+        {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        { bearerToken: input.sessionToken },
+      ),
+      body: JSON.stringify({
+        id: input.request.id,
+        expectedDuration: input.request.expectedDuration,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  unwrapErpAjaxResult(await response.json());
 }
 
 /**
@@ -1211,6 +1254,10 @@ function narrowPressJobCurrentJobs(value: unknown): PressJobCurrentJobRow[] {
 
   return value.flatMap((item, index) => {
     const record = readRecord(item);
+    const pressJobId =
+      typeof record?.id === "number" && Number.isSafeInteger(record.id)
+        ? record.id
+        : undefined;
     const pressName = readNonEmptyString(record?.deviceName);
     const moldNo = readNonEmptyString(record?.mouldCode);
     const plannedDurationHours = readNonEmptyString(record?.expectedDuration);
@@ -1224,6 +1271,7 @@ function narrowPressJobCurrentJobs(value: unknown): PressJobCurrentJobRow[] {
     return [
       {
         localJobSessionId: `press-job-row-${index}`,
+        ...(pressJobId === undefined ? {} : { pressJobId }),
         pressName: pressName ?? "已绑定压机",
         moldNo,
         plannedDurationHours,

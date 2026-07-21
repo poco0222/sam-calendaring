@@ -26,6 +26,7 @@ import {
   loadBootstrapSession,
   recordPressJobParameters,
   startPressJob,
+  updatePressJobExpectedDuration,
   updatePressMachineStatus,
   unlockPressMolds,
   postJson,
@@ -933,6 +934,7 @@ describe("erpClient", () => {
     ).resolves.toEqual([
       {
         localJobSessionId: "press-job-row-0",
+        pressJobId: 101,
         pressName: "一号压机",
         moldNo: "MOLD-01",
         plannedDurationHours: "2.5",
@@ -945,6 +947,67 @@ describe("erpClient", () => {
       "http://127.0.0.1:8080/modbus/device/getPressJobByHandleIp",
       "erp-session-token",
     );
+  });
+
+  /**
+   * @brief 断言 expected duration（预计时长）更新使用 ERP PUT 契约，token（令牌）只进入认证请求头。
+   * @author PopoY
+   */
+  it("updates press job expected duration with PUT and a whitelisted body", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      createFetchResponse({
+        code: 200,
+        msg: "操作成功",
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(
+      updatePressJobExpectedDuration({
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        sessionToken: "erp-session-token",
+        request: {
+          id: 101,
+          expectedDuration: "2.5",
+          sessionToken: "must-not-enter-body",
+        } as never,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/modbus/pressjob",
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: "Bearer erp-session-token",
+        },
+        body: JSON.stringify({ id: 101, expectedDuration: "2.5" }),
+      },
+    );
+  });
+
+  /**
+   * @brief 断言 ERP AjaxResult（统一响应）业务失败时拒绝预计时长更新。
+   * @author PopoY
+   */
+  it("rejects press job expected duration updates when ERP AjaxResult fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        createFetchResponse({
+          code: 500,
+          msg: "预计时长更新失败",
+        }),
+      ),
+    );
+    await expect(
+      updatePressJobExpectedDuration({
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        sessionToken: "erp-session-token",
+        request: { id: 101, expectedDuration: "3" },
+      }),
+    ).rejects.toThrow("预计时长更新失败");
   });
 
   /**
