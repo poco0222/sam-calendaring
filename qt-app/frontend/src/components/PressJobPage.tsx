@@ -440,6 +440,7 @@ const NUMERIC_KEYPAD_TRIGGER_GAP = 8;
 
 type NumericKeypadTriggerRect = Pick<DOMRect, "bottom" | "left" | "top">;
 type NumericKeypadPosition = Pick<CSSProperties, "left" | "top">;
+type PlannedDurationSaveRequestRef = { current: object | null };
 type PressJobTourKey = "start" | "complete" | "unlock" | "lock";
 type PressJobTourStepGuard = () => string | null;
 type PressJobTourStep = TourStepProps & {
@@ -549,6 +550,11 @@ export function PressJobPage({
   const moldInfoSearchVersionRef = useRef(0);
   const lockedMoldLoadVersionRef = useRef(0);
   const activePlannedDurationInputRef = useRef<HTMLInputElement | null>(null);
+  const plannedDurationSaveRequestRef = useRef<object | null>(null);
+  const plannedDurationEditBaselineRef = useRef<{
+    rowId: string;
+    value: string;
+  } | null>(null);
   const activeMoldNoInputRef = useRef<HTMLElement | null>(null);
   // @author PopoY: 用 ref（引用）同步拦截 Select focus（选择器聚焦）触发的 popup（浮层）。
   const moldNoKeypadOpenRef = useRef(false);
@@ -1011,6 +1017,22 @@ export function PressJobPage({
     rowId: string,
     inputElement: HTMLInputElement,
   ) => {
+    if (plannedDurationSaveRequestRef.current) {
+      inputElement.blur();
+      return;
+    }
+
+    const row = currentJobRows.find(
+      (currentRow) => currentRow.localJobSessionId === rowId,
+    );
+    if (!row) {
+      return;
+    }
+
+    plannedDurationEditBaselineRef.current = {
+      rowId,
+      value: getPlannedDurationValue(row),
+    };
     activePlannedDurationInputRef.current = inputElement;
     setActivePlannedDurationRowId(rowId);
     setPlannedDurationKeypadPosition(
@@ -1026,10 +1048,19 @@ export function PressJobPage({
    * @brief 隐藏预计时长 NumericKeypad（数字键盘）并释放 input focus（输入焦点）。
    * @author PopoY
    */
-  const finishPlannedDurationKeypad = () => {
-    const plannedDurationInput = activePlannedDurationInputRef.current;
+  const finishPlannedDurationKeypad = (
+    rowId = activePlannedDurationRowId,
+    plannedDurationInput = activePlannedDurationInputRef.current,
+  ) => {
+    if (
+      rowId !== activePlannedDurationRowId ||
+      plannedDurationInput !== activePlannedDurationInputRef.current
+    ) {
+      return;
+    }
 
     activePlannedDurationInputRef.current = null;
+    plannedDurationEditBaselineRef.current = null;
     setActivePlannedDurationRowId(null);
     setPlannedDurationKeypadPosition(null);
     plannedDurationInput?.blur();
@@ -1040,13 +1071,25 @@ export function PressJobPage({
    * @author PopoY
    */
   const closePlannedDurationKeypad = () => {
-    if (activePlannedDurationRowId) {
+    if (plannedDurationSaveRequestRef.current) {
+      return;
+    }
+
+    const rowId = activePlannedDurationRowId;
+    const plannedDurationInput = activePlannedDurationInputRef.current;
+    const baseline = plannedDurationEditBaselineRef.current;
+    if (rowId) {
       setPlannedDurationDrafts((currentDrafts) =>
-        discardPlannedDurationDraft(currentDrafts, activePlannedDurationRowId),
+        discardPlannedDurationDraft(
+          currentDrafts,
+          rowId,
+          plannedDurationSaveRequestRef,
+          baseline?.rowId === rowId ? baseline.value : undefined,
+        ),
       );
     }
 
-    finishPlannedDurationKeypad();
+    finishPlannedDurationKeypad(rowId, plannedDurationInput);
   };
 
   /**
@@ -1098,26 +1141,31 @@ export function PressJobPage({
       return;
     }
 
-    const isSaving =
-      savingPlannedDurationRowId === activePlannedDurationRow.localJobSessionId;
-    if (!isSaving) {
-      setSavingPlannedDurationRowId(activePlannedDurationRow.localJobSessionId);
-    }
+    const row = activePlannedDurationRow;
+    const rowId = row.localJobSessionId;
+    const plannedDurationInput = activePlannedDurationInputRef.current;
+    const baseline = plannedDurationEditBaselineRef.current;
+    setSavingPlannedDurationRowId(rowId);
 
     const result = await savePressJobExpectedDuration({
-      isSaving,
-      row: activePlannedDurationRow,
+      confirmedValue:
+        baseline?.rowId === rowId
+          ? baseline.value
+          : formatCurrentJobCell(row.plannedDurationHours, ""),
+      isSaving: false,
+      requestRef: plannedDurationSaveRequestRef,
+      row,
       updatePressJobExpectedDuration,
-      value: getPlannedDurationValue(activePlannedDurationRow),
+      value: getPlannedDurationValue(row),
     });
-    if (result.status === "pending") {
+    if (result.status === "pending" || result.status === "stale") {
       return;
     }
 
     setSavingPlannedDurationRowId(null);
     setPlannedDurationDrafts((currentDrafts) => ({
       ...currentDrafts,
-      [activePlannedDurationRow.localJobSessionId]: result.expectedDuration,
+      [rowId]: result.expectedDuration,
     }));
 
     if (result.status === "invalid") {
@@ -1133,7 +1181,7 @@ export function PressJobPage({
       messageApi.error("预计时长保存失败，请重试。");
     }
 
-    finishPlannedDurationKeypad();
+    finishPlannedDurationKeypad(rowId, plannedDurationInput);
   };
 
   /**
@@ -1175,6 +1223,7 @@ export function PressJobPage({
           <Input
             aria-label={`预计时长 ${formatCurrentJobCell(row.pressName, row.localJobSessionId)}`}
             className="press-job-page__planned-duration-input"
+            disabled={savingPlannedDurationRowId !== null}
             inputMode="decimal"
             onBlur={handlePlannedDurationBlur}
             onChange={(event) =>
@@ -4998,6 +5047,11 @@ export function normalizePlannedDurationInput(value: string): string {
   let hasDecimalPoint = false;
 
   for (const character of value) {
+    if (character === "-" && normalizedValue === "") {
+      normalizedValue = character;
+      continue;
+    }
+
     if (character >= "0" && character <= "9") {
       normalizedValue += character;
       continue;
@@ -5041,7 +5095,9 @@ export function commitPlannedDurationInput(value: string): string {
  * @returns 规整后的展示值与保存状态。
  */
 export async function savePressJobExpectedDuration(input: {
+  confirmedValue?: string;
   isSaving: boolean;
+  requestRef?: PlannedDurationSaveRequestRef;
   row: PressJobCurrentJobRow;
   updatePressJobExpectedDuration?: (
     request: PressJobExpectedDurationUpdateRequest,
@@ -5049,46 +5105,55 @@ export async function savePressJobExpectedDuration(input: {
   value: string;
 }): Promise<{
   expectedDuration: string;
-  status: "failed" | "invalid" | "local" | "pending" | "saved";
+  status: "failed" | "invalid" | "local" | "pending" | "saved" | "stale";
 }> {
   const expectedDuration = commitPlannedDurationInput(input.value);
+  const confirmedValue =
+    input.confirmedValue ??
+    formatCurrentJobCell(input.row.plannedDurationHours, "");
 
-  if (input.isSaving) {
+  if (input.isSaving || input.requestRef?.current) {
     return { expectedDuration, status: "pending" };
   }
 
-  if (!isValidExpectedDuration(expectedDuration)) {
-    return { expectedDuration, status: "invalid" };
-  }
-
-  if (input.row.pressJobId === undefined) {
-    return { expectedDuration, status: "local" };
-  }
-
-  if (!input.updatePressJobExpectedDuration) {
-    return {
-      expectedDuration: formatCurrentJobCell(
-        input.row.plannedDurationHours,
-        "",
-      ),
-      status: "failed",
-    };
+  const requestIdentity = {};
+  if (input.requestRef) {
+    input.requestRef.current = requestIdentity;
   }
 
   try {
+    if (!isValidExpectedDuration(expectedDuration)) {
+      return { expectedDuration, status: "invalid" };
+    }
+
+    if (input.row.pressJobId === undefined) {
+      return { expectedDuration, status: "local" };
+    }
+
+    if (!input.updatePressJobExpectedDuration) {
+      return { expectedDuration: confirmedValue, status: "failed" };
+    }
+
     await input.updatePressJobExpectedDuration({
       id: input.row.pressJobId,
       expectedDuration,
     });
+
+    if (input.requestRef && input.requestRef.current !== requestIdentity) {
+      return { expectedDuration: confirmedValue, status: "stale" };
+    }
+
     return { expectedDuration, status: "saved" };
   } catch {
-    return {
-      expectedDuration: formatCurrentJobCell(
-        input.row.plannedDurationHours,
-        "",
-      ),
-      status: "failed",
-    };
+    if (input.requestRef && input.requestRef.current !== requestIdentity) {
+      return { expectedDuration: confirmedValue, status: "stale" };
+    }
+
+    return { expectedDuration: confirmedValue, status: "failed" };
+  } finally {
+    if (input.requestRef?.current === requestIdentity) {
+      input.requestRef.current = null;
+    }
   }
 }
 
@@ -5102,7 +5167,17 @@ export async function savePressJobExpectedDuration(input: {
 export function discardPlannedDurationDraft(
   drafts: Record<string, string>,
   rowId: string,
+  requestRef?: PlannedDurationSaveRequestRef | null,
+  confirmedValue?: string,
 ): Record<string, string> {
+  if (requestRef?.current) {
+    return drafts;
+  }
+
+  if (confirmedValue !== undefined) {
+    return { ...drafts, [rowId]: confirmedValue };
+  }
+
   const nextDrafts = { ...drafts };
 
   delete nextDrafts[rowId];
@@ -5151,6 +5226,10 @@ export function resolvePressJobLineStatus(
   signalValues?: Record<string, unknown> | null,
 ): { color?: "error" | "success"; text: "已出线" | "已入线" | "未知" } {
   let value = signalValues?.["是否出线"];
+
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    value = (value as Record<string, unknown>).value;
+  }
 
   if (value === undefined && signalValues) {
     for (const candidate of Object.values(signalValues)) {

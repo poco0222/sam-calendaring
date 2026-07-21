@@ -82,6 +82,22 @@ function renderPage(page = <PressJobPage />): string {
 }
 
 /**
+ * @brief 创建 deferred Promise（延迟 Promise），用于精确控制预计时长保存完成顺序。
+ * @author PopoY
+ * @returns 可由测试主动完成或拒绝的 Promise（承诺）。
+ */
+function createDeferred<T>() {
+  let reject!: (reason?: unknown) => void;
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+
+  return { promise, reject, resolve };
+}
+
+/**
  * @brief 按指定 signalValues（信号值）渲染压机出入线状态，固定 ERP status（状态）以隔离实时信号语义。
  * @author PopoY
  * @param signalValues Driver snapshot（驱动快照）中的信号值。
@@ -1596,9 +1612,11 @@ describe("PressJobPage", () => {
    */
   it("normalizes planned duration drafts before closing the keypad", () => {
     expect(normalizePlannedDurationInput("1a2..3")).toBe("12.3");
+    expect(normalizePlannedDurationInput("-1")).toBe("-1");
     expect(commitPlannedDurationInput(".")).toBe("");
     expect(commitPlannedDurationInput("2.")).toBe("2");
     expect(commitPlannedDurationInput(".5")).toBe("0.5");
+    expect(commitPlannedDurationInput("-1")).toBe("-1");
   });
 
   /**
@@ -1623,6 +1641,29 @@ describe("PressJobPage", () => {
 
     expect(statusHtml.match(new RegExp(statusText, "g"))).toHaveLength(2);
     expect(statusHtml.match(new RegExp(`ant-tag-${color}`, "g"))).toHaveLength(2);
+  });
+
+  /**
+   * @brief 断言 direct key（直接映射键）的值对象读取 value（值），不得把对象本身误判为未知。
+   * @author PopoY
+   */
+  it.each([
+    [false, "已入线"],
+    [0, "已入线"],
+    ["0", "已入线"],
+    ["false", "已入线"],
+    [true, "已出线"],
+    [1, "已出线"],
+    ["1", "已出线"],
+    ["true", "已出线"],
+  ])("unwraps direct-key object value %j as %s", (value, statusText) => {
+    const html = renderPressJobLineStatus({ "是否出线": { value } });
+    const statusHtml = [
+      extractAriaSectionHtml(html, "压机作业操作区"),
+      extractAriaSectionHtml(html, "当前作业信息"),
+    ].join("\n");
+
+    expect(statusHtml.match(new RegExp(statusText, "g"))).toHaveLength(2);
   });
 
   /**
@@ -1708,7 +1749,7 @@ describe("PressJobPage", () => {
       "const expectedDuration = commitPlannedDurationInput(input.value)",
     );
     expect(plannedDurationSource).toContain(
-      "value: getPlannedDurationValue(activePlannedDurationRow)",
+      "value: getPlannedDurationValue(row)",
     );
     expect(plannedDurationSource).toContain("savePressJobExpectedDuration({");
     expect(pageSource).toContain("isValidExpectedDuration(expectedDuration)");
@@ -1733,19 +1774,21 @@ describe("PressJobPage", () => {
       "const currentJobColumns:",
     );
 
-    expect(plannedDurationSource).toContain("savingPlannedDurationRowId");
-    expect(plannedDurationSource).toContain("const isSaving =");
+    expect(plannedDurationSource).toContain("plannedDurationSaveRequestRef");
+    expect(plannedDurationSource).toContain("plannedDurationEditBaselineRef");
     expect(plannedDurationSource).toContain('result.status === "pending"');
+    expect(plannedDurationSource).toContain('result.status === "stale"');
     expect(plannedDurationSource).toContain(
       'messageApi.warning("请输入正整数或一位小数的预计时长。")',
     );
-    expect(pageSource).toContain("input.row.plannedDurationHours");
+    expect(pageSource).toContain("input.confirmedValue");
     expect(plannedDurationSource).toContain(
       'messageApi.error("预计时长保存失败，请重试。")',
     );
     expect(plannedDurationSource).toContain(
-      "discardPlannedDurationDraft(currentDrafts, activePlannedDurationRowId)",
+      "discardPlannedDurationDraft(",
     );
+    expect(pageSource).toContain("disabled={savingPlannedDurationRowId !== null}");
     expect(pageSource).toContain("onClose={closePlannedDurationKeypad}");
   });
 
@@ -1803,6 +1846,14 @@ describe("PressJobPage", () => {
     ).resolves.toEqual({ expectedDuration: "0", status: "invalid" });
     await expect(
       savePressJobExpectedDuration({
+        isSaving: false,
+        row,
+        updatePressJobExpectedDuration,
+        value: "-1",
+      }),
+    ).resolves.toEqual({ expectedDuration: "-1", status: "invalid" });
+    await expect(
+      savePressJobExpectedDuration({
         isSaving: true,
         row,
         updatePressJobExpectedDuration,
@@ -1810,6 +1861,166 @@ describe("PressJobPage", () => {
       }),
     ).resolves.toEqual({ expectedDuration: "4", status: "pending" });
     expect(updatePressJobExpectedDuration).not.toHaveBeenCalled();
+  });
+
+  /**
+   * @brief 断言失败与关闭恢复本次编辑捕获的 confirmed baseline（已确认基线），而非 ERP 初始值。
+   * @author PopoY
+   */
+  it("restores the latest confirmed planned duration baseline", async () => {
+    const row = {
+      localJobSessionId: "job-duration-baseline",
+      plannedDurationHours: "1",
+      pressJobId: 18,
+    };
+    const updatePressJobExpectedDuration = vi
+      .fn<(request: { id: number; expectedDuration: string }) => Promise<void>>()
+      .mockResolvedValueOnce()
+      .mockRejectedValueOnce(new Error("ERP failed"));
+
+    const saved = await savePressJobExpectedDuration({
+      confirmedValue: "1",
+      isSaving: false,
+      row,
+      updatePressJobExpectedDuration,
+      value: "2",
+    });
+    expect(saved).toEqual({ expectedDuration: "2", status: "saved" });
+    await expect(
+      savePressJobExpectedDuration({
+        confirmedValue: saved.expectedDuration,
+        isSaving: false,
+        row,
+        updatePressJobExpectedDuration,
+        value: "3",
+      }),
+    ).resolves.toEqual({ expectedDuration: "2", status: "failed" });
+
+    const local = await savePressJobExpectedDuration({
+      confirmedValue: "1",
+      isSaving: false,
+      row: { ...row, pressJobId: undefined },
+      updatePressJobExpectedDuration,
+      value: "2.5",
+    });
+    expect(local).toEqual({ expectedDuration: "2.5", status: "local" });
+    expect(
+      discardPlannedDurationDraft(
+        { [row.localJobSessionId]: "3" },
+        row.localJobSessionId,
+        null,
+        local.expectedDuration,
+      ),
+    ).toEqual({ [row.localJobSessionId]: "2.5" });
+  });
+
+  /**
+   * @brief 断言同步 request ref（请求引用）阻止同一 render（渲染周期）的双确认和 A/B 行并发保存。
+   * @author PopoY
+   */
+  it("guards duplicate and cross-row saves with one synchronous request ref", async () => {
+    const deferred = createDeferred<void>();
+    const requestRef = { current: null as object | null };
+    const updatePressJobExpectedDuration = vi.fn(() => deferred.promise);
+    const rowA = {
+      localJobSessionId: "job-duration-a",
+      plannedDurationHours: "1",
+      pressJobId: 21,
+    };
+    const rowB = {
+      localJobSessionId: "job-duration-b",
+      plannedDurationHours: "4",
+      pressJobId: 22,
+    };
+
+    const firstSave = savePressJobExpectedDuration({
+      confirmedValue: "1",
+      isSaving: false,
+      requestRef,
+      row: rowA,
+      updatePressJobExpectedDuration,
+      value: "2",
+    });
+    const duplicateSave = savePressJobExpectedDuration({
+      confirmedValue: "1",
+      isSaving: false,
+      requestRef,
+      row: rowA,
+      updatePressJobExpectedDuration,
+      value: "3",
+    });
+    const crossRowSave = savePressJobExpectedDuration({
+      confirmedValue: "4",
+      isSaving: false,
+      requestRef,
+      row: rowB,
+      updatePressJobExpectedDuration,
+      value: "5",
+    });
+    const callCountBeforeCompletion = updatePressJobExpectedDuration.mock.calls.length;
+    deferred.resolve();
+
+    await expect(firstSave).resolves.toEqual({
+      expectedDuration: "2",
+      status: "saved",
+    });
+    await expect(duplicateSave).resolves.toEqual({
+      expectedDuration: "3",
+      status: "pending",
+    });
+    await expect(crossRowSave).resolves.toEqual({
+      expectedDuration: "5",
+      status: "pending",
+    });
+    expect(callCountBeforeCompletion).toBe(1);
+    expect(updatePressJobExpectedDuration).toHaveBeenCalledWith({
+      id: 21,
+      expectedDuration: "2",
+    });
+    expect(requestRef.current).toBeNull();
+  });
+
+  /**
+   * @brief 断言保存期间关闭不恢复草稿，陈旧完成也不清除后来请求的 identity（身份）。
+   * @author PopoY
+   */
+  it("blocks close while saving and preserves a newer request identity", async () => {
+    const deferred = createDeferred<void>();
+    const requestRef = { current: null as object | null };
+    const row = {
+      localJobSessionId: "job-duration-stale",
+      plannedDurationHours: "1",
+      pressJobId: 23,
+    };
+    const save = savePressJobExpectedDuration({
+      confirmedValue: "1",
+      isSaving: false,
+      requestRef,
+      row,
+      updatePressJobExpectedDuration: () => deferred.promise,
+      value: "2",
+    });
+    const claimedIdentity = requestRef.current;
+
+    expect(
+      discardPlannedDurationDraft(
+        { [row.localJobSessionId]: "2" },
+        row.localJobSessionId,
+        requestRef,
+        "1",
+      ),
+    ).toEqual({ [row.localJobSessionId]: "2" });
+
+    const newerIdentity = {};
+    requestRef.current = newerIdentity;
+    deferred.resolve();
+
+    expect(claimedIdentity).not.toBeNull();
+    await expect(save).resolves.toEqual({
+      expectedDuration: "1",
+      status: "stale",
+    });
+    expect(requestRef.current).toBe(newerIdentity);
   });
 
   /**
