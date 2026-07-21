@@ -80,4 +80,19 @@ describe("loadValidatedBootstrapSession", () => {
 
     expect(loadSession).not.toHaveBeenCalled();
   });
+
+  /**
+   * @brief ERP bootstrap session（启动会话）失败时保留已读取配置，供错误态恢复编辑。
+   * @author PopoY
+   */
+  it("keeps native config when ERP session loading fails", async () => {
+    const sessionError = new Error("ERP session failed");
+
+    await expect(
+      loadValidatedBootstrapSession(
+        vi.fn().mockResolvedValue(sampleConfig),
+        vi.fn().mockRejectedValue(sessionError),
+      ),
+    ).rejects.toMatchObject({ config: sampleConfig });
+  });
 });

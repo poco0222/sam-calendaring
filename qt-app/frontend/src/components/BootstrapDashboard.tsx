@@ -46,8 +46,10 @@ export function BootstrapDashboard({
   const leasePackage = bootstrapSession?.data;
   const signalSnapshot = driverSession?.data?.signalSnapshot;
   const hasRuntimeError = Boolean(bootstrapSession?.error || driverSession?.error);
+  // @author PopoY: 会话建立前允许修正已读取配置；成功会话仍严格服从 ERP approval（ERP 审批）。
   const bootstrapConfigEditable = Boolean(
-    bootstrapSession?.data?.bootstrapConfigEditable,
+    bootstrapSession?.data?.bootstrapConfigEditable ||
+      (bootstrapSession?.status === "error" && config && !bootstrapSession.data),
   );
   const bootstrapConfigApprovalState =
     bootstrapSession?.data?.bootstrapConfigApprovalState ?? "unavailable";

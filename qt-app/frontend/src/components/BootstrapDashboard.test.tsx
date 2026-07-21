@@ -247,6 +247,35 @@ describe("BootstrapDashboard", () => {
   });
 
   /**
+   * @brief ERP 启动会话失败且本机配置已读取时，开放启动配置供现场恢复。
+   * @author PopoY
+   */
+  it("allows config recovery editing before an ERP session is established", () => {
+    const html = renderDashboard(
+      <BootstrapDashboard
+        bootstrapSession={{
+          status: "error",
+          config: {
+            stationAccountId: "station-account-01",
+            granteeHostId: "host-01",
+            stationId: "station-01",
+            erpBaseUrl: "http://127.0.0.1:8080",
+            driverBaseUrl: "http://127.0.0.1:5096",
+            configVersion: "v1",
+          },
+          data: null,
+          error: new Error("ERP session failed"),
+          retry: async () => {},
+        }}
+      />,
+    );
+
+    expect(html).toContain("保存配置");
+    expect(html).not.toContain("ant-input-disabled");
+    expect(html).not.toContain("配置修改未授权或开关不可用");
+  });
+
+  /**
    * @brief 断言 dashboard（仪表盘）展示紧凑且 operator-safe（操作员安全）的字段，不展示 ERP internals（ERP 内部数据）。
    * @author PopoY
    */

@@ -66,7 +66,7 @@ export type ValidatedBootstrapSession = {
 };
 
 /**
- * @brief 描述 CONFIG_INVALID（配置无效）错误携带的已读取 native config（原生配置）。
+ * @brief 描述 bootstrap error（启动错误）携带的已读取 native config（原生配置）。
  * @author PopoY
  */
 type BootstrapConfigError = ReturnType<typeof createBootstrapError> & {
@@ -97,10 +97,19 @@ export async function loadValidatedBootstrapSession(
     throw error;
   }
 
-  return {
-    config: nextConfig,
-    session: await loadSession(nextConfig),
-  };
+  try {
+    return {
+      config: nextConfig,
+      session: await loadSession(nextConfig),
+    };
+  } catch (error) {
+    if (typeof error === "object" && error !== null) {
+      // @author PopoY: 保留已校验配置，使 ERP 启动失败后仍可回显并修正本机配置。
+      (error as BootstrapConfigError).config = nextConfig;
+    }
+
+    throw error;
+  }
 }
 
 /**
@@ -176,7 +185,7 @@ export function useBootstrapSession(): UseBootstrapSessionResult {
 }
 
 /**
- * @brief 从 CONFIG_INVALID（配置无效）错误读取可用于首次启动页预填的 native config（原生配置）。
+ * @brief 从 bootstrap error（启动错误）读取可用于首次启动页或错误态恢复的 native config（原生配置）。
  * @author PopoY
  * @param value bootstrap（启动）流程捕获的未知错误。
  * @returns 携带完整六字段配置时返回该配置，否则返回 null。
