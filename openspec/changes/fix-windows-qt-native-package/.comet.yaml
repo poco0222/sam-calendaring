@@ -1,6 +1,6 @@
 workflow: hotfix
 language: zh-CN
-phase: verify
+phase: archive
 context_compression: off
 build_mode: direct
 build_pause: null
@@ -13,12 +13,12 @@ auto_transition: true
 base_ref: 24741d07b0e066813467ee20463b6a46a6d05602
 design_doc: null
 plan: null
-verify_result: pending
-verification_report: null
-branch_status: pending
+verify_result: pass
+verification_report: docs/superpowers/reports/2026-07-21-fix-windows-qt-native-package-verify.md
+branch_status: handled
 created_at: 2026-07-21
-verified_at: null
-archive_confirmation: null
+verified_at: 2026-07-21
+archive_confirmation: pending
 archived: false
 direct_override: null
 handoff_context: null
