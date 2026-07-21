@@ -1465,12 +1465,13 @@ export function PressJobPage({
       consumeArmedPersistedPlannedDurationDraftMarkers(
         persistedPlannedDurationDraftMarkersRef.current,
       );
-    if (persistedDraftKeys.size === 0) {
-      return;
-    }
 
     setPlannedDurationDrafts((currentDrafts) =>
-      dropPersistedPlannedDurationDrafts(currentDrafts, persistedDraftKeys),
+      dropPersistedPlannedDurationDrafts(
+        currentDrafts,
+        persistedDraftKeys,
+        currentJobRows,
+      ),
     );
   }, [currentJobRows]);
 
@@ -5110,20 +5111,29 @@ export function resolvePlannedDurationDraftKey(
 }
 
 /**
- * @brief 刷新 current jobs（当前作业）时，仅清理已由 ERP 保存成功的 draft（草稿）。
+ * @brief 刷新 current jobs（当前作业）时清理已保存 ERP 草稿和已离场的本地草稿。
  * @author PopoY
  * @param drafts 当前预计时长草稿映射。
  * @param persistedDraftKeys 已确认等待刷新清理的 ERP 草稿键。
+ * @param currentJobRows 当前仍在场的作业；未提供时只处理 ERP 草稿。
  * @returns 删除已确认 ERP 草稿后的映射；无匹配项时复用原映射。
  */
 export function dropPersistedPlannedDurationDrafts(
   drafts: Record<string, string>,
   persistedDraftKeys: ReadonlySet<string>,
+  currentJobRows?: readonly PressJobCurrentJobRow[],
 ): Record<string, string> {
   let nextDrafts = drafts;
+  const activeDraftKeys = currentJobRows
+    ? new Set(currentJobRows.map(resolvePlannedDurationDraftKey))
+    : undefined;
 
-  for (const draftKey of persistedDraftKeys) {
-    if (!Object.prototype.hasOwnProperty.call(drafts, draftKey)) {
+  for (const draftKey of Object.keys(drafts)) {
+    const isOrphanedLocalDraft =
+      activeDraftKeys !== undefined &&
+      draftKey.startsWith("local:") &&
+      !activeDraftKeys.has(draftKey);
+    if (!persistedDraftKeys.has(draftKey) && !isOrphanedLocalDraft) {
       continue;
     }
 

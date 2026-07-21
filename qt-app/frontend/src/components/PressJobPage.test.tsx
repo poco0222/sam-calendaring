@@ -11,6 +11,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { AntdRootProvider } from "../app/AntdRootProvider";
+import { fetchPressJobCurrentJobs } from "../services/erpClient";
 import {
   applyPlannedDurationSaveCompletion,
   armPersistedPlannedDurationDraftMarkers,
@@ -2013,6 +2014,105 @@ describe("PressJobPage", () => {
     expect(draftsAfterRefresh[localDraftKey]).toBe("6");
     expect(draftsAfterRefresh["erp:303"]).toBe("7");
     expect(draftsBeforeRefresh[erpDraftKey]).toBe("2");
+  });
+
+  /**
+   * @brief 断言同一位置的新无 ID 作业不会命中上一条作业的预计时长草稿键。
+   * @author PopoY
+   */
+  it("does not reuse a no-id duration draft when the current job is replaced", async () => {
+    const getJson = vi
+      .fn()
+      .mockResolvedValueOnce({
+        code: 200,
+        data: [
+          {
+            deviceName: "一号压机",
+            mouldCode: "MOLD-A",
+            startTime: "2026-07-21 08:00:00",
+            expectedDuration: "1",
+            status: "1",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        code: 200,
+        data: [
+          {
+            deviceName: "二号压机",
+            mouldCode: "MOLD-B",
+            startTime: "2026-07-21 09:00:00",
+            expectedDuration: "2",
+            status: "0",
+          },
+        ],
+      });
+    const [firstJob] = await fetchPressJobCurrentJobs(getJson, {
+      erpBaseUrl: "http://127.0.0.1:8080",
+      sessionToken: "erp-session-token",
+    });
+    const [replacementJob] = await fetchPressJobCurrentJobs(getJson, {
+      erpBaseUrl: "http://127.0.0.1:8080",
+      sessionToken: "erp-session-token",
+    });
+    const firstDraftKey = resolvePlannedDurationDraftKey(firstJob);
+    const replacementDraftKey = resolvePlannedDurationDraftKey(replacementJob);
+    const drafts = { [firstDraftKey]: "9" };
+
+    expect(replacementDraftKey).not.toBe(firstDraftKey);
+    expect(drafts[replacementDraftKey]).toBeUndefined();
+  });
+
+  /**
+   * @brief 断言 current jobs（当前作业）变化时清理已离场的无 ID 草稿，同时保留仍在场作业。
+   * @author PopoY
+   */
+  it("drops orphaned no-id duration drafts across the full job lifecycle", () => {
+    const noIdJobA = {
+      localJobSessionId: "job-a",
+      moldNo: "MOLD-A",
+    };
+    const noIdJobB = {
+      localJobSessionId: "job-b",
+      moldNo: "MOLD-B",
+    };
+    const erpJobA = {
+      ...noIdJobA,
+      localJobSessionId: "press-job-id-101",
+      pressJobId: 101,
+    };
+    const jobADraftKey = resolvePlannedDurationDraftKey(noIdJobA);
+    const jobBDraftKey = resolvePlannedDurationDraftKey(noIdJobB);
+    const drafts = {
+      [jobADraftKey]: "9",
+      [jobBDraftKey]: "8",
+    };
+
+    expect(
+      dropPersistedPlannedDurationDrafts(drafts, new Set(), [noIdJobA]),
+    ).toEqual({ [jobADraftKey]: "9" });
+
+    const draftsAfterJobAStarts = dropPersistedPlannedDurationDrafts(
+      drafts,
+      new Set(),
+      [erpJobA],
+    );
+    expect(draftsAfterJobAStarts[jobADraftKey]).toBeUndefined();
+    const laterSameJobADraftKey = resolvePlannedDurationDraftKey(noIdJobA);
+    expect(draftsAfterJobAStarts[laterSameJobADraftKey]).toBeUndefined();
+
+    expect(
+      dropPersistedPlannedDurationDrafts(drafts, new Set(), [noIdJobB]),
+    ).toEqual({ [jobBDraftKey]: "8" });
+
+    const markerEffectsSource = extractSourceBetween(
+      pageSource,
+      "consumeArmedPersistedPlannedDurationDraftMarkers(",
+      "点击 Unlock Drawer",
+    );
+    expect(markerEffectsSource).toContain(
+      "dropPersistedPlannedDurationDrafts(\n        currentDrafts,\n        persistedDraftKeys,\n        currentJobRows",
+    );
   });
 
   /**

@@ -1258,7 +1258,7 @@ function narrowPressJobCurrentJobs(value: unknown): PressJobCurrentJobRow[] {
     return [];
   }
 
-  return value.flatMap((item, index) => {
+  return value.flatMap((item) => {
     const record = readRecord(item);
     const pressJobId =
       typeof record?.id === "number" && Number.isSafeInteger(record.id)
@@ -1273,10 +1273,19 @@ function narrowPressJobCurrentJobs(value: unknown): PressJobCurrentJobRow[] {
     if (!pressName && !moldNo && !plannedDurationHours && !startedAt && !status) {
       return [];
     }
+    // @author PopoY: 无 ID 且缺少稳定安全业务字段时无法建立唯一身份，直接丢弃。
+    if (pressJobId === undefined && !pressName && !moldNo && !startedAt) {
+      return [];
+    }
 
     return [
       {
-        localJobSessionId: `press-job-row-${index}`,
+        localJobSessionId: createPressJobLocalSessionId({
+          pressJobId,
+          pressName,
+          moldNo,
+          startedAt,
+        }),
         ...(pressJobId === undefined ? {} : { pressJobId }),
         pressName: pressName ?? "已绑定压机",
         moldNo,
@@ -1286,6 +1295,31 @@ function narrowPressJobCurrentJobs(value: unknown): PressJobCurrentJobRow[] {
       },
     ];
   });
+}
+
+/**
+ * @brief 仅用已收窄的稳定业务字段生成 current job（当前作业）本地身份。
+ * @author PopoY
+ * @param row ERP 作业 ID 或安全展示字段。
+ * @returns 不受数组位置、预计时长和状态变化影响的确定性身份。
+ */
+function createPressJobLocalSessionId(
+  row: Pick<
+    PressJobCurrentJobRow,
+    "pressJobId" | "pressName" | "moldNo" | "startedAt"
+  >,
+): string {
+  if (row.pressJobId !== undefined) {
+    return `press-job-id-${row.pressJobId}`;
+  }
+
+  return `press-job-local-${encodeURIComponent(
+    JSON.stringify([
+      row.pressName ?? "",
+      row.moldNo ?? "",
+      row.startedAt ?? "",
+    ]),
+  )}`;
 }
 
 /**

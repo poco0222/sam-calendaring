@@ -933,7 +933,7 @@ describe("erpClient", () => {
       }),
     ).resolves.toEqual([
       {
-        localJobSessionId: "press-job-row-0",
+        localJobSessionId: "press-job-id-101",
         pressJobId: 101,
         pressName: "一号压机",
         moldNo: "MOLD-01",
@@ -947,6 +947,157 @@ describe("erpClient", () => {
       "http://127.0.0.1:8080/modbus/device/getPressJobByHandleIp",
       "erp-session-token",
     );
+  });
+
+  /**
+   * @brief 断言同一数组位置被另一条无 ID 作业替换时生成不同的本地作业身份。
+   * @author PopoY
+   */
+  it("does not reuse a local current-job identity when the same position is replaced", async () => {
+    const getJson = vi
+      .fn()
+      .mockResolvedValueOnce({
+        code: 200,
+        data: [
+          {
+            deviceName: "一号压机",
+            mouldCode: "MOLD-A",
+            startTime: "2026-07-21 08:00:00",
+            expectedDuration: "1",
+            status: "1",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        code: 200,
+        data: [
+          {
+            deviceName: "二号压机",
+            mouldCode: "MOLD-B",
+            startTime: "2026-07-21 09:00:00",
+            expectedDuration: "2",
+            status: "0",
+          },
+        ],
+      });
+
+    const [firstJob] = await fetchPressJobCurrentJobs(getJson, {
+      erpBaseUrl: sampleConfig.erpBaseUrl,
+      sessionToken: "erp-session-token",
+    });
+    const [replacementJob] = await fetchPressJobCurrentJobs(getJson, {
+      erpBaseUrl: sampleConfig.erpBaseUrl,
+      sessionToken: "erp-session-token",
+    });
+
+    expect(firstJob.localJobSessionId).not.toBe(
+      replacementJob.localJobSessionId,
+    );
+  });
+
+  /**
+   * @brief 断言作业身份不受数组重排及 expectedDuration/status（预计时长/状态）变化影响。
+   * @author PopoY
+   */
+  it("keeps current-job identities stable across reorder and volatile field changes", async () => {
+    const firstPayload = [
+      {
+        deviceId: "drop-device-a",
+        deviceName: "一号压机",
+        ip: "drop-ip-a",
+        mouldCode: "MOLD-A",
+        port: 502,
+        sessionToken: "drop-token-a",
+        signalConfig: "drop-config-a",
+        startTime: "2026-07-21 08:00:00",
+        expectedDuration: "1",
+        status: "1",
+      },
+      {
+        deviceName: "二号压机",
+        mouldCode: "MOLD-B",
+        startTime: "2026-07-21 09:00:00",
+        expectedDuration: "2",
+        status: "0",
+      },
+      {
+        id: 101,
+        deviceName: "三号压机",
+        mouldCode: "MOLD-C",
+        startTime: "2026-07-21 10:00:00",
+        expectedDuration: "3",
+        status: "1",
+      },
+    ];
+    const getJson = vi
+      .fn()
+      .mockResolvedValueOnce({ code: 200, data: firstPayload })
+      .mockResolvedValueOnce({
+        code: 200,
+        data: [
+          { ...firstPayload[2], expectedDuration: "3.5", status: "0" },
+          {
+            ...firstPayload[0],
+            deviceId: "drop-device-a-next",
+            expectedDuration: "1.5",
+            ip: "drop-ip-a-next",
+            port: 1502,
+            sessionToken: "drop-token-a-next",
+            signalConfig: "drop-config-a-next",
+            status: "0",
+          },
+          { ...firstPayload[1], expectedDuration: "2.5", status: "1" },
+        ],
+      });
+
+    const firstRows = await fetchPressJobCurrentJobs(getJson, {
+      erpBaseUrl: sampleConfig.erpBaseUrl,
+      sessionToken: "erp-session-token",
+    });
+    const reorderedRows = await fetchPressJobCurrentJobs(getJson, {
+      erpBaseUrl: sampleConfig.erpBaseUrl,
+      sessionToken: "erp-session-token",
+    });
+    const firstIdentityByMold = Object.fromEntries(
+      firstRows.map((row) => [row.moldNo, row.localJobSessionId]),
+    );
+    const reorderedIdentityByMold = Object.fromEntries(
+      reorderedRows.map((row) => [row.moldNo, row.localJobSessionId]),
+    );
+
+    expect(reorderedIdentityByMold).toEqual(firstIdentityByMold);
+    expect(firstRows[2].pressJobId).toBe(101);
+    expect(JSON.stringify([...firstRows, ...reorderedRows])).not.toContain(
+      "drop-",
+    );
+    expect(Object.keys(firstRows[0]).sort()).toEqual(
+      [
+        "localJobSessionId",
+        "moldNo",
+        "plannedDurationHours",
+        "pressName",
+        "startedAt",
+        "status",
+      ].sort(),
+    );
+  });
+
+  /**
+   * @brief 断言缺少 ERP ID 和全部稳定展示字段的行不会生成可碰撞的空本地身份。
+   * @author PopoY
+   */
+  it("drops no-id current jobs without stable identity fields", async () => {
+    const getJson = vi.fn().mockResolvedValueOnce({
+      code: 200,
+      data: [{ expectedDuration: "1" }, { status: "0" }],
+    });
+
+    await expect(
+      fetchPressJobCurrentJobs(getJson, {
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        sessionToken: "erp-session-token",
+      }),
+    ).resolves.toEqual([]);
   });
 
   /**
