@@ -31,6 +31,17 @@ qt_add_executable(qt_app_native
     src/mainwindow.h
 )
 
+qt_add_resources(qt_app_native "app_icon"
+    PREFIX "/"
+    BASE "${CMAKE_CURRENT_SOURCE_DIR}/../.."
+    FILES
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../logo.png"
+)
+
+if(WIN32)
+    target_sources(qt_app_native PRIVATE resources/app.rc)
+endif()
+
 target_link_libraries(qt_app_native
     PRIVATE
         Qt6::WebEngineWidgets

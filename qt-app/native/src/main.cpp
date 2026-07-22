@@ -10,8 +10,9 @@
 #include "mainwindow.h"
 
 #include <QApplication>
-#include <QWebChannel>
 #include <QCoreApplication>
+#include <QIcon>
+#include <QWebChannel>
 #include <QWebEngineView>
 
 /**
@@ -26,6 +27,7 @@ int main(int argc, char *argv[]) {
 
     QApplication::setOrganizationName(QStringLiteral("PopoY"));
     QApplication::setApplicationName(QStringLiteral("qt-app-bootstrap"));
+    QApplication::setWindowIcon(QIcon(QStringLiteral(":/logo.png")));
 
     const QString frontendEntryPath = resolveFrontendEntryPath(
         QCoreApplication::applicationDirPath(),
