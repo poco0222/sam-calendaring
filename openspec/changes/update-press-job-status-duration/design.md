@@ -3,7 +3,7 @@
 @author PopoY
 @created 2026-07-21 16:40:47
 @editor PopoY
-@edited 2026-07-21 17:57:59
+@edited 2026-07-21 20:02:18
 @purpose 说明出线信号解析、预计时长持久化和失败回滚的最小实现方案。
 -->
 
@@ -42,7 +42,9 @@ Driver Service 首次快照可能以 `signalCode` 为 map key（映射键），�
 
 ### 2. 将 ERP 作业 ID 纳入当前作业白名单模型
 
-在 `PressJobCurrentJobRow` 增加可选 `pressJobId`，由 `narrowPressJobCurrentJobs` 从 ERP `Long id` 收窄为 number（数字）。`localJobSessionId` 继续只作为 React row key（行键）和页面动作身份，不冒充数据库主键。
+在 `PressJobCurrentJobRow` 增加可选 `pressJobId`，由 `narrowPressJobCurrentJobs` 从 ERP `Long id` 收窄为 number（数字）。有 ID 行的 `localJobSessionId` 按 `pressJobId` 生成；无 ID 行仅按已白名单的 `pressName`、`moldNo` 和 `startedAt` 生成确定性本地身份，不使用数组位置、易变字段或敏感字段。缺少全部稳定身份字段的无 ID 畸形行直接丢弃。
+
+预计时长 draft key（草稿键）和当前作业 Table row key（表格行键）统一复用该稳定身份：有 ID 行以 `pressJobId` 为权威身份，无 ID 行使用本地身份。`localJobSessionId` 继续服务页面动作与 Driver workflow（驱动流程），但不冒充数据库主键。
 
 不保留 sam-erp 的多字段主键兼容逻辑；当前接口响应契约已有明确 `id`，额外兼容字段会掩盖数据问题。
 
@@ -59,7 +61,7 @@ Driver Service 首次快照可能以 `signalCode` 为 map key（映射键），�
 
 ### 4. 以最小 PUT 客户端连接既有 ERP 接口
 
-在 `erpClient` 增加与 `postJson` 对称的原生 `fetch` PUT helper（PUT 辅助函数），继续使用 `buildErpJsonHeaders` 注入 bearer token（承载令牌）。新增的预计时长 client function（客户端函数）只发送 `{ id, expectedDuration }`，并通过现有 `unwrapErpAjaxResult` 拒绝 ERP 业务失败。
+在 `erpClient` 增加与 `postJson` 对称的原生 `fetch` PUT helper（PUT 辅助函数），继续使用 `buildErpJsonHeaders` 注入 bearer token（承载令牌）。新增的预计时长 client function（客户端函数）只发送 `{ id, expectedDuration }`，并通过现有 `unwrapErpAjaxResult` 拒绝 ERP 业务失败。`App` 为每次更新生成不含业务或敏感信息的 correlationId（关联 ID），仅通过 `X-Correlation-Id` header（请求头）传递，不进入请求 body（请求体）。
 
 `App` 继续持有 `erpBaseUrl` 和 `sessionToken`，只向 `PressJobPage` 注入安全的更新回调；页面不接触会话令牌。没有必要把所有 HTTP method（HTTP 方法）重构为通用 transport（传输层）。
 
@@ -85,3 +87,13 @@ Driver Service 首次快照可能以 `signalCode` 为 map key（映射键），�
 审查发现“始终删除草稿以恢复 ERP 原值”会在连续编辑时丢失最近一次已确认值，因此实现改为在编辑开始时记录 baseline source（基线来源）：原值来自已确认本地草稿时，保存失败或关闭恢复该草稿；原值直接来自 ERP row（ERP 行）时删除草稿，继续接收后续 ERP 刷新值。该处理符合增量规格中“恢复保存前预计时长”的要求。
 
 为避免同一 render（渲染周期）重复确认和跨行异步完成互相覆盖，页面使用一个同步 request ref（请求引用）串行化预计时长更新；保存期间暂时禁用其他预计时长编辑。实际反馈文案为“预计时长保存成功”“预计时长保存失败，请重试。”和“预计时长将在开始加工时提交。”，均保持增量规格要求的中文反馈语义。
+
+最终审查进一步发现 `localJobSessionId` 来自数组位置，不能作为 ERP 草稿身份。实现因此改为 ERP 行使用 `pressJobId` 生成稳定 draft key（草稿键），无 ID 行才回退本地会话 ID；异步完成前再按最新当前作业列表确认原 `pressJobId` 仍存在。原作业被替换时结果为 stale（陈旧），只清理原作业草稿、保存态和数字键盘，不显示成功反馈；同一 ERP 作业仅重排时继续接受保存结果。
+
+ERP 保存成功后，确认值暂时保留为草稿，等待后续 `currentJobRows` 刷新再由数据库值接管。为避免保存前已经排队的 passive effect（被动副作用）误消费保存后才登记的 marker（标记），marker 使用 `unarmed -> armed` 两阶段：refresh cleanup（刷新清理）只消费已激活 marker，并在同一 commit（提交）的后续 effect 中激活新 marker。组件实际复用的 completion helper（完成辅助函数）统一执行 saved、failed、invalid、local、pending 与 stale 的 draft、marker、saving、keypad 和中文反馈决策，对应行为由可执行测试锁定。
+
+最终审查还发现 React Table（React 表格）若继续使用数组位置生成的 `localJobSessionId`，会在同一位置替换作业时复用输入节点和本地预计时长。实现因此让 Table `rowKey` 直接复用预计时长稳定 draft key，并让 ERP client（ERP 客户端）按 `pressJobId` 或安全业务指纹生成稳定 `localJobSessionId`。`currentJobRows` 变化时同时清理已经离场的 `local:*` 草稿；同一无 ID 作业的普通刷新仍保留草稿，无 ID 行转为 ERP ID、被另一作业替换或完成离场后不再把旧预计时长带入后续作业。sam-erp 当前端点已确认每次最多返回一个当前作业行；若后端违反该 cardinality（基数）契约并返回多条完全相同安全指纹的无 ID 行，前端无法在不引入位置、易变或敏感字段的前提下区分，记录为接口契约限制。
+
+为避免保存前启动的旧 current-jobs GET（当前作业读取）在 PUT 成功后覆盖新值，`App` 为读取和更新共享单调 request version（请求版本）：只有最新 GET 可以写入行状态；PUT 成功会使更早 GET 失效，并按 `pressJobId` 把确认值同步到当前行。后续新 GET、bootstrap rows（启动行）和无会话清空继续按同一版本规则接管，不额外发起保存后刷新。
+
+每次预计时长外部 PUT 由 `App` 创建独立的 `press-job-duration-*` correlationId；ERP client 同时发送 `Authorization` 与 `X-Correlation-Id`，JSON body 仍精确为 `{ id, expectedDuration }`。页面、领域请求和日志均不接触 token（令牌）、网络地址、设备 ID 或信号配置原文。
