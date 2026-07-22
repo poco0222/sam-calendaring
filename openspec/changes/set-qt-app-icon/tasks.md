@@ -11,4 +11,4 @@
 
 ## 2. Verification
 
-- [ ] 2.1 Verify ICO entries, Qt resource loading, CMake configure/build/tests, OpenSpec validation, and the unchanged Windows package path.
+- [x] 2.1 Verify ICO entries, Qt resource loading, CMake configure/build/tests, OpenSpec validation, and the unchanged Windows package path.
