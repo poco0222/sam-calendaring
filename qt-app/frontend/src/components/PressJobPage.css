@@ -245,6 +245,17 @@
   padding-block: 6px;
 }
 
+/* @author PopoY: ERP processing status（加工状态）用整行浅色区分，hover（悬停）时保持相同语义色。 */
+.press-job-page__table-body .ant-table-tbody > tr.press-job-page__current-job-row--pending > td,
+.press-job-page__table-body .ant-table-tbody > tr.press-job-page__current-job-row--pending:hover > td {
+  background: color-mix(in srgb, #faad14 18%, canvas);
+}
+
+.press-job-page__table-body .ant-table-tbody > tr.press-job-page__current-job-row--running > td,
+.press-job-page__table-body .ant-table-tbody > tr.press-job-page__current-job-row--running:hover > td {
+  background: color-mix(in srgb, #52c41a 18%, canvas);
+}
+
 .press-job-page__planned-duration-input {
   width: 88px;
 }

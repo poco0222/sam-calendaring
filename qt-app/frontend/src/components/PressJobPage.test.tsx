@@ -107,10 +107,12 @@ function createDeferred<T>() {
  * @brief 按指定 signalValues（信号值）渲染压机出入线状态，固定 ERP status（状态）以隔离实时信号语义。
  * @author PopoY
  * @param signalValues Driver snapshot（驱动快照）中的信号值。
+ * @param status ERP current-job status（当前作业状态）。
  * @returns server-rendered HTML（服务端渲染 HTML）。
  */
 function renderPressJobLineStatus(
   signalValues: Record<string, unknown>,
+  status = "1",
 ): string {
   return renderPage(
     <PressJobPage
@@ -119,7 +121,7 @@ function renderPressJobLineStatus(
           localJobSessionId: "job-line-status",
           plannedDurationHours: "2",
           pressName: "压机 1",
-          status: "1",
+          status,
         },
       ]}
       driverSession={{
@@ -1626,7 +1628,7 @@ describe("PressJobPage", () => {
   });
 
   /**
-   * @brief 断言 scalar（标量）是否出线信号按明确布尔语义展示，操作区与表格保持一致。
+   * @brief 断言 scalar（标量）是否出线信号只按明确布尔语义展示在操作区。
    * @author PopoY
    */
   it.each([
@@ -1640,13 +1642,12 @@ describe("PressJobPage", () => {
     ["true", "已出线", "error"],
   ])("renders line status value %j as %s", (value, statusText, color) => {
     const html = renderPressJobLineStatus({ "是否出线": value });
-    const statusHtml = [
-      extractAriaSectionHtml(html, "压机作业操作区"),
-      extractAriaSectionHtml(html, "当前作业信息"),
-    ].join("\n");
+    const actionHtml = extractAriaSectionHtml(html, "压机作业操作区");
+    const currentJobHtml = extractAriaSectionHtml(html, "当前作业信息");
 
-    expect(statusHtml.match(new RegExp(statusText, "g"))).toHaveLength(2);
-    expect(statusHtml.match(new RegExp(`ant-tag-${color}`, "g"))).toHaveLength(2);
+    expect(actionHtml).toContain(statusText);
+    expect(actionHtml).toContain(`ant-tag-${color}`);
+    expect(currentJobHtml).not.toContain(statusText);
   });
 
   /**
@@ -1664,12 +1665,11 @@ describe("PressJobPage", () => {
     ["true", "已出线"],
   ])("unwraps direct-key object value %j as %s", (value, statusText) => {
     const html = renderPressJobLineStatus({ "是否出线": { value } });
-    const statusHtml = [
-      extractAriaSectionHtml(html, "压机作业操作区"),
-      extractAriaSectionHtml(html, "当前作业信息"),
-    ].join("\n");
+    const actionHtml = extractAriaSectionHtml(html, "压机作业操作区");
+    const currentJobHtml = extractAriaSectionHtml(html, "当前作业信息");
 
-    expect(statusHtml.match(new RegExp(statusText, "g"))).toHaveLength(2);
+    expect(actionHtml).toContain(statusText);
+    expect(currentJobHtml).not.toContain(statusText);
   });
 
   /**
@@ -1686,13 +1686,12 @@ describe("PressJobPage", () => {
           value: true,
         },
       });
-      const statusHtml = [
-        extractAriaSectionHtml(html, "压机作业操作区"),
-        extractAriaSectionHtml(html, "当前作业信息"),
-      ].join("\n");
+      const actionHtml = extractAriaSectionHtml(html, "压机作业操作区");
+      const currentJobHtml = extractAriaSectionHtml(html, "当前作业信息");
 
-      expect(statusHtml.match(/已出线/g)).toHaveLength(2);
-      expect(statusHtml.match(/ant-tag-error/g)).toHaveLength(2);
+      expect(actionHtml).toContain("已出线");
+      expect(actionHtml).toContain("ant-tag-error");
+      expect(currentJobHtml).not.toContain("已出线");
     },
   );
 
@@ -1706,16 +1705,54 @@ describe("PressJobPage", () => {
     { LINE_STATUS_CODE: { signalName: "其他信号", value: true } },
   ])("renders unknown for missing or unrecognized line status %#", (signalValues) => {
     const html = renderPressJobLineStatus(signalValues);
-    const statusHtml = [
-      extractAriaSectionHtml(html, "压机作业操作区"),
-      extractAriaSectionHtml(html, "当前作业信息"),
-    ].join("\n");
+    const actionHtml = extractAriaSectionHtml(html, "压机作业操作区");
+    const currentJobHtml = extractAriaSectionHtml(html, "当前作业信息");
 
-    expect(statusHtml.match(/未知/g)).toHaveLength(2);
-    expect(statusHtml).not.toContain("已入线");
-    expect(statusHtml).not.toContain("已出线");
-    expect(statusHtml).not.toContain("ant-tag-success");
-    expect(statusHtml).not.toContain("ant-tag-error");
+    expect(actionHtml).toContain("未知");
+    expect(actionHtml).not.toContain("已入线");
+    expect(actionHtml).not.toContain("已出线");
+    expect(actionHtml).not.toContain("ant-tag-success");
+    expect(actionHtml).not.toContain("ant-tag-error");
+    expect(currentJobHtml).not.toContain("未知");
+  });
+
+  /**
+   * @brief 断言 Current Job Table（当前作业表）直接展示 ERP processing status（加工状态）并设置行级语义类。
+   * @author PopoY
+   */
+  it.each([
+    ["0", "待加工", "press-job-page__current-job-row--pending"],
+    ["1", "进行中", "press-job-page__current-job-row--running"],
+    ["PAUSED", "PAUSED", null],
+  ])("renders ERP processing status %s as %s", (status, statusText, rowClassName) => {
+    const html = renderPressJobLineStatus({ "是否出线": true }, status);
+    const actionHtml = extractAriaSectionHtml(html, "压机作业操作区");
+    const currentJobHtml = extractAriaSectionHtml(html, "当前作业信息");
+
+    expect(actionHtml).toContain("已出线");
+    expect(currentJobHtml).toContain("加工状态");
+    expect(currentJobHtml).toContain(statusText);
+    expect(currentJobHtml).not.toContain("已出线");
+    if (rowClassName) {
+      expect(currentJobHtml).toContain(rowClassName);
+    } else {
+      expect(currentJobHtml).not.toContain("press-job-page__current-job-row--");
+    }
+  });
+
+  /**
+   * @brief 断言加工状态行底色覆盖全部 cell（单元格）及 hover（悬停）状态。
+   * @author PopoY
+   */
+  it("colors pending and running current-job rows", () => {
+    expect(pageCss).toContain(
+      ".press-job-page__current-job-row--pending > td",
+    );
+    expect(pageCss).toContain(
+      ".press-job-page__current-job-row--running > td",
+    );
+    expect(pageCss).toContain("color-mix(in srgb, #faad14 18%, canvas)");
+    expect(pageCss).toContain("color-mix(in srgb, #52c41a 18%, canvas)");
   });
 
   /**

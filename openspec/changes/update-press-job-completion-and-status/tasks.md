@@ -11,7 +11,7 @@
 
 ## 2. Current-job processing status
 
-- [ ] 2.1 Add failing `PressJobPage.test.tsx` coverage for `status=0` rendering `待加工` with a yellow row class, `status=1` rendering `进行中` with a green row class, and unknown status receiving no class; then minimally update `PressJobPage.tsx` and `PressJobPage.css` while preserving action-area line status.
+- [x] 2.1 Add failing `PressJobPage.test.tsx` coverage for `status=0` rendering `待加工` with a yellow row class, `status=1` rendering `进行中` with a green row class, and unknown status receiving no class; then minimally update `PressJobPage.tsx` and `PressJobPage.css` while preserving action-area line status.
 
 ## 3. Verification
 

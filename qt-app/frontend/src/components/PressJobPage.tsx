@@ -1302,12 +1302,17 @@ export function PressJobPage({
         formatCurrentJobCell(startedAt),
     },
     {
-      title: "当前状态",
+      title: "加工状态",
       dataIndex: "status",
       width: 120,
-      render: () => (
-        <Tag color={pressJobLineStatus.color}>{pressJobLineStatus.text}</Tag>
-      ),
+      render: (_status, row) =>
+        formatCurrentJobCell(
+          isPendingPressJob(row)
+            ? "待加工"
+            : isRunningPressJob(row)
+              ? "进行中"
+              : row.status,
+        ),
     },
   ];
   const moldInfoColumns: NonNullable<TableProps<PressMoldInfoRow>["columns"]> = [
@@ -2500,6 +2505,13 @@ export function PressJobPage({
             dataSource={currentJobRows}
             locale={{ emptyText: "暂无当前作业" }}
             pagination={false}
+            rowClassName={(row) =>
+              isPendingPressJob(row)
+                ? "press-job-page__current-job-row--pending"
+                : isRunningPressJob(row)
+                  ? "press-job-page__current-job-row--running"
+                  : ""
+            }
             rowKey={resolvePlannedDurationDraftKey}
             size="small"
           />
