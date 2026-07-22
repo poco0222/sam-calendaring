@@ -15,4 +15,4 @@
 
 ## 3. Verification
 
-- [ ] 3.1 Run targeted Vitest, full `pnpm test`, TypeScript checking, production build, strict OpenSpec validation, and `git diff --check`; confirm the sensitive-information boundary and minimal change scope.
+- [x] 3.1 Run targeted Vitest, full `pnpm test`, TypeScript checking, production build, strict OpenSpec validation, and `git diff --check`; confirm the sensitive-information boundary and minimal change scope.
