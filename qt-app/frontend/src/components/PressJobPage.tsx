@@ -2979,6 +2979,7 @@ export function validateStartPressJobPreflight(input: {
     input.filters,
     input.driverSession,
     input.currentJobRows,
+    true,
   );
 
   if (sharedMessage) {
@@ -3071,6 +3072,7 @@ export function validateCompletePressJobPreflight(input: {
     input.filters,
     input.driverSession,
     input.currentJobRows,
+    false,
   );
 
   if (sharedMessage) {
@@ -3987,12 +3989,14 @@ function resolveDriverPrecheckFailureMessage(
  * @param filters 当前筛选。
  * @param driverSession Driver session（驱动会话）。
  * @param currentJobRows 当前作业。
+ * @param requiresProcessId 当前动作是否要求预选工艺。
  * @returns 中文 validation message（校验消息），通过时返回 null。
  */
 function validatePressJobWorkflowSharedPreflight(
   filters: PressJobFilterState,
   driverSession: PressJobPageDriverSession | undefined,
   currentJobRows: PressJobCurrentJobRow[],
+  requiresProcessId: boolean,
 ): string | null {
   if (!isNonEmptyString(filters.teamId)) {
     return "请先选择班组。";
@@ -4002,7 +4006,7 @@ function validatePressJobWorkflowSharedPreflight(
     return "请先选择人员。";
   }
 
-  if (!isNonEmptyString(filters.processId)) {
+  if (requiresProcessId && !isNonEmptyString(filters.processId)) {
     return "请先选择预选工艺。";
   }
 

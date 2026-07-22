@@ -2851,6 +2851,7 @@ describe("PressJobPage", () => {
    */
   it("validates start and complete workflow preflights", () => {
     const filters = { teamId: "team-01", operatorId: "op-01", processId: "PRESS-01" };
+    const filtersWithoutProcess = { teamId: "team-01", operatorId: "op-01" };
     const pendingJob = {
       localJobSessionId: "job-01",
       moldNo: "MOLD-01",
@@ -2899,6 +2900,14 @@ describe("PressJobPage", () => {
         currentJobRows: [pendingJob],
         driverSession: createDriverSession("Connected"),
         expectedDuration: "1.5",
+        filters: filtersWithoutProcess,
+      }),
+    ).toBe("请先选择预选工艺。");
+    expect(
+      validateStartPressJobPreflight({
+        currentJobRows: [pendingJob],
+        driverSession: createDriverSession("Connected"),
+        expectedDuration: "1.5",
         filters,
       }),
     ).toBeNull();
@@ -2916,6 +2925,13 @@ describe("PressJobPage", () => {
         filters,
       }),
     ).toBe("当前作业缺少本地会话 ID，请刷新后重试。");
+    expect(
+      validateCompletePressJobPreflight({
+        currentJobRows: [runningJob],
+        driverSession: createDriverSession("Connected"),
+        filters: filtersWithoutProcess,
+      }),
+    ).toBeNull();
     expect(
       validateCompletePressJobPreflight({
         currentJobRows: [runningJob],
