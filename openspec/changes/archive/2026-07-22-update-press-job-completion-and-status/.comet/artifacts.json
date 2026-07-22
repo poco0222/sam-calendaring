@@ -2,5 +2,6 @@
   "openspec_proposal": "openspec/changes/update-press-job-completion-and-status/proposal.md",
   "openspec_design": "openspec/changes/update-press-job-completion-and-status/design.md",
   "openspec_tasks": "openspec/changes/update-press-job-completion-and-status/tasks.md",
-  "openspec_delta_spec": "openspec/changes/update-press-job-completion-and-status/specs/press-job-completion-preflight/spec.md"
+  "openspec_delta_spec": "openspec/changes/update-press-job-completion-and-status/specs/press-job-completion-preflight/spec.md",
+  "archive_directory": "openspec/changes/archive/2026-07-22-update-press-job-completion-and-status"
 }

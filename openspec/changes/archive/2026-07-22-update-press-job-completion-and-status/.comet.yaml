@@ -1,6 +1,6 @@
 workflow: tweak
 language: en
-phase: verify
+phase: archive
 context_compression: off
 build_mode: direct
 build_pause: null
@@ -13,14 +13,14 @@ auto_transition: true
 base_ref: 5dc43b6d5fef7b62cb69182395540c7c47bef192
 design_doc: null
 plan: null
-verify_result: pending
-verify_failures: 1
+verify_result: pass
+verify_failures: 0
 verification_report: docs/superpowers/reports/2026-07-22-update-press-job-completion-and-status-verify.md
 branch_status: pending
 created_at: 2026-07-22
-verified_at: null
-archive_confirmation: null
-archived: false
+verified_at: 2026-07-22
+archive_confirmation: confirmed
+archived: true
 bound_branch: main
 direct_override: null
 handoff_context: null

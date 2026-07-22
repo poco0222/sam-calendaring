@@ -5,35 +5,53 @@ TBD - created by archiving change update-press-job-status-duration. Update Purpo
 ## Requirements
 ### Requirement: 当前状态由是否出线信号统一展示
 
-QT App（Qt 应用）压机作业页面 MUST（必须）从经过脱敏的 Driver Service（驱动服务）signal snapshot（信号快照）中定位 `是否出线` 信号，并在操作区和当前作业表中统一展示设备入线状态。系统 MUST 支持以 map key（映射键）直接命名的信号，以及以 `signalCode` 为 key、在值对象中通过 `signalName`、`name` 或 `semanticKey` 标识的信号。
+The QT App press-job action area MUST locate the `是否出线` signal in the redacted Driver Service signal snapshot and render device line status. The current-job table MUST read each ERP row's `status` directly as `加工状态` and MUST NOT replace processing status with the `是否出线` signal. Signal lookup MUST support a directly named map key and a `signalCode` key whose value object identifies the signal through `signalName`, `name`, or `semanticKey`.
 
 #### Scenario: 信号表示已入线
 
-- **WHEN** `是否出线` 的标量值或值对象中的 `value` 为 `false`、`0` 或字符串 `"0"`/`"false"`
-- **THEN** 操作区和当前作业表 MUST 显示绿色 `已入线` Tag（标签）
+- **WHEN** the `是否出线` scalar or object `value` is `false`, `0`, `"0"`, or `"false"`
+- **THEN** the action area MUST render a green `已入线` Tag
 
 #### Scenario: 信号表示已出线
 
-- **WHEN** `是否出线` 的标量值或值对象中的 `value` 为 `true`、`1` 或字符串 `"1"`/`"true"`
-- **THEN** 操作区和当前作业表 MUST 显示红色 `已出线` Tag（标签）
+- **WHEN** the `是否出线` scalar or object `value` is `true`, `1`, `"1"`, or `"true"`
+- **THEN** the action area MUST render a red `已出线` Tag
 
 #### Scenario: 通过信号元数据定位出线状态
 
-- **WHEN** signal snapshot 的 map key 是 `signalCode`，且对应值对象的 `signalName`、`name` 或 `semanticKey` 等于 `是否出线`
-- **THEN** 页面 MUST 使用该对象的 `value` 决定入线或出线状态
-- **AND** 页面 MUST NOT（不得）要求 map key 固定为中文 `是否出线`
+- **WHEN** the signal snapshot map key is `signalCode` and its value object's `signalName`, `name`, or `semanticKey` equals `是否出线`
+- **THEN** the action area MUST use that object's `value` to determine line-in or line-out status
+- **AND** the page MUST NOT require the map key itself to equal `是否出线`
 
 #### Scenario: 出线信号缺失或值不可识别
 
-- **WHEN** signal snapshot 中没有可定位的 `是否出线` 信号，或其值不是受支持的 boolean（布尔值）或 `0/1`
-- **THEN** 操作区和当前作业表 MUST 显示中性 `未知` Tag
-- **AND** 页面 MUST NOT 将未知状态误报为 `已入线` 或 `已出线`
+- **WHEN** the signal snapshot has no identifiable `是否出线` signal or its value is not a supported boolean or `0/1`
+- **THEN** the action area MUST render a neutral `未知` Tag
+- **AND** the page MUST NOT report an unknown value as `已入线` or `已出线`
+
+#### Scenario: Current job is pending
+
+- **WHEN** a current-job row's ERP `status` is `0`
+- **THEN** the table's `加工状态` column MUST render `待加工`
+- **AND** every cell in that row MUST use a yellow background
+
+#### Scenario: Current job is running
+
+- **WHEN** a current-job row's ERP `status` is `1`
+- **THEN** the table's `加工状态` column MUST render `进行中`
+- **AND** every cell in that row MUST use a green background
+
+#### Scenario: Current-job status is unrecognized
+
+- **WHEN** a current-job row's ERP `status` is neither `0` nor `1`
+- **THEN** the table MUST render a non-empty status unchanged and use the existing placeholder for an empty status
+- **AND** the row MUST NOT receive the pending or running background
 
 #### Scenario: 作业生命周期判断保持不变
 
-- **WHEN** 页面执行开始加工、完成加工、实际时长计算或其他依赖 ERP `status` 的业务判断
-- **THEN** 页面 MUST 继续使用 ERP `status`
-- **AND** `是否出线` 信号 MUST 仅替换“当前状态”的展示内容
+- **WHEN** the page starts processing, completes processing, calculates actual duration, or makes another job lifecycle decision
+- **THEN** the page MUST continue to use ERP `status`
+- **AND** the action-area `是否出线` signal MUST NOT participate in job lifecycle decisions
 
 ### Requirement: 预计时长确认后按 ERP 作业 ID 持久化
 
