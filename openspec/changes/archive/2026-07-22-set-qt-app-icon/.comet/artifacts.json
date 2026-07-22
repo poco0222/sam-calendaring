@@ -2,5 +2,6 @@
   "openspec_proposal": "openspec/changes/set-qt-app-icon/proposal.md",
   "openspec_design": "openspec/changes/set-qt-app-icon/design.md",
   "openspec_tasks": "openspec/changes/set-qt-app-icon/tasks.md",
-  "openspec_delta_spec": "openspec/changes/set-qt-app-icon/specs/qt-app-application-icon/spec.md"
+  "openspec_delta_spec": "openspec/changes/set-qt-app-icon/specs/qt-app-application-icon/spec.md",
+  "archive_directory": "openspec/changes/archive/2026-07-22-set-qt-app-icon"
 }
