@@ -11,23 +11,23 @@
 
 The QT App press-job action area MUST locate the `是否出线` signal in the redacted Driver Service signal snapshot and render device line status. The current-job table MUST read each ERP row's `status` directly as `加工状态` and MUST NOT replace processing status with the `是否出线` signal. Signal lookup MUST support a directly named map key and a `signalCode` key whose value object identifies the signal through `signalName`, `name`, or `semanticKey`.
 
-#### Scenario: Action-area signal indicates line-in
+#### Scenario: 信号表示已入线
 
 - **WHEN** the `是否出线` scalar or object `value` is `false`, `0`, `"0"`, or `"false"`
 - **THEN** the action area MUST render a green `已入线` Tag
 
-#### Scenario: Action-area signal indicates line-out
+#### Scenario: 信号表示已出线
 
 - **WHEN** the `是否出线` scalar or object `value` is `true`, `1`, `"1"`, or `"true"`
 - **THEN** the action area MUST render a red `已出线` Tag
 
-#### Scenario: Locate action-area line status through signal metadata
+#### Scenario: 通过信号元数据定位出线状态
 
 - **WHEN** the signal snapshot map key is `signalCode` and its value object's `signalName`, `name`, or `semanticKey` equals `是否出线`
 - **THEN** the action area MUST use that object's `value` to determine line-in or line-out status
 - **AND** the page MUST NOT require the map key itself to equal `是否出线`
 
-#### Scenario: Action-area line status is missing or unrecognized
+#### Scenario: 出线信号缺失或值不可识别
 
 - **WHEN** the signal snapshot has no identifiable `是否出线` signal or its value is not a supported boolean or `0/1`
 - **THEN** the action area MUST render a neutral `未知` Tag
@@ -51,7 +51,7 @@ The QT App press-job action area MUST locate the `是否出线` signal in the re
 - **THEN** the table MUST render a non-empty status unchanged and use the existing placeholder for an empty status
 - **AND** the row MUST NOT receive the pending or running background
 
-#### Scenario: Job lifecycle decisions continue to use ERP status
+#### Scenario: 作业生命周期判断保持不变
 
 - **WHEN** the page starts processing, completes processing, calculates actual duration, or makes another job lifecycle decision
 - **THEN** the page MUST continue to use ERP `status`
