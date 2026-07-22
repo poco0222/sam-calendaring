@@ -9,8 +9,8 @@
 
 - Workflow: `tweak`
 - Base ref: `5dc43b6d5fef7b62cb69182395540c7c47bef192`
-- Verified source ref: `a6d43f8edaacf6887009954dc12776e2c307dea0`
-- Verified at: `2026-07-22 09:13:57 +0800`
+- Verified source ref: `bd0b7ded3b311d2d30efe9d75236a7d5670bdebc`
+- Verified at: `2026-07-22 09:22:07 +0800`
 - Verify mode: `full`
 
 ## Summary
@@ -74,6 +74,8 @@ Results:
 - OpenSpec: strict validation reported `Change 'update-press-job-completion-and-status' is valid`.
 - Diff check: no whitespace errors.
 - Targeted TDD evidence: the new status/hover and running change-mold move-out tests failed before their fixes and passed afterward.
+
+The first archive attempt safely stopped because five existing scenario headings in the modified delta block had been translated instead of retaining their exact main-spec identities. Commit `bd0b7de` restored only those five headings, preserving every scenario body and all three newly added current-job scenarios. The complete verification command above was then rerun successfully and recorded again.
 
 The build-phase guard could not infer the nested `qt-app/frontend` package build and its command-record step encountered a stale Comet Run projection after tasks reached 3/3. The guard's duplicate build probe was bypassed once through its compatibility environment flag only after the real production build had passed. This bypass is not used as verification evidence; the successful command above is the recorded verify evidence.
 
