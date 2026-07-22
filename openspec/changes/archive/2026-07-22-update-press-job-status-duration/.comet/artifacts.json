@@ -2,5 +2,6 @@
   "openspec_proposal": "openspec/changes/update-press-job-status-duration/proposal.md",
   "openspec_design": "openspec/changes/update-press-job-status-duration/design.md",
   "openspec_tasks": "openspec/changes/update-press-job-status-duration/tasks.md",
-  "openspec_delta_spec": "openspec/changes/update-press-job-status-duration/specs/press-job-current-state-duration/spec.md"
+  "openspec_delta_spec": "openspec/changes/update-press-job-status-duration/specs/press-job-current-state-duration/spec.md",
+  "archive_directory": "openspec/changes/archive/2026-07-22-update-press-job-status-duration"
 }
