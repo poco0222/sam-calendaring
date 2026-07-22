@@ -3542,6 +3542,22 @@ export async function executePressJobMoveOutWorkflow(
   const identity = createPressWorkflowActionIdentity("moveOut", "moveOut", currentJob);
 
   if (input.changeMold && isRunningPressJob(currentJob)) {
+    const preflightMessage = validateSharedPressDeviceActionPreflight(
+      "moveOut",
+      input.filters,
+      input.driverSession,
+      input.currentJobRows,
+    );
+
+    if (preflightMessage) {
+      return createWorkflowResult(
+        preflightMessage,
+        "warning",
+        "PREFLIGHT_FAILED",
+        identity,
+      );
+    }
+
     const confirmed = await input.confirm?.(
       "当前模具正在加工，移出将自动完成加工，是否确认移出？",
     );

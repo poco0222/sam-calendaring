@@ -1751,8 +1751,22 @@ describe("PressJobPage", () => {
     expect(pageCss).toContain(
       ".press-job-page__current-job-row--running > td",
     );
-    expect(pageCss).toContain("color-mix(in srgb, #faad14 18%, canvas)");
-    expect(pageCss).toContain("color-mix(in srgb, #52c41a 18%, canvas)");
+    expect(pageCss).toContain(
+      ".press-job-page__current-job-row--pending > td.ant-table-cell-row-hover",
+    );
+    expect(pageCss).toContain(
+      ".press-job-page__current-job-row--running > td.ant-table-cell-row-hover",
+    );
+    expect(pageCss).toContain(
+      '[data-theme="dark"] .press-job-page__table-body .ant-table-tbody > tr.press-job-page__current-job-row--pending > td',
+    );
+    expect(pageCss).toContain(
+      '[data-theme="dark"] .press-job-page__table-body .ant-table-tbody > tr.press-job-page__current-job-row--running > td',
+    );
+    expect(pageCss).toContain("background: #fff7e6");
+    expect(pageCss).toContain("background: #f6ffed");
+    expect(pageCss).toContain("background: #534224");
+    expect(pageCss).toContain("background: #2e4b25");
   });
 
   /**
@@ -3167,34 +3181,51 @@ describe("PressJobPage", () => {
    * @author PopoY
    */
   it("runs complete workflow and blocks cleanup on parameter or ERP failure", async () => {
-    const createInput = () => ({
-      currentJobRows: [
-        {
-          localJobSessionId: "job-01",
-          moldNo: "MOLD-01",
-          status: "1",
-        },
-      ],
-      driverSession: createDriverSession("Connected"),
-      executePressDeviceCommand: vi.fn(async (request) => ({
-        ...request,
-        resultCode: "OK",
-        completedSteps: [],
-        failedSteps: [],
-      })),
-      filters: { teamId: "team-01", operatorId: "op-01", processId: "PRESS-01" },
-      getFinalSignalSnapshot: vi.fn(async () => ({ pressDownCount: 8 })),
-      recordPressJobParameters: vi.fn(async (request) => ({
-        correlationId: request.correlationId,
-        localJobSessionId: request.localJobSessionId,
-        resultCode: "OK",
-      })),
-      completePressJob: vi.fn(async (request) => ({
-        correlationId: request.correlationId,
-        localJobSessionId: request.localJobSessionId,
-        resultCode: "OK",
-      })),
-    });
+    const createInput = () => {
+      const calls: string[] = [];
+
+      return {
+        calls,
+        currentJobRows: [
+          {
+            localJobSessionId: "job-01",
+            moldNo: "MOLD-01",
+            status: "1",
+          },
+        ],
+        driverSession: createDriverSession("Connected"),
+        executePressDeviceCommand: vi.fn(async (request) => {
+          calls.push(request.commandName);
+          return {
+            ...request,
+            resultCode: "OK",
+            completedSteps: [],
+            failedSteps: [],
+          };
+        }),
+        filters: { teamId: "team-01", operatorId: "op-01" },
+        getFinalSignalSnapshot: vi.fn(async () => {
+          calls.push("finalSnapshot");
+          return { pressDownCount: 8 };
+        }),
+        recordPressJobParameters: vi.fn(async (request) => {
+          calls.push("parameter-end");
+          return {
+            correlationId: request.correlationId,
+            localJobSessionId: request.localJobSessionId,
+            resultCode: "OK",
+          };
+        }),
+        completePressJob: vi.fn(async (request) => {
+          calls.push("erpComplete");
+          return {
+            correlationId: request.correlationId,
+            localJobSessionId: request.localJobSessionId,
+            resultCode: "OK",
+          };
+        }),
+      };
+    };
     const input = createInput();
 
     await expect(runCompletePressJobWorkflow(input)).resolves.toMatchObject({
@@ -3209,6 +3240,12 @@ describe("PressJobPage", () => {
     expect(input.executePressDeviceCommand).toHaveBeenCalledWith(
       expect.objectContaining({ commandName: "cleanupDeviceSession" }),
     );
+    expect(input.calls).toEqual([
+      "finalSnapshot",
+      "parameter-end",
+      "erpComplete",
+      "cleanupDeviceSession",
+    ]);
 
     const parameterFailInput = createInput();
     parameterFailInput.recordPressJobParameters.mockRejectedValueOnce(
@@ -3402,6 +3439,44 @@ describe("PressJobPage", () => {
       "cleanupDeviceSession",
       "moveOut",
     ]);
+  });
+
+  /**
+   * @brief 断言加工中换模移出保留 moveOut（移出）自己的预选工艺校验，不被完工子流程放宽。
+   * @author PopoY
+   */
+  it("keeps process preflight for running change-mold move out", async () => {
+    const confirm = vi.fn().mockResolvedValue(true);
+    const executePressDeviceCommand = vi.fn();
+    const getFinalSignalSnapshot = vi.fn();
+    const recordPressJobParameters = vi.fn();
+    const completePressJob = vi.fn();
+
+    await expect(
+      executePressJobMoveOutWorkflow({
+        changeMold: true,
+        confirm,
+        currentJobRows: [
+          { localJobSessionId: "job-01", moldNo: "MOLD-01", status: "1" },
+        ],
+        driverSession: createDriverSession("Connected"),
+        executePressDeviceCommand,
+        filters: { teamId: "team-01", operatorId: "op-01" },
+        getFinalSignalSnapshot,
+        recordPressJobParameters,
+        completePressJob,
+      }),
+    ).resolves.toMatchObject({
+      feedbackMessage: "请先选择预选工艺。",
+      feedbackType: "warning",
+      resultCode: "PREFLIGHT_FAILED",
+    });
+
+    expect(confirm).not.toHaveBeenCalled();
+    expect(getFinalSignalSnapshot).not.toHaveBeenCalled();
+    expect(recordPressJobParameters).not.toHaveBeenCalled();
+    expect(completePressJob).not.toHaveBeenCalled();
+    expect(executePressDeviceCommand).not.toHaveBeenCalled();
   });
 
   /**

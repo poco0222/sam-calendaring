@@ -42,13 +42,14 @@ Do not add a status dictionary request. Existing workflow guards already use the
 
 ### 3. Use the native Ant Design Table row class hook
 
-The Table `rowClassName` returns stable pending or running class names from `row.status`. CSS applies the background to the row's `td` elements and keeps that background during hover so Ant Design defaults do not obscure it. Colors use the project's existing `color-mix` and `canvas` pattern to produce readable green and yellow backgrounds. Other statuses receive no class.
+The Table `rowClassName` returns stable pending or running class names from `row.status`. CSS applies the background to the row's `td` elements and overrides Ant Design's `ant-table-cell-row-hover` state so the semantic color remains visible. Light and dark application themes use explicit yellow and green colors instead of the operating system's `Canvas` color, keeping text readable when application and system themes differ. Other statuses receive no class.
 
 ## Risks / Trade-offs
 
 - [ERP returns an unrecognized status] → Render the non-empty value unchanged and add no row background, avoiding a false pending or running status.
 - [Line-out or move-out reuses completion] → The reused completion subflow also stops checking process selection, while each outer action keeps its own preconditions.
-- [Ant Design hover overrides the row background] → Cover both normal and hover cell backgrounds in CSS.
+- [Ant Design hover overrides the row background] → Cover normal, `:hover`, and `ant-table-cell-row-hover` cell backgrounds in CSS.
+- [Application and operating-system themes differ] → Use explicit light/dark semantic backgrounds instead of system `Canvas` color.
 
 ## Migration Plan
 
