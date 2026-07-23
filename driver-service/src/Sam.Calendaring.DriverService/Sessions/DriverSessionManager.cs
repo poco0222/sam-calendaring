@@ -312,6 +312,7 @@ public sealed class DriverSessionManager
         }
         catch (OperationCanceledException)
         {
+            _connectedLeaseKey = null;
             return new GetSignalSnapshotResponse
             {
                 CorrelationId = correlationId,
@@ -322,6 +323,7 @@ public sealed class DriverSessionManager
         }
         catch (Exception exception) when (IsDeviceTimeoutException(exception))
         {
+            _connectedLeaseKey = null;
             return new GetSignalSnapshotResponse
             {
                 CorrelationId = correlationId,
@@ -332,6 +334,7 @@ public sealed class DriverSessionManager
         }
         catch (Exception)
         {
+            _connectedLeaseKey = null;
             return new GetSignalSnapshotResponse
             {
                 CorrelationId = correlationId,

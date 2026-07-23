@@ -194,6 +194,43 @@ public sealed class SignalSnapshotTests
     }
 
     /// <summary>
+    /// 验证读取异常会使当前连接失效，下一次 signal snapshot（信号快照）必须重新连接后恢复读取。
+    /// </summary>
+    [Fact]
+    public async Task ReadFailureForcesReconnectBeforeNextSnapshot()
+    {
+        var store = SqliteDriverStateStore.CreateTempFileForTests();
+        await store.InitializeAsync(CancellationToken.None);
+        await store.SaveActiveLeaseAsync(new ActiveLeaseSummary(
+            "lease-reconnect-after-read-failure",
+            "press-001",
+            "192.168.19.110:502",
+            """
+            {"signals":[{"name":"pressure","address":100,"type":"holdingRegister"}]}
+            """,
+            ["100-120"],
+            10,
+            DateTimeOffset.UtcNow.AddMinutes(10),
+            LeaseState.Active,
+            DeviceSessionState.Disconnected), CancellationToken.None);
+        var adapter = new ReconnectRequiredAfterReadFailureModbusAdapter();
+        var manager = new DriverSessionManager(store, adapter, TimeProvider.System);
+
+        var failedResult = await manager.GetSignalSnapshotAsync(
+            "cid-snapshot-read-failure-001",
+            TimeSpan.FromSeconds(5),
+            CancellationToken.None);
+        var recoveredResult = await manager.GetSignalSnapshotAsync(
+            "cid-snapshot-read-recovery-001",
+            TimeSpan.FromSeconds(5),
+            CancellationToken.None);
+
+        Assert.Equal(DriverResultCode.DeviceRejected, failedResult.ResultCode);
+        Assert.Equal(DriverResultCode.Ok, recoveredResult.ResultCode);
+        Assert.Equal(2, adapter.ConnectCount);
+    }
+
+    /// <summary>
     /// 验证当没有活跃租约时会返回 LEASE_INVALID。
     /// </summary>
     [Fact]
@@ -310,6 +347,78 @@ internal sealed class CountingConnectedModbusAdapter : IModbusAdapter
     /// 模拟未配置 identity probe（身份探针）读取结果。
     /// </summary>
     /// <param name="identityProbe">身份探针点位。</param>
+    /// <param name="cancellationToken">取消令牌。</param>
+    /// <returns>返回空身份值。</returns>
+    public Task<object?> ReadIdentityAsync(
+        SignalPoint identityProbe,
+        TimeSpan timeout,
+        CancellationToken cancellationToken)
+    {
+        return Task.FromResult<object?>(null);
+    }
+}
+
+/// <summary>
+/// 模拟首次读取破坏连接、再次连接后恢复的 Modbus adapter（Modbus 适配器）。
+/// </summary>
+internal sealed class ReconnectRequiredAfterReadFailureModbusAdapter : IModbusAdapter
+{
+    private bool _connected;
+    private int _readAttempts;
+
+    /// <summary>
+    /// 获取 ConnectAsync（连接）被调用的次数。
+    /// </summary>
+    public int ConnectCount { get; private set; }
+
+    /// <summary>
+    /// 模拟建立设备连接并记录调用次数。
+    /// </summary>
+    /// <param name="targetEndpoint">目标设备端点。</param>
+    /// <param name="cancellationToken">取消令牌。</param>
+    /// <returns>返回已完成任务。</returns>
+    public Task ConnectAsync(string targetEndpoint, CancellationToken cancellationToken)
+    {
+        _connected = true;
+        ConnectCount++;
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// 首次读取抛出设备通信异常，并要求调用方重新连接后才能恢复。
+    /// </summary>
+    /// <param name="points">待读取的 signal points（信号点）。</param>
+    /// <param name="timeout">读取超时时间。</param>
+    /// <param name="cancellationToken">取消令牌。</param>
+    /// <returns>重新连接后返回按名称索引的 signal values（信号值）。</returns>
+    public Task<IDictionary<string, object?>> ReadAsync(
+        IReadOnlyList<SignalPoint> points,
+        TimeSpan timeout,
+        CancellationToken cancellationToken)
+    {
+        if (!_connected)
+        {
+            throw new InvalidOperationException("设备尚未连接。");
+        }
+
+        _readAttempts++;
+        if (_readAttempts == 1)
+        {
+            _connected = false;
+            throw new IOException("模拟首次设备读取失败。");
+        }
+
+        IDictionary<string, object?> values = points.ToDictionary(
+            point => point.EffectiveKey(),
+            point => (object?)point.EffectiveAddress());
+        return Task.FromResult(values);
+    }
+
+    /// <summary>
+    /// 模拟未配置 identity probe（身份探针）读取结果。
+    /// </summary>
+    /// <param name="identityProbe">身份探针点位。</param>
+    /// <param name="timeout">读取超时时间。</param>
     /// <param name="cancellationToken">取消令牌。</param>
     /// <returns>返回空身份值。</returns>
     public Task<object?> ReadIdentityAsync(

@@ -28,7 +28,11 @@ const expectedMappings = [
   ["FENCING_TOKEN_STALE", "授权令牌已失效", "当前授权已被更新或接管，请重新获取授权。"],
   ["DEVICE_IDENTITY_MISMATCH", "设备身份不匹配", "请核对目标设备身份后再试。"],
   ["DEVICE_TIMEOUT", "设备通信超时", "请检查设备连接状态后重试。"],
-  ["DEVICE_REJECTED", "设备拒绝执行", "设备回读确认失败或拒绝执行。"],
+  [
+    "DEVICE_REJECTED",
+    "设备信号读取失败",
+    "设备通信或信号读取失败，请查看诊断日志后重试。",
+  ],
   ["DEVICE_BUSY", "设备当前不可操作", "请等待设备回到允许状态后重试。"],
   ["CLEANUP_PENDING", "上次收尾未完成", "请先完成上次收尾，再继续启动流程。"],
 ] as const;

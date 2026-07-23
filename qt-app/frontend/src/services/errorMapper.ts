@@ -58,8 +58,8 @@ const ERROR_DISPLAY_BY_CODE: Record<KnownErrorCode, ErrorDisplay> = {
     detail: "请检查设备连接状态后重试。",
   },
   DEVICE_REJECTED: {
-    title: "设备拒绝执行",
-    detail: "设备回读确认失败或拒绝执行。",
+    title: "设备信号读取失败",
+    detail: "设备通信或信号读取失败，请查看诊断日志后重试。",
   },
   DEVICE_BUSY: {
     title: "设备当前不可操作",
