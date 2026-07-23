@@ -445,6 +445,107 @@ describe("erpClient", () => {
   });
 
   /**
+   * @brief 断言 Driver metadata（驱动元数据）只向 ERP 投影标量 value（值）。
+   * @author PopoY
+   */
+  it("projects driver signal metadata to scalar ERP parameter values", async () => {
+    const postJson = vi.fn().mockResolvedValue({
+      code: 200,
+      data: {
+        correlationId: "press-param-end-01",
+        localJobSessionId: "press-job-row-01",
+        resultCode: "OK",
+      },
+    });
+
+    await recordPressJobParameters(postJson, {
+      erpBaseUrl: sampleConfig.erpBaseUrl,
+      sessionToken: "erp-session-token",
+      request: {
+        correlationId: "press-param-end-01",
+        idempotencyKey: "press-param-end-01",
+        parameterIdempotencyKey: "press-param-end-01",
+        localJobSessionId: "press-job-row-01",
+        type: "end",
+        signalValues: {
+          pressure: {
+            value: 135,
+            name: "压力",
+            unit: "MPa",
+            registerAddress: 100,
+          },
+          pressDownCount: 5,
+          isPressed: true,
+          mode: "auto",
+          deviceId: "drop-device",
+          signalConfig: "drop-config",
+        },
+      } as never,
+    });
+
+    expect(postJson).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/api/qt/press-working/press-job-parameters",
+      {
+        correlationId: "press-param-end-01",
+        idempotencyKey: "press-param-end-01",
+        parameterIdempotencyKey: "press-param-end-01",
+        localJobSessionId: "press-job-row-01",
+        type: "end",
+        signalValues: {
+          pressure: 135,
+          pressDownCount: 5,
+          isPressed: true,
+          mode: "auto",
+        },
+      },
+      {
+        bearerToken: "erp-session-token",
+        headers: {
+          "X-Correlation-Id": "press-param-end-01",
+        },
+      },
+    );
+  });
+
+  /**
+   * @brief 断言不可安全序列化为 ERP scalar（标量）的信号值会在 HTTP 前失败。
+   * @author PopoY
+   */
+  it.each([
+    { label: "null", value: null },
+    { label: "array", value: [] },
+    { label: "metadata without value", value: { name: "压力" } },
+    { label: "nested value", value: { value: { raw: 135 } } },
+    { label: "undefined", value: undefined },
+    { label: "non-finite number", value: Number.POSITIVE_INFINITY },
+  ])("rejects invalid ERP signal values before HTTP: $label", async ({ value }) => {
+    const postJson = vi.fn().mockResolvedValue({
+      code: 200,
+      data: {
+        correlationId: "press-param-invalid-01",
+        localJobSessionId: "press-job-row-01",
+        resultCode: "OK",
+      },
+    });
+
+    await expect(
+      recordPressJobParameters(postJson, {
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        sessionToken: "erp-session-token",
+        request: {
+          correlationId: "press-param-invalid-01",
+          idempotencyKey: "press-param-invalid-01",
+          parameterIdempotencyKey: "press-param-invalid-01",
+          localJobSessionId: "press-job-row-01",
+          type: "end",
+          signalValues: { pressure: value },
+        },
+      }),
+    ).rejects.toThrow("信号参数值必须是 String、有限 Number 或 Boolean。");
+    expect(postJson).not.toHaveBeenCalled();
+  });
+
+  /**
    * @brief 断言 mold candidate（模具候选）查询使用 Qt 专用 endpoint（端点）并丢弃敏感字段。
    * @author PopoY
    * @returns Promise resolved when candidate narrowing（候选收窄）is asserted.

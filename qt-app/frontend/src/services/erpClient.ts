@@ -1668,7 +1668,7 @@ function narrowPressMachineStatusUpdateResult(
 }
 
 /**
- * @brief 收窄参数快照，过滤敏感字段名，避免 ERP request（请求）携带设备网络细节。
+ * @brief 收窄参数快照，过滤敏感字段名并提取 Driver metadata（驱动元数据）的 value（值）。
  * @author PopoY
  * @param signalValues 前端收到的安全信号快照。
  * @returns 过滤后的信号快照。
@@ -1677,10 +1677,39 @@ function narrowPressSignalValues(
   signalValues: Record<string, unknown>,
 ): Record<string, unknown> {
   return Object.fromEntries(
-    Object.entries(signalValues).filter(
-      ([key]) => !PRESS_SIGNAL_VALUE_FORBIDDEN_KEYS.has(key.toLowerCase()),
+    Object.entries(signalValues).flatMap(([key, value]) =>
+      PRESS_SIGNAL_VALUE_FORBIDDEN_KEYS.has(key.toLowerCase())
+        ? []
+        : [[key, readPressSignalScalar(value)]],
     ),
   );
+}
+
+/**
+ * @brief 将直接信号值或 Driver metadata（驱动元数据）收窄为 JSON 安全标量。
+ * @author PopoY
+ * @param value 前端信号快照中的单项值。
+ * @returns ERP 参数接口接受的 String、有限 Number 或 Boolean。
+ */
+function readPressSignalScalar(value: unknown): string | number | boolean {
+  const metadata =
+    value !== null && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : null;
+  const scalar =
+    metadata && Object.prototype.hasOwnProperty.call(metadata, "value")
+      ? metadata.value
+      : value;
+
+  if (
+    typeof scalar === "string" ||
+    typeof scalar === "boolean" ||
+    (typeof scalar === "number" && Number.isFinite(scalar))
+  ) {
+    return scalar;
+  }
+
+  throw new Error("信号参数值必须是 String、有限 Number 或 Boolean。");
 }
 
 /**
