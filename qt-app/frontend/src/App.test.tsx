@@ -2,6 +2,8 @@
  * @file App.test.tsx - 验证 Qt App（Qt 应用）应用外壳。
  * @author PopoY
  * @created 2026-06-27
+ * @editor PopoY
+ * @edited 2026-07-24 20:51:17
  * @brief 锁定 App Shell（应用外壳）顶部导航、主题切换和页面容器契约。
  */
 
@@ -248,6 +250,82 @@ describe("App Shell", () => {
     expect(html).toContain("aria-label=\"浅色\"");
     expect(html).toContain("aria-label=\"深色\"");
     expect(html).toContain("aria-label=\"跟随系统\"");
+  });
+
+  /**
+   * @brief 锁定历史作业第四入口、显式页面分支和 App layer（应用层）只读回调。
+   * @author PopoY
+   */
+  it("wires the fourth press job history entry through explicit app branches", () => {
+    const historyCallbacksSource = extractSourceBetween(
+      appSource,
+      "const loadPressJobHistory = useCallback",
+      "const loadPressJobTeamOptions = useCallback",
+    );
+
+    expect(appSource).toContain(
+      'type AppView = "dashboard" | "diagnostics" | "pressJob" | "pressJobHistory"',
+    );
+    expect(
+      appSource.indexOf('{ label: "历史作业", value: "pressJobHistory" }'),
+    ).toBeGreaterThan(
+      appSource.indexOf('{ label: "压机作业", value: "pressJob" }'),
+    );
+    expect(appSource).toContain('currentView === "pressJob"');
+    expect(appSource).toContain('currentView === "pressJobHistory"');
+    expect(historyCallbacksSource).toContain("fetchPressJobHistory(getJson");
+    expect(historyCallbacksSource).toContain("fetchPressJobHistoryDetail(getJson");
+    expect(historyCallbacksSource.match(/ERP 会话尚未就绪。/g)).toHaveLength(2);
+    expect(
+      historyCallbacksSource.match(
+        /\[bootstrapSession\.config, bootstrapSession\.data\]/g,
+      ),
+    ).toHaveLength(2);
+  });
+
+  /**
+   * @brief 历史页面只接收字典 options（选项）和 loader callbacks（加载回调）。
+   * @author PopoY
+   */
+  it("keeps ERP credentials and device context out of PressJobHistoryPage props", () => {
+    const historyPropsSource = extractLastSourceBetween(
+      appSource,
+      "<PressJobHistoryPage",
+      "/>",
+    );
+    const historyPropNames = Array.from(
+      historyPropsSource.matchAll(/\b([a-zA-Z]\w*)=/g),
+      (match) => match[1],
+    ).sort();
+
+    expect(historyPropNames).toEqual([
+      "craftOptions",
+      "loadHistoryDetail",
+      "loadHistoryList",
+      "operatorOptions",
+    ]);
+    expect(historyPropsSource).toContain(
+      "craftOptions={bootstrapSession.data?.pressMoldCraftOptions ?? []}",
+    );
+    expect(historyPropsSource).toContain(
+      "operatorOptions={bootstrapSession.data?.pressMoldOperatorOptions ?? []}",
+    );
+    expect(historyPropsSource).toContain(
+      "loadHistoryDetail={loadPressJobHistoryDetail}",
+    );
+    expect(historyPropsSource).toContain("loadHistoryList={loadPressJobHistory}");
+    for (const forbiddenName of [
+      "sessionToken",
+      "erpBaseUrl",
+      "bootstrapSession",
+      "driverSession",
+      "deviceId",
+      "network",
+      "signedLease",
+      "signalConfig",
+    ]) {
+      expect(historyPropNames).not.toContain(forbiddenName);
+    }
   });
 
   /**

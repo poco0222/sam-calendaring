@@ -2,7 +2,9 @@
  * @file App.tsx - 渲染 Qt App（Qt 应用）前端入口视图。
  * @author PopoY
  * @created 2026-06-25
- * @brief 编排 bootstrap hooks（启动 hooks）并渲染 QT App（Qt 应用）两页 app shell（应用外壳）。
+ * @editor PopoY
+ * @edited 2026-07-24 20:51:57
+ * @brief 编排 bootstrap hooks（启动 hooks）并渲染 QT App（Qt 应用）四个一级页面的 app shell（应用外壳）。
  */
 
 import { Segmented, Space, Tag, Typography } from "antd";
@@ -12,6 +14,7 @@ import { useQtAppThemeMode, type QtAppThemeMode } from "./app/AntdRootProvider";
 import { BootstrapDashboard } from "./components/BootstrapDashboard";
 import { DiagnosticLogsPage } from "./components/DiagnosticLogsPage";
 import { FirstRunConfigPage } from "./components/FirstRunConfigPage";
+import { PressJobHistoryPage } from "./components/PressJobHistoryPage";
 import { PressJobPage } from "./components/PressJobPage";
 import type {
   PressJobFilterState,
@@ -28,6 +31,7 @@ import type {
   PressJobCurrentJobRow,
   PressJobCompleteRequest,
   PressJobExpectedDurationUpdateRequest,
+  PressJobHistoryQuery,
   PressJobParameterRecordRequest,
   PressJobStartRequest,
   PressMachineStatusUpdateRequest,
@@ -47,6 +51,8 @@ import {
 import {
   fetchPressLockedMolds,
   fetchPressJobCurrentJobs,
+  fetchPressJobHistory,
+  fetchPressJobHistoryDetail,
   fetchPressJobTeamOptions,
   fetchPressMoldCandidates,
   fetchPressMoldInfoRows,
@@ -71,7 +77,7 @@ import { logDiagnostic } from "./services/logging";
 import type { NativeBootstrapConfig } from "./types/native";
 import "./App.css";
 
-type AppView = "dashboard" | "diagnostics" | "pressJob";
+type AppView = "dashboard" | "diagnostics" | "pressJob" | "pressJobHistory";
 
 const UNKNOWN_STATION_ACCOUNT_ID = "UNKNOWN_STATION_ACCOUNT";
 const PRESS_DEVICE_ACTION_TIMEOUT_MS = 5000;
@@ -165,6 +171,36 @@ export default function App() {
     [driverSession],
   );
 
+  // @author PopoY: 历史页只接收脱敏查询，ERP 地址和 token（令牌）保留在 App 闭包。
+  const loadPressJobHistory = useCallback(
+    async (query: PressJobHistoryQuery) => {
+      if (!bootstrapSession.config || !bootstrapSession.data) {
+        throw new Error("ERP 会话尚未就绪。");
+      }
+
+      return fetchPressJobHistory(getJson, {
+        erpBaseUrl: bootstrapSession.config.erpBaseUrl,
+        sessionToken: bootstrapSession.data.sessionToken,
+        query,
+      });
+    },
+    [bootstrapSession.config, bootstrapSession.data],
+  );
+  const loadPressJobHistoryDetail = useCallback(
+    async (input: { moldJobId: string; correlationId: string }) => {
+      if (!bootstrapSession.config || !bootstrapSession.data) {
+        throw new Error("ERP 会话尚未就绪。");
+      }
+
+      return fetchPressJobHistoryDetail(getJson, {
+        erpBaseUrl: bootstrapSession.config.erpBaseUrl,
+        sessionToken: bootstrapSession.data.sessionToken,
+        moldJobId: input.moldJobId,
+        correlationId: input.correlationId,
+      });
+    },
+    [bootstrapSession.config, bootstrapSession.data],
+  );
   const loadPressJobTeamOptions = useCallback(
     async (teamId: string) => {
       if (!bootstrapSession.config || !bootstrapSession.data) {
@@ -543,6 +579,7 @@ export default function App() {
               { label: "启动仪表盘", value: "dashboard" },
               { label: "诊断日志", value: "diagnostics" },
               { label: "压机作业", value: "pressJob" },
+              { label: "历史作业", value: "pressJobHistory" },
             ]}
             size="large"
             value={currentView}
@@ -588,7 +625,7 @@ export default function App() {
           />
         ) : currentView === "diagnostics" ? (
           <DiagnosticLogsPage driverBaseUrl={bootstrapSession.config?.driverBaseUrl} />
-        ) : (
+        ) : currentView === "pressJob" ? (
           <PressJobPage
             {...pressJobExpectedDurationProps}
             bootstrapSession={pressJobPageBootstrapSession}
@@ -615,7 +652,14 @@ export default function App() {
             updatePressMachineStatus={updatePressMachineStatus}
             currentJobRows={pressJobCurrentRows}
           />
-        )}
+        ) : currentView === "pressJobHistory" ? (
+          <PressJobHistoryPage
+            craftOptions={bootstrapSession.data?.pressMoldCraftOptions ?? []}
+            loadHistoryDetail={loadPressJobHistoryDetail}
+            loadHistoryList={loadPressJobHistory}
+            operatorOptions={bootstrapSession.data?.pressMoldOperatorOptions ?? []}
+          />
+        ) : null}
       </section>
     </main>
   );
