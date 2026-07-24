@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-24 20:18:47
+ * @edited 2026-07-24 20:33:14
  * @brief 提供本地自然日筛选、服务端分页和脱敏历史作业详情。
  */
 
@@ -157,7 +157,7 @@ export function shouldRequestHistoryList(
 }
 
 /**
- * @brief 判断列表响应是否仍属于当前 request version（请求版本）和 loader（加载器）。
+ * @brief 判断列表响应是否仍属于当前 request version（请求版本）、loader（加载器）和 query（查询）。
  * @author PopoY
  */
 export function shouldApplyHistoryListResponse(
@@ -165,9 +165,13 @@ export function shouldApplyHistoryListResponse(
   currentVersion: number,
   requestedLoader: HistoryListLoader,
   currentLoader: HistoryListLoader,
+  requestedQuery: PressJobHistoryQuery,
+  currentQuery: PressJobHistoryQuery,
 ): boolean {
   return (
-    requestedVersion === currentVersion && requestedLoader === currentLoader
+    requestedVersion === currentVersion &&
+    requestedLoader === currentLoader &&
+    requestedQuery === currentQuery
   );
 }
 
@@ -291,10 +295,12 @@ export function PressJobHistoryPage({
   const triggerRowRef = useRef<HTMLElement | null>(null);
   const currentLoadHistoryListRef = useRef(loadHistoryList);
   const currentLoadHistoryDetailRef = useRef(loadHistoryDetail);
+  const currentAppliedQueryRef = useRef(appliedQuery);
   const lastRequestedListIdentityRef =
     useRef<HistoryListRequestIdentity | undefined>(undefined);
   currentLoadHistoryListRef.current = loadHistoryList;
   currentLoadHistoryDetailRef.current = loadHistoryDetail;
+  currentAppliedQueryRef.current = appliedQuery;
 
   const runHistoryListRequest = useCallback(
     (query: PressJobHistoryQuery) => {
@@ -310,6 +316,8 @@ export function PressJobHistoryPage({
               listRequestVersionRef.current,
               requestedLoader,
               currentLoadHistoryListRef.current,
+              query,
+              currentAppliedQueryRef.current,
             )
           ) {
             return;
@@ -324,6 +332,8 @@ export function PressJobHistoryPage({
               listRequestVersionRef.current,
               requestedLoader,
               currentLoadHistoryListRef.current,
+              query,
+              currentAppliedQueryRef.current,
             )
           ) {
             return;
@@ -337,6 +347,8 @@ export function PressJobHistoryPage({
               listRequestVersionRef.current,
               requestedLoader,
               currentLoadHistoryListRef.current,
+              query,
+              currentAppliedQueryRef.current,
             )
           ) {
             return;

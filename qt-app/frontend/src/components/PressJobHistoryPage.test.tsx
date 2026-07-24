@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-24 20:18:47
+ * @edited 2026-07-24 20:33:14
  * @brief 锁定日期快照、请求竞态、表格、详情和现有 Design Token（设计变量）契约。
  */
 
@@ -146,12 +146,27 @@ describe("PressJobHistoryPage", () => {
     );
   });
 
-  it("only applies the current list request version and loader", () => {
+  it("only applies the current list request version, loader and query", () => {
+    const query = buildHistoryQuery(
+      createInitialHistoryFilters(dayjs("2026-07-24T00:00:00")),
+      1,
+      "history-list-current",
+    );
+    const nextQuery = { ...query, correlationId: "history-list-next" };
     const loader = vi.fn();
 
-    expect(shouldApplyHistoryListResponse(2, 2, loader, loader)).toBe(true);
-    expect(shouldApplyHistoryListResponse(1, 2, loader, loader)).toBe(false);
-    expect(shouldApplyHistoryListResponse(2, 2, loader, vi.fn())).toBe(false);
+    expect(
+      shouldApplyHistoryListResponse(2, 2, loader, loader, query, query),
+    ).toBe(true);
+    expect(
+      shouldApplyHistoryListResponse(1, 2, loader, loader, query, query),
+    ).toBe(false);
+    expect(
+      shouldApplyHistoryListResponse(2, 2, loader, vi.fn(), query, query),
+    ).toBe(false);
+    expect(
+      shouldApplyHistoryListResponse(2, 2, loader, loader, query, nextQuery),
+    ).toBe(false);
   });
 
   it("only applies the current matching detail request and loader", () => {
