@@ -9,8 +9,8 @@
 
 ## 1. 隔离环境与基线
 
-- [ ] 1.1 从前端 `main` 与 ERP 后端 `master` 直接创建隔离 worktree（工作树），记录基线提交并运行前端、后端基线测试；ERP 功能分支完成后只合并回 `master`，不得使用 `dev`、`dev-popo` 或其他长期分支作为基线、中间集成分支或合并目标。
-- [ ] 1.2 确认后端基线包含压机生命周期接口、`QtPressJobOperation` 和既有 Liquibase operation changelog，且两个工作树没有用户未归属修改。
+- [x] 1.1 从前端 `main` 与 ERP 后端 `master` 直接创建隔离 worktree（工作树），记录基线提交并运行前端、后端基线测试；ERP 功能分支完成后只合并回 `master`，不得使用 `dev`、`dev-popo` 或其他长期分支作为基线、中间集成分支或合并目标。
+- [x] 1.2 确认后端基线包含压机生命周期接口、`QtPressJobOperation` 和既有 Liquibase operation changelog，且两个工作树没有用户未归属修改。
 
 ## 2. ERP 历史数据查询
 

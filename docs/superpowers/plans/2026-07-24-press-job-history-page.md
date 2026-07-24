@@ -117,7 +117,7 @@ Response（响应）中严禁加入 `deviceId`、`operationIp`、`granteeHostId`
 
 **Files：** 无产品文件修改。
 
-- [ ] 在两个真实 Git 仓库分别确认工作树和基线，不能在 `/Users/popoy/WorkSpace/Projects/SAM/sam-erp` 父目录执行 Git：
+- [x] 在两个真实 Git 仓库分别确认工作树和基线，不能在 `/Users/popoy/WorkSpace/Projects/SAM/sam-erp` 父目录执行 Git：
 
 ```zsh
 git -C /Users/popoy/WorkSpace/Projects/SAM/sam-calendaring status --short --branch
@@ -128,11 +128,11 @@ git -C /Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be rev-parse master
 
 Expected（预期）：前端基线包含已批准设计文档；后端 `master` 能找到 `QtPressJobOperation.java` 和 `changelog-2026-07-22-qt-press-job-operation.xml`。若 `master` 哈希前进，可以接受其新提交，但必须重新核对同名契约；不得读取 `dev`、`dev-popo` 或其他长期分支来替代、补齐或改写本功能基线。
 
-- [ ] 按 `using-git-worktrees` 为前端 `main` 和后端 `master` 各建一个隔离 worktree，分支前缀使用 `PopoY-WorkTree/`；两个写入代理不得修改同一路径。
+- [x] 按 `using-git-worktrees` 为前端 `main` 和后端 `master` 各建一个隔离 worktree，分支前缀使用 `PopoY-WorkTree/`；两个写入代理不得修改同一路径。
 
-- [ ] 在前端主变更目录按项目规则执行 Comet Intent routing，记录其 preset（预设）和 change name（变更名）。这是跨前后端、有 API 契约和迁移基线依赖的功能，若 Comet 选择 `full`，不得手动降为 `tweak`。
+- [x] 在前端主变更目录按项目规则执行 Comet Intent routing，记录其 preset（预设）和 change name（变更名）。这是跨前后端、有 API 契约和迁移基线依赖的功能，若 Comet 选择 `full`，不得手动降为 `tweak`。
 
-- [ ] 把两个 worktree 的绝对路径写入执行记录。以下任务中的仓库相对路径必须分别解析到对应 worktree，不能写回用户原工作树。
+- [x] 把两个 worktree 的绝对路径写入执行记录。以下任务中的仓库相对路径必须分别解析到对应 worktree，不能写回用户原工作树。
 
 ---
 
