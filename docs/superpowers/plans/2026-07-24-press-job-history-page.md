@@ -315,7 +315,7 @@ git commit -m "feat(qt): 增加压机历史作业查询"
 
 ### Step 3.1：先写 Service delegation（服务委派）失败测试
 
-- [ ] 在既有 `PressMouldJobInfoServiceImplQtTest` 增加两个测试，使用已有动态 proxy（代理）模式捕获参数：
+- [x] 在既有 `PressMouldJobInfoServiceImplQtTest` 增加两个测试，使用已有动态 proxy（代理）模式捕获参数：
 
 ```java
 @Test
@@ -361,11 +361,11 @@ void qtHistoryDetailDelegatesStableMouldJobIdentityAndDevice() {
 }
 ```
 
-- [ ] 运行并确认编译失败，因为接口方法还不存在。
+- [x] 运行并确认编译失败，因为接口方法还不存在。
 
 ### Step 3.2：增加最薄 Service 方法
 
-- [ ] 在接口和实现中增加以下方法；不要创建新 Service、repository wrapper（仓储包装）或缓存：
+- [x] 在接口和实现中增加以下方法；不要创建新 Service、repository wrapper（仓储包装）或缓存：
 
 ```java
 List<PressMouldJobInfo> selectQtPressJobHistoryList(
@@ -398,9 +398,9 @@ public PressMouldJobInfo selectQtPressJobHistoryDetail(Long deviceId, Long mould
 
 校验登录上下文、日期、页码和输入长度属于 Controller trust boundary（控制器信任边界）；Service 保持只读委派，不重复校验。
 
-- [ ] 重跑 `PressMouldJobInfoServiceImplQtTest` 并确认通过。
+- [x] 重跑 `PressMouldJobInfoServiceImplQtTest` 并确认通过。
 
-- [ ] Commit：
+- [x] 提交 Task 3：
 
 ```zsh
 git add sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/IPressMouldJobInfoService.java \
