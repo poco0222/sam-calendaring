@@ -1128,6 +1128,52 @@ describe("erpClient", () => {
   });
 
   /**
+   * @brief 断言历史作业 ID（标识）在列表收窄和详情请求边界使用同一正整数规则。
+   * @author PopoY
+   */
+  it("rejects unsafe history job IDs before building detail URLs", async () => {
+    const listGetJson = vi.fn().mockResolvedValueOnce({
+      code: 200,
+      data: {
+        rows: [
+          { mouldJobId: ".", mouldCode: "M-DOT" },
+          { mouldJobId: "..", mouldCode: "M-DOT-DOT" },
+        ],
+        total: 2,
+        pageNum: 1,
+        pageSize: 10,
+      },
+    });
+
+    const listResult = await fetchPressJobHistory(listGetJson, {
+      erpBaseUrl: sampleConfig.erpBaseUrl,
+      sessionToken: "erp-token",
+      query: {
+        startTime: "2026-07-24T00:00:00+08:00",
+        endTime: "2026-07-25T00:00:00+08:00",
+        pageNum: 1,
+        pageSize: 10,
+        correlationId: "corr-list-invalid-id",
+      },
+    });
+
+    expect(listResult.rows).toEqual([]);
+
+    const detailGetJson = vi.fn();
+    for (const moldJobId of [".", "..", "123 / A"]) {
+      await expect(
+        fetchPressJobHistoryDetail(detailGetJson, {
+          erpBaseUrl: sampleConfig.erpBaseUrl,
+          sessionToken: "erp-token",
+          moldJobId,
+          correlationId: "corr-detail-invalid-id",
+        }),
+      ).rejects.toThrow("历史作业标识无效。");
+    }
+    expect(detailGetJson).not.toHaveBeenCalled();
+  });
+
+  /**
    * @brief 断言历史作业详情转义稳定身份，并仅保留安全参数和操作字段。
    * @author PopoY
    */
@@ -1146,7 +1192,7 @@ describe("erpClient", () => {
     const getJson = vi.fn().mockResolvedValueOnce({
       code: 200,
       data: {
-        mouldJobId: "123",
+        mouldJobId: "9223372036854775807",
         pressName: "一号压机",
         mouldCode: "M-01",
         operator: "op-01",
@@ -1190,12 +1236,12 @@ describe("erpClient", () => {
     const result = await fetchPressJobHistoryDetail(getJson, {
       erpBaseUrl: sampleConfig.erpBaseUrl,
       sessionToken: "erp-token",
-      moldJobId: "123 / A",
+      moldJobId: "9223372036854775807",
       correlationId: "corr-detail-1",
     });
 
     expect(result).toEqual({
-      moldJobId: "123",
+      moldJobId: "9223372036854775807",
       pressName: "一号压机",
       moldNo: "M-01",
       operatorId: "op-01",
@@ -1231,7 +1277,7 @@ describe("erpClient", () => {
       ],
     });
     expect(getJson).toHaveBeenCalledWith(
-      "http://127.0.0.1:8080/api/qt/press-working/history-jobs/123%20%2F%20A",
+      "http://127.0.0.1:8080/api/qt/press-working/history-jobs/9223372036854775807",
       "erp-token",
       { headers: { "X-Correlation-Id": "corr-detail-1" } },
     );

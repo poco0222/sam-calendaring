@@ -746,11 +746,16 @@ export async function fetchPressJobHistoryDetail(
   readJson: GetJson,
   input: FetchPressJobHistoryDetailInput,
 ): Promise<PressJobHistoryDetail> {
+  const moldJobId = readHistoryId(input.moldJobId);
+  if (!moldJobId) {
+    throw new Error("历史作业标识无效。");
+  }
+
   const payload = unwrapErpAjaxResult<unknown>(
     await readJson<unknown>(
       buildErpUrl(
         input.erpBaseUrl,
-        `${PRESS_JOB_HISTORY_PATH}/${encodeURIComponent(input.moldJobId)}`,
+        `${PRESS_JOB_HISTORY_PATH}/${encodeURIComponent(moldJobId)}`,
       ),
       input.sessionToken,
       { headers: { "X-Correlation-Id": input.correlationId } },
@@ -1421,7 +1426,7 @@ function narrowPressJobHistoryRow(value: unknown): PressJobHistoryRow | null {
     return null;
   }
 
-  const moldJobId = readHistoryString(record.mouldJobId);
+  const moldJobId = readHistoryId(record.mouldJobId);
   const moldNo = readHistoryString(record.mouldCode);
   if (!moldJobId || !moldNo) {
     return null;
@@ -1603,6 +1608,17 @@ function readHistoryDurationHours(value: unknown): string | undefined {
 
   const seconds = Number(value);
   return Number.isFinite(seconds) ? (seconds / 3600).toFixed(1) : undefined;
+}
+
+/**
+ * @brief 只读取十进制正整数 string（字符串）历史作业标识，避免 URL 点路径段改写。
+ * @author PopoY
+ * @param value 未知历史作业标识。
+ * @returns 去除首尾空白后的稳定标识；其他值返回 undefined。
+ */
+function readHistoryId(value: unknown): string | undefined {
+  const text = readHistoryString(value);
+  return text && /^[1-9]\d*$/.test(text) ? text : undefined;
 }
 
 /**
