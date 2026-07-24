@@ -3,7 +3,7 @@
 @author PopoY
 @created 2026-07-24 17:24:43
 @editor PopoY
-@edited 2026-07-24 20:59:25
+@edited 2026-07-24 21:00:50
 @purpose 记录 Comet Build（构建）阶段当前任务、测试证据、提交和审查进度。
 -->
 
@@ -12,21 +12,23 @@
 - Change: `add-qt-press-job-history`
 - Review mode: `thorough`
 - TDD mode: `tdd`
-- Current plan task: `Task 7：接入 App Shell 第四入口并隔离 token`
+- Current plan task: `Task 8：端到端验证、视觉核对和安全扫描`
 - Mapped OpenSpec tasks:
-  - `6.1 先写失败的 App integration test（应用集成测试），再在“压机作业”右侧增加第四个一级入口和显式渲染分支。`
-  - `6.2 在 App Shell 内注入两个历史只读回调，确保页面 props 不包含 token、ERP 地址、设备、网络、租约或 Driver Session。`
-- Stage: `done`
+  - `7.1 运行 ERP 全部目标测试、Java 8 模块构建、QT App 相关 Vitest 和 production build（生产构建）。`
+  - `7.2 在 1280×720 下核对浅色/深色布局、44px 触控目标、固定表头分页、70% Drawer、遮罩、焦点和局部滚动。`
+  - `7.3 执行敏感字段、日志、Liquibase 无新增迁移及工作树范围扫描，完成最终 correctness/security/regression（正确性/安全性/回归）审查。`
+  - `7.4 记录 Comet Verify（验证）证据；Archive（归档）、合并和 push（推送）继续作为独立授权门。`
+- Stage: `verification`
 - Frontend baseline: `654ce277210a0e5e18bac361c3643384cca94123`
 - Backend baseline: `54a8c09e494212924cec01e5470029e4a9e7d10c`
-- Task base: `ff106e75f95c60079622d78b441f56d7964b1746`
-- Implementation commit: `29baec66fdf5d588560e208dba09b367bb8f0cb2`
-- Changed files: `App.tsx; App.test.tsx`
-- RED evidence: `App test 2 failed / 15 passed because AppView/history wiring and safe page props were absent`
-- GREEN evidence: `17/17 App tests; 31/31 App + history page tests; tsc and Vite production build passed`
-- Review stages passed: `implementation review approved`
+- Task base: `b04c9e6d1258cfad7934af01ee8237f12c535310`
+- Implementation commit: `all Task 2-7 frontend/backend commits`
+- Changed files: `verification only; no planned product edits`
+- RED evidence: `not applicable; final verification task`
+- GREEN evidence: `pending cross-repo tests, builds, scans and visual checks`
+- Review stages passed: `Task 2-7 task-level reviews approved`
 - Unresolved feedback: `none`
 - Review-fix round: `0/2`
-- Risk signals: `DONE; ERP URL and token remain inside App callback closures and page props are safe`
-- Implementer report: `.superpowers/sdd/task-7-report.md`
-- Reviewer result: `APPROVED; no Critical, Important, or Minor findings; independent 31/31 tests and tsc passed`
+- Risk signals: `verify visual layout without real-device requests; preserve ERP master-only integration boundary`
+- Implementer report: `.superpowers/sdd/task-8-backend-report.md; .superpowers/sdd/task-8-frontend-report.md; .superpowers/sdd/task-8-visual-report.md`
+- Reviewer result: `pending final cumulative review`
