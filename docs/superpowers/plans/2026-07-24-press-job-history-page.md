@@ -8,7 +8,7 @@ base-ref: d518736a633e63c418e4ccee20b9f22b7fb3defd
 > @author PopoY
 > @created 2026-07-24 16:31:39
 > @editor PopoY
-> @edited 2026-07-24 18:51:40
+> @edited 2026-07-24 19:46:00
 > @purpose 给出 QT App（Qt 应用）历史作业第四个一级入口、服务端分页列表和 70% 详情抽屉的端到端实施步骤。
 
 # QT App 历史作业页面 Implementation Plan（实施计划）
@@ -685,7 +685,7 @@ git commit -m "feat(qt): 提供历史作业只读接口"
 
 ### Step 5.1：先写 `erpClient` 失败测试
 
-- [ ] 增加列表 URL/header（请求头）测试，固定 query 字段和独立 correlationId：
+- [x] 增加列表 URL/header（请求头）测试，固定 query 字段和独立 correlationId：
 
 ```ts
 expect(getJson).toHaveBeenCalledWith(
@@ -695,7 +695,7 @@ expect(getJson).toHaveBeenCalledWith(
 );
 ```
 
-- [ ] 增加列表/详情白名单测试。Raw payload（原始载荷）故意包含以下字段，断言返回对象全文不含这些 key/value：
+- [x] 增加列表/详情白名单测试。Raw payload（原始载荷）故意包含以下字段，断言返回对象全文不含这些 key/value：
 
 ```ts
 const forbiddenPayload = {
@@ -715,9 +715,9 @@ expect(JSON.stringify(result)).not.toMatch(
 );
 ```
 
-- [ ] 固定字段映射：`mouldJobId → moldJobId`、`deviceName/pressName → pressName`、`mouldCode → moldNo`、`operator → operatorId`、`startTime → startedAt`、`endTime → completedAt`、`mouldWorkingTime / 3600 → actualDurationHours.toFixed(1)`；未知状态仍保留安全 status code，由页面统一显示“状态未知”。`mouldWorkingTime` 只接受后端 string/null，`null` 返回未记录，小数秒正常换算，超过 `Number.MAX_SAFE_INTEGER` 或非有限/负值返回未记录，避免精度丢失或 `Infinity`。
+- [x] 固定字段映射：`mouldJobId → moldJobId`、`deviceName/pressName → pressName`、`mouldCode → moldNo`、`operator → operatorId`、`startTime → startedAt`、`endTime → completedAt`、`mouldWorkingTime / 3600 → actualDurationHours.toFixed(1)`；未知状态仍保留安全 status code，由页面统一显示“状态未知”。`mouldWorkingTime` 只接受后端 string/null，`null` 返回未记录，小数秒正常换算，超过 `Number.MAX_SAFE_INTEGER` 或非有限/负值返回未记录，避免精度丢失或 `Infinity`。
 
-- [ ] 运行失败测试：
+- [x] 运行失败测试：
 
 ```zsh
 pnpm --dir qt-app/frontend exec vitest run src/services/erpClient.test.ts
@@ -725,7 +725,7 @@ pnpm --dir qt-app/frontend exec vitest run src/services/erpClient.test.ts
 
 ### Step 5.2：增加最小 domain types（领域类型）
 
-- [ ] 在现有 `domain/pressJob.ts` 追加类型，不拆新文件：
+- [x] 在现有 `domain/pressJob.ts` 追加类型，不拆新文件：
 
 ```ts
 export type PressJobHistoryQuery = {
@@ -785,7 +785,7 @@ export type PressJobHistoryPageResult = {
 
 ### Step 5.3：实现两个只读 client 方法
 
-- [ ] 在 `erpClient.ts` 增加 endpoint constants（端点常量）与 request input（请求输入）：
+- [x] 在 `erpClient.ts` 增加 endpoint constants（端点常量）与 request input（请求输入）：
 
 ```ts
 const PRESS_JOB_HISTORY_PATH = "/api/qt/press-working/history-jobs";
@@ -800,7 +800,7 @@ export type FetchPressJobHistoryDetailInput = FetchPressJobLookupDataInput & {
 };
 ```
 
-- [ ] 列表 URL 必须用 `URL`/`searchParams` 生成，不手拼未转义 query：
+- [x] 列表 URL 必须用 `URL`/`searchParams` 生成，不手拼未转义 query：
 
 ```ts
 export async function fetchPressJobHistory(
@@ -824,11 +824,11 @@ export async function fetchPressJobHistory(
 }
 ```
 
-- [ ] 详情对 `moldJobId` 使用 `encodeURIComponent`，并传独立 header；两个 narrower（收窄器）都从 `unknown` 开始，逐字段白名单化。参数 `value` 只接受 String/Boolean/有限 Number；嵌套 object/array 直接标记 invalid 或丢弃，不能传到页面。
+- [x] 详情只接受十进制正整数 string（字符串）`moldJobId`，在请求边界拒绝 dot segment（点路径段）等非法 ID 并确保 `getJson` 未被调用；列表收窄器同步丢弃非法 ID 行。校验通过后仍使用 `encodeURIComponent`，并传独立 header；两个 narrower（收窄器）都从 `unknown` 开始，逐字段白名单化。参数 `value` 只接受 String/Boolean/有限 Number；嵌套 object/array 直接标记 invalid 或丢弃，不能传到页面。回归测试必须保留 64-bit Long（长整型）上限 ID 的原始 string 精度。
 
-- [ ] 重跑 `erpClient.test.ts` 并确认通过。
+- [x] 重跑 `erpClient.test.ts` 并确认通过。
 
-- [ ] Commit：
+- [x] Commit：
 
 ```zsh
 git add qt-app/frontend/src/domain/pressJob.ts \

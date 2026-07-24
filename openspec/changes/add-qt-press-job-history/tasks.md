@@ -3,7 +3,7 @@
 @author PopoY
 @created 2026-07-24 17:04:06
 @editor PopoY
-@edited 2026-07-24 17:16:18
+@edited 2026-07-24 19:46:00
 @purpose 以可验证检查项跟踪历史作业跨前后端实现、测试和审查。
 -->
 
@@ -27,8 +27,8 @@
 
 ## 4. QT App 请求契约
 
-- [ ] 4.1 先写失败的 `erpClient` 测试，再增加历史 Query/List/Detail View Model（视图模型）、两个 GET 请求和响应字段收窄。
-- [ ] 4.2 覆盖 URL offset、授权与独立 `X-Correlation-Id`、敏感字段剔除、未知状态以及时长 null/小数/超大值边界。
+- [x] 4.1 先写失败的 `erpClient` 测试，再增加历史 Query/List/Detail View Model（视图模型）、两个 GET 请求和响应字段收窄。
+- [x] 4.2 覆盖 URL offset、授权与独立 `X-Correlation-Id`、敏感字段剔除、未知状态以及时长 null/小数/超大值边界。
 
 ## 5. QT App 历史页面
 
