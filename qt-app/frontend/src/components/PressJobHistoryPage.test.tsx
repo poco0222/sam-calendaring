@@ -2,6 +2,8 @@
  * @file PressJobHistoryPage.test.tsx - 验证 Press Job History Page（压机历史作业页面）。
  * @author PopoY
  * @created 2026-07-24 19:52:32
+ * @editor PopoY
+ * @edited 2026-07-24 20:18:47
  * @brief 锁定日期快照、请求竞态、表格、详情和现有 Design Token（设计变量）契约。
  */
 
@@ -21,6 +23,7 @@ import {
   PressJobHistoryPage,
   shouldApplyHistoryDetailResponse,
   shouldApplyHistoryListResponse,
+  shouldRequestHistoryList,
   validateHistoryDateRange,
 } from "./PressJobHistoryPage";
 
@@ -125,24 +128,85 @@ describe("PressJobHistoryPage", () => {
     ).toMatchObject({ mouldCode: "M-02", pageNum: 1, pageSize: 10 });
   });
 
-  it("only applies the current list request version", () => {
-    expect(shouldApplyHistoryListResponse(2, 2)).toBe(true);
-    expect(shouldApplyHistoryListResponse(1, 2)).toBe(false);
-  });
+  it("deduplicates only the same query and list loader identity", () => {
+    const query = buildHistoryQuery(
+      createInitialHistoryFilters(dayjs("2026-07-24T00:00:00")),
+      1,
+      "history-list-identity",
+    );
+    const loader = vi.fn();
+    const nextLoader = vi.fn();
 
-  it("only applies the current matching detail request and invalidates it on close", () => {
-    expect(shouldApplyHistoryDetailResponse(3, 3, "job-1", "job-1")).toBe(
+    expect(shouldRequestHistoryList(undefined, query, loader)).toBe(true);
+    expect(shouldRequestHistoryList({ query, loader }, query, loader)).toBe(
+      false,
+    );
+    expect(shouldRequestHistoryList({ query, loader }, query, nextLoader)).toBe(
       true,
     );
-    expect(shouldApplyHistoryDetailResponse(2, 3, "job-1", "job-1")).toBe(
-      false,
-    );
-    expect(shouldApplyHistoryDetailResponse(3, 3, "job-1", "job-2")).toBe(
-      false,
-    );
-    expect(shouldApplyHistoryDetailResponse(3, 4, "job-1", undefined)).toBe(
-      false,
-    );
+  });
+
+  it("only applies the current list request version and loader", () => {
+    const loader = vi.fn();
+
+    expect(shouldApplyHistoryListResponse(2, 2, loader, loader)).toBe(true);
+    expect(shouldApplyHistoryListResponse(1, 2, loader, loader)).toBe(false);
+    expect(shouldApplyHistoryListResponse(2, 2, loader, vi.fn())).toBe(false);
+  });
+
+  it("only applies the current matching detail request and loader", () => {
+    const loader = vi.fn();
+
+    expect(
+      shouldApplyHistoryDetailResponse(
+        3,
+        3,
+        "job-1",
+        "job-1",
+        loader,
+        loader,
+      ),
+    ).toBe(true);
+    expect(
+      shouldApplyHistoryDetailResponse(
+        2,
+        3,
+        "job-1",
+        "job-1",
+        loader,
+        loader,
+      ),
+    ).toBe(false);
+    expect(
+      shouldApplyHistoryDetailResponse(
+        3,
+        3,
+        "job-1",
+        "job-2",
+        loader,
+        loader,
+      ),
+    ).toBe(false);
+    expect(
+      shouldApplyHistoryDetailResponse(
+        3,
+        4,
+        "job-1",
+        undefined,
+        loader,
+        loader,
+      ),
+    ).toBe(false);
+    expect(
+      shouldApplyHistoryDetailResponse(
+        3,
+        3,
+        "job-1",
+        "job-1",
+        loader,
+        vi.fn(),
+      ),
+    ).toBe(false);
   });
 
   it("renders the fixed filters and eight-column empty list structure", () => {
@@ -170,7 +234,8 @@ describe("PressJobHistoryPage", () => {
 
   it("keeps the row, local state, drawer and retry source contracts", () => {
     expect(pageSource).toContain("allowClear={false}");
-    expect(pageSource).toContain('width="70%"');
+    expect(pageSource).toContain('size="70%"');
+    expect(pageSource).not.toContain('width="70%"');
     expect(pageSource).toContain("destroyOnHidden={false}");
     expect(pageSource).toContain("tabIndex: 0");
     expect(pageSource).toContain('event.key === "Enter"');
@@ -182,6 +247,37 @@ describe("PressJobHistoryPage", () => {
     expect(pageSource).toContain("triggerRowRef.current?.focus()");
     expect(pageSource).toContain("shouldApplyHistoryListResponse");
     expect(pageSource).toContain("shouldApplyHistoryDetailResponse");
+  });
+
+  it("invalidates requests when loader identity changes and refetches open detail", () => {
+    expect(pageSource).toContain(
+      "currentLoadHistoryListRef.current = loadHistoryList",
+    );
+    expect(pageSource).toContain(
+      "currentLoadHistoryDetailRef.current = loadHistoryDetail",
+    );
+    expect(pageSource).toContain(
+      "requestedLoader,\n              currentLoadHistoryListRef.current",
+    );
+    expect(pageSource).toContain(
+      "requestedLoader,\n              currentLoadHistoryDetailRef.current",
+    );
+    expect(pageSource).toMatch(
+      /useEffect\(\(\) => \{[\s\S]*detailRequestVersionRef\.current \+= 1;[\s\S]*selectedMoldJobIdRef\.current[\s\S]*runHistoryDetailRequest\(moldJobId\);[\s\S]*\}, \[loadHistoryDetail, runHistoryDetailRequest\]\);/,
+    );
+    expect(pageSource).not.toContain('setListStatus("loading")');
+  });
+
+  it("bridges semantic tokens to the portal drawer root", () => {
+    expect(pageSource).toContain("theme.useToken()");
+    expect(pageSource).toContain('"--qt-app-control-blue": colorPrimary');
+    expect(pageSource).toContain(
+      '"--qt-app-control-blue-soft": colorPrimaryBg',
+    );
+    expect(pageSource).toContain(
+      '"--qt-app-control-blue-line": colorPrimaryBorder',
+    );
+    expect(pageSource).toContain("rootStyle={drawerRootStyle}");
   });
 
   it("maps unknown completion states to fixed Chinese text", () => {

@@ -2,6 +2,8 @@
  * @file PressJobHistoryPage.tsx - 渲染 Press Job History Page（压机历史作业页面）。
  * @author PopoY
  * @created 2026-07-24 19:52:32
+ * @editor PopoY
+ * @edited 2026-07-24 20:18:47
  * @brief 提供本地自然日筛选、服务端分页和脱敏历史作业详情。
  */
 
@@ -16,12 +18,14 @@ import {
   Skeleton,
   Table,
   Tag,
+  theme,
   Typography,
 } from "antd";
 import type { TableProps } from "antd";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 
 import type { ErpDictOption } from "../domain/lease";
 import type {
@@ -64,6 +68,12 @@ export type PressJobHistoryPageProps = {
 };
 
 type RequestStatus = "idle" | "loading" | "success" | "error";
+type HistoryListLoader = PressJobHistoryPageProps["loadHistoryList"];
+type HistoryDetailLoader = PressJobHistoryPageProps["loadHistoryDetail"];
+type HistoryListRequestIdentity = {
+  query: PressJobHistoryQuery;
+  loader: HistoryListLoader;
+};
 
 /**
  * @brief 创建工控机本地当天的不可清空默认筛选。
@@ -132,18 +142,37 @@ export function buildHistoryQuery(
 }
 
 /**
- * @brief 判断列表响应是否仍属于当前 request version（请求版本）。
+ * @brief 仅当 query（查询）或 loader（加载器）身份改变时发起列表请求。
+ * @author PopoY
+ */
+export function shouldRequestHistoryList(
+  currentIdentity: HistoryListRequestIdentity | undefined,
+  requestedQuery: PressJobHistoryQuery,
+  requestedLoader: HistoryListLoader,
+): boolean {
+  return (
+    currentIdentity?.query !== requestedQuery ||
+    currentIdentity.loader !== requestedLoader
+  );
+}
+
+/**
+ * @brief 判断列表响应是否仍属于当前 request version（请求版本）和 loader（加载器）。
  * @author PopoY
  */
 export function shouldApplyHistoryListResponse(
   requestedVersion: number,
   currentVersion: number,
+  requestedLoader: HistoryListLoader,
+  currentLoader: HistoryListLoader,
 ): boolean {
-  return requestedVersion === currentVersion;
+  return (
+    requestedVersion === currentVersion && requestedLoader === currentLoader
+  );
 }
 
 /**
- * @brief 判断详情响应是否仍属于当前版本和当前选中作业。
+ * @brief 判断详情响应是否仍属于当前版本、作业和 loader（加载器）。
  * @author PopoY
  */
 export function shouldApplyHistoryDetailResponse(
@@ -151,10 +180,13 @@ export function shouldApplyHistoryDetailResponse(
   currentVersion: number,
   requestedMoldJobId: string,
   selectedMoldJobId: string | undefined,
+  requestedLoader: HistoryDetailLoader,
+  currentLoader: HistoryDetailLoader,
 ): boolean {
   return (
     requestedVersion === currentVersion &&
-    requestedMoldJobId === selectedMoldJobId
+    requestedMoldJobId === selectedMoldJobId &&
+    requestedLoader === currentLoader
   );
 }
 
@@ -223,6 +255,14 @@ export function PressJobHistoryPage({
   loadHistoryList,
   loadHistoryDetail,
 }: PressJobHistoryPageProps) {
+  const {
+    token: { colorPrimary, colorPrimaryBg, colorPrimaryBorder },
+  } = theme.useToken();
+  const drawerRootStyle = {
+    "--qt-app-control-blue": colorPrimary,
+    "--qt-app-control-blue-soft": colorPrimaryBg,
+    "--qt-app-control-blue-line": colorPrimaryBorder,
+  } as CSSProperties;
   const [draftFilters, setDraftFilters] = useState<HistoryDraftFilters>(() =>
     createInitialHistoryFilters(dayjs()),
   );
@@ -249,22 +289,27 @@ export function PressJobHistoryPage({
   const detailRequestVersionRef = useRef(0);
   const selectedMoldJobIdRef = useRef<string | undefined>(undefined);
   const triggerRowRef = useRef<HTMLElement | null>(null);
-  const lastRequestedListQueryRef = useRef<PressJobHistoryQuery | undefined>(
-    undefined,
-  );
+  const currentLoadHistoryListRef = useRef(loadHistoryList);
+  const currentLoadHistoryDetailRef = useRef(loadHistoryDetail);
+  const lastRequestedListIdentityRef =
+    useRef<HistoryListRequestIdentity | undefined>(undefined);
+  currentLoadHistoryListRef.current = loadHistoryList;
+  currentLoadHistoryDetailRef.current = loadHistoryDetail;
 
   const runHistoryListRequest = useCallback(
     (query: PressJobHistoryQuery) => {
       const requestedVersion = ++listRequestVersionRef.current;
+      const requestedLoader = loadHistoryList;
       setListLoading(true);
-      setListStatus("loading");
 
-      loadHistoryList(query)
+      requestedLoader(query)
         .then((result) => {
           if (
             !shouldApplyHistoryListResponse(
               requestedVersion,
               listRequestVersionRef.current,
+              requestedLoader,
+              currentLoadHistoryListRef.current,
             )
           ) {
             return;
@@ -277,6 +322,8 @@ export function PressJobHistoryPage({
             !shouldApplyHistoryListResponse(
               requestedVersion,
               listRequestVersionRef.current,
+              requestedLoader,
+              currentLoadHistoryListRef.current,
             )
           ) {
             return;
@@ -288,6 +335,8 @@ export function PressJobHistoryPage({
             !shouldApplyHistoryListResponse(
               requestedVersion,
               listRequestVersionRef.current,
+              requestedLoader,
+              currentLoadHistoryListRef.current,
             )
           ) {
             return;
@@ -299,20 +348,32 @@ export function PressJobHistoryPage({
   );
 
   useEffect(() => {
-    // @author PopoY: query object（查询对象）去重，避免 StrictMode 重放 effect 时重复调用 ERP。
-    if (lastRequestedListQueryRef.current === appliedQuery) return;
-    lastRequestedListQueryRef.current = appliedQuery;
+    // @author PopoY: query（查询）与 loader（加载器）共同去重，loader 换代必须重取当前快照。
+    if (
+      !shouldRequestHistoryList(
+        lastRequestedListIdentityRef.current,
+        appliedQuery,
+        loadHistoryList,
+      )
+    ) {
+      return;
+    }
+    lastRequestedListIdentityRef.current = {
+      query: appliedQuery,
+      loader: loadHistoryList,
+    };
     runHistoryListRequest(appliedQuery);
-  }, [appliedQuery, runHistoryListRequest]);
+  }, [appliedQuery, loadHistoryList, runHistoryListRequest]);
 
   const runHistoryDetailRequest = useCallback(
     (moldJobId: string) => {
       const requestedVersion = ++detailRequestVersionRef.current;
+      const requestedLoader = loadHistoryDetail;
       setDetail(undefined);
       setDetailLoading(true);
       setDetailStatus("loading");
 
-      loadHistoryDetail({
+      requestedLoader({
         moldJobId,
         correlationId: createHistoryCorrelationId("detail"),
       })
@@ -323,6 +384,8 @@ export function PressJobHistoryPage({
               detailRequestVersionRef.current,
               moldJobId,
               selectedMoldJobIdRef.current,
+              requestedLoader,
+              currentLoadHistoryDetailRef.current,
             )
           ) {
             return;
@@ -337,6 +400,8 @@ export function PressJobHistoryPage({
               detailRequestVersionRef.current,
               moldJobId,
               selectedMoldJobIdRef.current,
+              requestedLoader,
+              currentLoadHistoryDetailRef.current,
             )
           ) {
             return;
@@ -350,6 +415,8 @@ export function PressJobHistoryPage({
               detailRequestVersionRef.current,
               moldJobId,
               selectedMoldJobIdRef.current,
+              requestedLoader,
+              currentLoadHistoryDetailRef.current,
             )
           ) {
             return;
@@ -359,6 +426,15 @@ export function PressJobHistoryPage({
     },
     [loadHistoryDetail],
   );
+
+  useEffect(() => {
+    detailRequestVersionRef.current += 1;
+    setDetail(undefined);
+    setDetailStatus("idle");
+    setDetailLoading(false);
+    const moldJobId = selectedMoldJobIdRef.current;
+    if (moldJobId) runHistoryDetailRequest(moldJobId);
+  }, [loadHistoryDetail, runHistoryDetailRequest]);
 
   const operatorLabelByValue = useMemo(
     () => new Map(operatorOptions.map((option) => [option.dictValue, option.dictLabel])),
@@ -613,8 +689,9 @@ export function PressJobHistoryPage({
         destroyOnHidden={false}
         onClose={handleCloseDetail}
         open={selectedMoldJobId !== undefined}
+        rootStyle={drawerRootStyle}
+        size="70%"
         title={`作业详情 · ${selectedRow?.moldNo ?? "未记录"}`}
-        width="70%"
       >
         {detailLoading || detailStatus === "loading" ? (
           <Skeleton active paragraph={{ rows: 10 }} />
