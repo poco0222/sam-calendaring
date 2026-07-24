@@ -8,7 +8,7 @@ base-ref: d518736a633e63c418e4ccee20b9f22b7fb3defd
 > @author PopoY
 > @created 2026-07-24 16:31:39
 > @editor PopoY
-> @edited 2026-07-24 20:59:25
+> @edited 2026-07-24 21:23:53
 > @purpose 给出 QT App（Qt 应用）历史作业第四个一级入口、服务端分页列表和 70% 详情抽屉的端到端实施步骤。
 
 # QT App 历史作业页面 Implementation Plan（实施计划）
@@ -1176,7 +1176,7 @@ git commit -m "feat(qt): 增加历史作业一级入口"
 
 ### Step 8.1：后端完整目标验证
 
-- [ ] 在后端 worktree 运行：
+- [x] 在后端 worktree 运行；目标测试、Java 8 package 与 13-module Reactor build 均通过：
 
 ```zsh
 JAVA_HOME=/Users/popoy/WorkSpace/DevTools/Java/zulu-8.0.492.jdk/Contents/Home \
@@ -1190,7 +1190,7 @@ JAVA_HOME=/Users/popoy/WorkSpace/DevTools/Java/zulu-8.0.492.jdk/Contents/Home \
   -pl yr-admin -am -DskipTests package
 ```
 
-- [ ] 检查 Liquibase includeAll 能包含既有 operation changelog，且本变更没有新增 migration：
+- [x] 检查 Liquibase includeAll 能包含既有 operation changelog，且固定创建基线 `54a8c09e494212924cec01e5470029e4a9e7d10c..HEAD` 没有新增 migration：
 
 ```zsh
 rg -n "includeAll path=\"classpath:db/liquibase/changelog\"" \
@@ -1202,7 +1202,7 @@ test -z "$(git diff --name-only master...HEAD | rg 'liquibase' || true)"
 
 ### Step 8.2：前端完整目标验证
 
-- [ ] 运行所有相关测试和 production build（生产构建）：
+- [x] 运行所有相关测试、TypeScript 与 production build（生产构建）；最终 `79/79` 通过：
 
 ```zsh
 pnpm --dir qt-app/frontend exec vitest run \
@@ -1212,13 +1212,13 @@ pnpm --dir qt-app/frontend exec vitest run \
 pnpm --dir qt-app/frontend build
 ```
 
-- [ ] 在可用的本地 ERP/Qt bootstrap 环境中启动 Vite；若环境不可用，不发送伪造真实设备请求，只用静态 mock 数据进行 UI 核对：
+- [x] 本地 ERP/Qt bootstrap 环境不用于探测；启动 Vite 后只用临时静态 Mock 数据渲染真实页面进行 UI 核对，未发送真实设备请求，临时文件已删除：
 
 ```zsh
 pnpm --dir qt-app/frontend dev --host 127.0.0.1
 ```
 
-- [ ] 使用 in-app browser（应用内浏览器）在 1280×720 核对 light/dark 两种主题：
+- [x] 使用 in-app browser（应用内浏览器）在 1280×720 核对 light/dark 两种主题，全部七项通过：
 
 1. 四个一级入口完整显示，“历史作业”紧邻“压机作业”。
 2. 页面无页面级滚动条，筛选控件、行、关闭按钮至少 44px。
@@ -1230,7 +1230,7 @@ pnpm --dir qt-app/frontend dev --host 127.0.0.1
 
 ### Step 8.3：安全与范围扫描
 
-- [ ] 确认新页面 props 和历史 response mapper（响应映射）没有禁用字段：
+- [x] 确认新页面 props 和历史 response mapper（响应映射）没有禁用字段：
 
 ```zsh
 rg -n "signedLease|signaturePayload|signalConfig|privateKey|credential|sessionToken|deviceId|operationIp|granteeHostId|idempotencyKey|requestFingerprint" \
@@ -1240,9 +1240,9 @@ rg -n "signedLease|signaturePayload|signalConfig|privateKey|credential|sessionTo
 
 Expected：页面文件零命中；Controller 允许在认证上下文内部出现 `deviceId`，但 `toHistoryRows/toHistoryDetail/toHistoryOperationRows` 的 response key 不得命中。
 
-- [ ] 检查新增日志只含稳定字段和中文摘要，不含 request body（请求体）、异常堆栈、参数 JSON 或网络字段。
+- [x] 检查新增日志只含稳定字段和中文摘要，不含 request body（请求体）、异常堆栈、参数 JSON 或网络字段。
 
-- [ ] 分别检查两个 worktree：
+- [x] 分别检查两个 worktree；产品 tracked 状态干净且 `git diff --check` 通过：
 
 ```zsh
 git status --short
@@ -1250,9 +1250,9 @@ git diff --check
 git log --oneline --decorate -5
 ```
 
-- [ ] 按 `requesting-code-review` 进行 correctness/security/regression（正确性/安全性/回归）审查；修复 P0/P1/P2 后重跑受影响的最小测试和最终构建。
+- [x] 按 `requesting-code-review` 进行 correctness/security/regression（正确性/安全性/回归）累计审查；最终两个仓库均无 Critical、Important 或 Minor。
 
-- [ ] 使用 `verification-before-completion` 复核实际输出，再更新 Comet verify/handoff（验证/交接）状态。Archive（归档）、合并和 push（推送）均是独立授权门，不在本计划自动执行。
+- [x] 使用 `verification-before-completion` 复核实际输出并生成正式 Comet Verify 报告；Archive（归档）、合并和 push（推送）继续作为独立授权门，不在本计划自动执行。
 
 ---
 

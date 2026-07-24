@@ -3,7 +3,7 @@
 @author PopoY
 @created 2026-07-24 17:04:06
 @editor PopoY
-@edited 2026-07-24 20:59:25
+@edited 2026-07-24 21:23:53
 @purpose 以可验证检查项跟踪历史作业跨前后端实现、测试和审查。
 -->
 
@@ -44,7 +44,7 @@
 
 ## 7. 验证与交付
 
-- [ ] 7.1 运行 ERP 全部目标测试、Java 8 模块构建、QT App 相关 Vitest 和 production build（生产构建）。
-- [ ] 7.2 在 1280×720 下核对浅色/深色布局、44px 触控目标、固定表头分页、70% Drawer、遮罩、焦点和局部滚动。
-- [ ] 7.3 执行敏感字段、日志、Liquibase 无新增迁移及工作树范围扫描，完成最终 correctness/security/regression（正确性/安全性/回归）审查。
-- [ ] 7.4 记录 Comet Verify（验证）证据；Archive（归档）、合并和 push（推送）继续作为独立授权门。
+- [x] 7.1 运行 ERP 全部目标测试、Java 8 模块构建、QT App 相关 Vitest 和 production build（生产构建）。
+- [x] 7.2 在 1280×720 下核对浅色/深色布局、44px 触控目标、固定表头分页、70% Drawer、遮罩、焦点和局部滚动。
+- [x] 7.3 执行敏感字段、日志、Liquibase 无新增迁移及工作树范围扫描，完成最终 correctness/security/regression（正确性/安全性/回归）审查。
+- [x] 7.4 记录 Comet Verify（验证）证据；Archive（归档）、合并和 push（推送）继续作为独立授权门。
