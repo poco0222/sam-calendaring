@@ -8,7 +8,7 @@ base-ref: d518736a633e63c418e4ccee20b9f22b7fb3defd
 > @author PopoY
 > @created 2026-07-24 16:31:39
 > @editor PopoY
-> @edited 2026-07-24 19:47:51
+> @edited 2026-07-24 20:44:40
 > @purpose 给出 QT App（Qt 应用）历史作业第四个一级入口、服务端分页列表和 70% 详情抽屉的端到端实施步骤。
 
 # QT App 历史作业页面 Implementation Plan（实施计划）
@@ -851,7 +851,7 @@ git commit -m "feat(qt): 接入历史作业查询契约"
 
 ### Step 6.1：声明 Ant Design 已使用的 Day.js 直接依赖
 
-- [ ] 先核对 lockfile 中 Ant Design 实际解析的 Day.js 版本，再声明同一版本；当前核实值为 `1.11.21`：
+- [x] 先核对 lockfile 中 Ant Design 实际解析的同版本 Day.js 版本，再声明同一版本；当前核实值为 `1.11.21`：
 
 ```zsh
 pnpm --dir qt-app/frontend add dayjs@1.11.21
@@ -861,15 +861,15 @@ pnpm --dir qt-app/frontend add dayjs@1.11.21
 
 ### Step 6.2：先写页面逻辑与结构失败测试
 
-- [ ] 新测试使用项目现有 Vitest + `renderToStaticMarkup`/source contract 风格，不新增 Testing Library 或 DOM runtime。至少覆盖：
+- [x] 新测试使用项目现有 Vitest + `renderToStaticMarkup`/source contract 风格，不新增 Testing Library 或 DOM runtime。至少覆盖：
 
 1. `createInitialHistoryFilters(now)` 返回当天 RangePicker 范围。
 2. `validateHistoryDateRange` 接受 31 个自然日、拒绝 32 个自然日。
 3. `buildHistoryQuery` 把起点和结束日期的下一日零点格式化为 `YYYY-MM-DDTHH:mm:ssZ`，保留工控机当时的 offset（例如 `+08:00`），并固定 `pageSize: 10`；不得使用 `toISOString()` 转成 UTC 日期字符串后再截断。
 4. 修改 `draftFilters` 不改变 `appliedQuery`；点击查询复制 snapshot 并回到第 1 页。
-5. `shouldApplyHistoryListResponse` 只允许当前 list request version（列表请求版本）。
-6. `shouldApplyHistoryDetailResponse` 同时要求当前 detail version 和相同 `moldJobId`；Drawer 关闭后版本失效。
-7. 静态结构包含八列、`allowClear={false}`、`width="70%"`、row `tabIndex=0`、`Enter`/`Space`、固定中文空/错状态。
+5. `shouldApplyHistoryListResponse` 同时要求当前 list request version（列表请求版本）、loader identity（加载器身份）和 `appliedQuery` identity（查询身份）。
+6. `shouldApplyHistoryDetailResponse` 同时要求当前 detail version、相同 `moldJobId` 和 loader identity；Drawer 关闭后版本失效。
+7. 静态结构包含八列、`allowClear={false}`、`size="70%"`、row `tabIndex=0`、`Enter`/`Space`、固定中文空/错状态。
 8. 状态映射对未知 code 返回“状态未知”，不能回显原值。
 9. 参数对齐 helper（辅助函数）保留仅一侧存在的参数，并显示“未记录”。
 
@@ -889,7 +889,7 @@ export function shouldApplyHistoryDetailResponse(
 }
 ```
 
-- [ ] 运行并确认失败：
+- [x] 运行 Task 6 页面测试并确认 RED（红灯）：
 
 ```zsh
 pnpm --dir qt-app/frontend exec vitest run src/components/PressJobHistoryPage.test.tsx
@@ -897,7 +897,7 @@ pnpm --dir qt-app/frontend exec vitest run src/components/PressJobHistoryPage.te
 
 ### Step 6.3：实现 props、安全边界和状态机
 
-- [ ] 页面 props 只接收脱敏 options（选项）和两个只读回调：
+- [x] 页面 props 只接收脱敏 options（选项）和两个只读回调：
 
 ```ts
 export type PressJobHistoryPageProps = {
@@ -915,7 +915,7 @@ export type PressJobHistoryPageProps = {
 
 禁止 props 出现 `sessionToken`、`erpBaseUrl`、`deviceId`、driver session（驱动会话）、`signedLease` 或 `signalConfig`。
 
-- [ ] 页面持有两套筛选状态和两套独立版本：
+- [x] 页面持有两套筛选状态和两套独立版本：
 
 ```ts
 const [draftFilters, setDraftFilters] = useState(() => createInitialHistoryFilters(dayjs()));
@@ -929,7 +929,7 @@ const [selectedMoldJobId, setSelectedMoldJobId] = useState<string>();
 
 初始查询由 `useEffect` 调一次 `appliedQuery`；列表 query/retry/翻页每次生成新的 `correlationId`。详情打开/retry 每次也生成新 ID。
 
-- [ ] 请求 `.then/.catch/.finally` 三处都检查版本；detail 额外检查 `selectedMoldJobId`。关闭 Drawer 时执行：
+- [x] 请求 `.then/.catch/.finally` 三处都检查 scope（作用域）：list 检查版本、loader 和当前 `appliedQuery` identity；detail 检查版本、loader 与 `selectedMoldJobId`。loader 换代时重取当前列表快照或已打开详情。关闭 Drawer 时执行：
 
 ```ts
 detailRequestVersionRef.current += 1;
@@ -942,7 +942,7 @@ setDetailStatus("idle");
 
 ### Step 6.4：实现筛选、八列表格和局部状态
 
-- [ ] `RangePicker` 固定：
+- [x] `RangePicker` 固定：
 
 ```tsx
 <RangePicker
@@ -955,9 +955,9 @@ setDetailStatus("idle");
 
 查询按钮在日期非法或超过 31 日时 disabled，并在字段附近显示中文校验文字。翻页只复制 `appliedQuery` 的筛选字段、替换 `pageNum/correlationId`，绝不能读取当前 draft。
 
-- [ ] 八列顺序固定为 `压机 / 模具号 / 作业人员 / 工艺 / 开始时间 / 完成时间 / 实际时长 / 完工状态`。人员和工艺用 bootstrap 已有 `ErpDictOption` 翻译；找不到 label 时显示安全 code 或“未记录”。
+- [x] 八列顺序固定为 `压机 / 模具号 / 作业人员 / 工艺 / 开始时间 / 完成时间 / 实际时长 / 完工状态`。人员和工艺用 bootstrap 已有 `ErpDictOption` 翻译；找不到 label 时显示安全 code 或“未记录”。
 
-- [ ] Table 使用 server pagination（服务端分页）：
+- [x] Table 使用 server pagination（服务端分页）：
 
 ```tsx
 pagination={{
@@ -970,35 +970,36 @@ pagination={{
 }}
 ```
 
-- [ ] `onRow` 让整行支持触控、点击、Enter 和 Space；选中 class 只比较稳定 `moldJobId`。Drawer 打开时标准 mask（遮罩）阻止底层交互，不实现“直接切换另一条”。
+- [x] `onRow` 让整行支持触控、点击、Enter 和 Space；选中 class 只比较稳定 `moldJobId`。Drawer 打开时标准 mask（遮罩）阻止底层交互，不实现“直接切换另一条”。
 
-- [ ] Table 内容区状态固定：loading 显示 Skeleton rows（骨架行），error 显示 Alert + “重试”，empty 显示已批准中文文案。失败只重试对应 request，不清空上一次成功的筛选快照。
+- [x] Table 内容区状态固定：loading 显示 Skeleton rows（骨架行），error 显示 Alert + “重试”，empty 显示已批准中文文案。失败只重试对应 request，不清空上一次成功的筛选快照。
 
 ### Step 6.5：实现 70% Drawer 与详情区域
 
-- [ ] 使用 Ant Design 默认 body Portal 和标准 mask：
+- [x] 使用 Ant Design 默认 body Portal 和标准 mask；通过 `rootStyle` 把当前 AntD semantic token 转发为详情 CSS 已复用的三个 `--qt-app-control-blue*` 变量：
 
 ```tsx
 <Drawer
   destroyOnHidden={false}
   onClose={handleCloseDetail}
   open={selectedMoldJobId !== undefined}
+  rootStyle={drawerRootStyle}
   title={`作业详情 · ${selectedRow?.moldNo ?? "未记录"}`}
-  width="70%"
+  size="70%"
 >
   {detailContent}
 </Drawer>
 ```
 
-- [ ] 概要使用 `Descriptions column={4}` 两行；“班组 / 作业人员”的 value 为 `未记录 / {operator label}`。不要新增卡片。
+- [x] 概要使用 `Descriptions column={4}` 两行；“班组 / 作业人员”的 value 为 `未记录 / {operator label}`。不要新增卡片。
 
-- [ ] 参数区用一个对齐 Table：`参数名称 / 开始参数 / 完工参数 / 单位 / 状态`。合并键使用 `parameterName`，只存在一侧时另一侧显示“未记录”；section state 为 invalid 时显示“参数记录格式异常”，但不隐藏另一侧有效记录。
+- [x] 参数区用一个对齐 Table：`参数名称 / 开始参数 / 完工参数 / 单位 / 状态`。合并键使用 `parameterName`，只存在一侧时另一侧显示“未记录”；section state 为 invalid 时显示“参数记录格式异常”，但不隐藏另一侧有效记录。
 
-- [ ] 操作记录按 response 顺序显示时间、中文操作名和“成功”；空数组显示“该作业没有可查看的操作记录”。不展示操作内部 ID。
+- [x] 操作记录按 response 顺序显示时间、中文操作名和“成功”；空数组显示“该作业没有可查看的操作记录”。不展示操作内部 ID。
 
 ### Step 6.6：只使用现有 Design Token（设计变量）完成 CSS
 
-- [ ] 新 CSS 固定复用 `--qt-app-control-blue`、`--qt-app-control-blue-soft`、`--qt-app-control-blue-line` 与 AntD semantic token（语义令牌），不硬编码第二套 light/dark palette（明暗色板）。核心布局：
+- [x] 新 CSS 固定复用 `--qt-app-control-blue`、`--qt-app-control-blue-soft`、`--qt-app-control-blue-line` 与 AntD semantic token（语义令牌），不硬编码第二套 light/dark palette（明暗色板）。默认 body Portal 内由 Drawer `rootStyle` 提供同名变量。核心布局：
 
 ```css
 .press-job-history-page {
@@ -1071,9 +1072,9 @@ pagination={{
 
 补齐 `:focus-visible`、44px row/close target、详情内部滚动和 `@media (prefers-reduced-motion: reduce)`；不增加阴影、渐变、玻璃、宽圆角或装饰动画。
 
-- [ ] 重跑页面测试并确认通过。
+- [x] 重跑页面测试并确认通过；review-fix round 2 最终为 `14/14`，`tsc --noEmit` 与 production build 均通过。
 
-- [ ] Commit：
+- [x] 提交 Task 6 页面初始实现与两轮审查修复：
 
 ```zsh
 git add qt-app/frontend/package.json qt-app/frontend/pnpm-lock.yaml \
@@ -1082,6 +1083,11 @@ git add qt-app/frontend/package.json qt-app/frontend/pnpm-lock.yaml \
   qt-app/frontend/src/components/PressJobHistoryPage.test.tsx
 git commit -m "feat(qt): 实现历史作业页面"
 ```
+
+Review-fix commits（审查修复提交）：
+
+- `d236c70bccc1cff69fc86b45fd8c5f37a380f96d`：绑定 loader scope、转发 Portal token，并改用 `size="70%"`。
+- `facd876b125742397435d086a7909d39a614ffed`：绑定列表响应的当前 query identity，关闭 render/effect 窗口竞态。
 
 ---
 
