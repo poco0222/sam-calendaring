@@ -2,6 +2,8 @@
 @file 2026-07-24-add-qt-press-job-history-verify.md - 压机历史作业 Comet Verify 报告
 @author PopoY
 @created 2026-07-24 21:23:53
+@editor PopoY
+@edited 2026-07-24 21:29:56
 @purpose 记录跨 QT App 与 ERP 的完整规格、测试、构建、视觉和安全验证证据。
 -->
 
@@ -81,6 +83,7 @@
 
 ## Delivery Gate（交付门）
 
-- `verify_result` 可记录为 `pass`。
+- `openspec validate add-qt-press-job-history --type change --strict --no-interactive` 通过。
+- Comet 已记录 `verify_result: pass` 并进入 `phase: archive`。
 - `branch_status` 必须保持 `pending`。
-- Archive、merge、push 均未执行；下一步必须先取得用户单独的 Archive 确认。
+- `archive_confirmation` 保持 `pending`；Archive、merge、push 均未执行，下一步必须先取得用户单独的 Archive 确认。
