@@ -2,13 +2,14 @@
 change: add-qt-press-job-history
 design-doc: docs/superpowers/specs/2026-07-24-press-job-history-page-design.md
 base-ref: d518736a633e63c418e4ccee20b9f22b7fb3defd
+archived-with: 2026-07-24-add-qt-press-job-history
 ---
 
 > @file 2026-07-24-press-job-history-page.md
 > @author PopoY
 > @created 2026-07-24 16:31:39
 > @editor PopoY
-> @edited 2026-07-24 21:23:53
+> @edited 2026-07-25 07:22:22
 > @purpose 给出 QT App（Qt 应用）历史作业第四个一级入口、服务端分页列表和 70% 详情抽屉的端到端实施步骤。
 
 # QT App 历史作业页面 Implementation Plan（实施计划）
