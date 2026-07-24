@@ -1,0 +1,8 @@
+{
+  "openspec_proposal": "openspec/changes/add-qt-press-job-history/proposal.md",
+  "openspec_design": "openspec/changes/add-qt-press-job-history/design.md",
+  "openspec_tasks": "openspec/changes/add-qt-press-job-history/tasks.md",
+  "openspec_delta_spec": "openspec/changes/add-qt-press-job-history/specs/press-job-history-query/spec.md",
+  "handoff_context": "openspec/changes/add-qt-press-job-history/.comet/handoff/design-context.json",
+  "handoff_markdown": "openspec/changes/add-qt-press-job-history/.comet/handoff/design-context.md"
+}

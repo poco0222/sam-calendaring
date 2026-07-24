@@ -1,0 +1,14 @@
+{
+  "change": "add-qt-press-job-history",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "353efb0abf87b5b97e6941bca4019a835d2f4ed8342d08d450b8350997031d5f",
+  "files": [
+    { "path": "openspec/changes/add-qt-press-job-history/proposal.md", "sha256": "a648d41a5fd0aaba021101c0fa31c921bfd5d4fd5e09e36e5898e547b787886f" },
+    { "path": "openspec/changes/add-qt-press-job-history/design.md", "sha256": "544d1edf36f0c2b2cc01994ca2002843d496313b40662a84540a48eb2506629d" },
+    { "path": "openspec/changes/add-qt-press-job-history/tasks.md", "sha256": "87cb94890f2398dee153ed8c099eb67df71cca44c33b52720ff4c0cfa8de8397" },
+    { "path": "openspec/changes/add-qt-press-job-history/specs/press-job-history-query/spec.md", "sha256": "7ef5a9d30a7bbcb9601c6373a9446432f605a227b5bc77b3c4df4893ea63e8b4" }
+  ]
+}

@@ -1,6 +1,14 @@
+---
+comet_change: add-qt-press-job-history
+role: technical-design
+canonical_spec: openspec
+---
+
 > @file 2026-07-24-press-job-history-page-design.md
 > @author PopoY
 > @created 2026-07-24 16:00:32
+> @editor PopoY
+> @edited 2026-07-24 17:16:18
 > @purpose 定义 QT App（Qt 应用）历史作业一级页面、查询列表和 70% 宽详情抽屉的布局、样式、交互、安全边界与验收标准。
 
 # QT App 历史作业页面设计

@@ -1,6 +1,14 @@
+---
+change: add-qt-press-job-history
+design-doc: docs/superpowers/specs/2026-07-24-press-job-history-page-design.md
+base-ref: d518736a633e63c418e4ccee20b9f22b7fb3defd
+---
+
 > @file 2026-07-24-press-job-history-page.md
 > @author PopoY
 > @created 2026-07-24 16:31:39
+> @editor PopoY
+> @edited 2026-07-24 17:16:18
 > @purpose 给出 QT App（Qt 应用）历史作业第四个一级入口、服务端分页列表和 70% 详情抽屉的端到端实施步骤。
 
 # QT App 历史作业页面 Implementation Plan（实施计划）
@@ -22,7 +30,7 @@
 实施前必须保留以下事实，不得在执行中改写成另一套模型：
 
 - Frontend（前端）仓库：`/Users/popoy/WorkSpace/Projects/SAM/sam-calendaring`，计划基线为 `main@7cad86161901e169f9bc94c4f4f197db0c6895d6`。
-- Backend（后端）Git 仓库：`/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be`。实施从 `master@54a8c09e494212924cec01e5470029e4a9e7d10c` 建立隔离 worktree（工作树），因为该分支已包含 `51b91dda fix(qt): 补齐压机作业生命周期接口`、`QtPressJobOperation` 和 `qt_press_job_operation` Liquibase change（变更），且不夹带长期分支的其他业务提交。当前 checkout 的 `dev-popo@5f1c427b` 也已合入该生命周期提交，但不是本计划的干净基线；执行时若引用该分支，必须重新核对其最新 HEAD，不得依赖本文快照。
+- Backend（后端）Git 仓库：`/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be`。实施功能分支必须直接从 `master@54a8c09e494212924cec01e5470029e4a9e7d10c` 建立隔离 worktree（工作树），完成后也只能合并回 `master`。`dev`、`dev-popo` 及其他长期分支不得作为基线、中间集成分支或合并目标；如果本地 `master` 哈希前进，只能在重新核对契约后采用新的 `master` HEAD。
 - 列表是一行一个 `press_mould_job_info` 完工记录，不按 `press_job_info` 聚合。这样模具号、工艺、参数和 Drawer 标题都有唯一语义，稳定身份为 `mouldJobId = press_mould_job_info.id`。
 - `mouldWorkingTime` 的真实单位是秒；`erpClient` 统一转换为一位小数小时文本。不得把 `pressDistributionTime` 当作“实际时长”。
 - 历史班组没有持久化字段。首版概要显示 `未记录 / {作业人员}`，不得根据当前组织关系反推历史班组。只有业务确认需要精确历史班组时，才另立 schema change（结构变更）。
@@ -118,7 +126,7 @@ git -C /Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be status --short --b
 git -C /Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be rev-parse master
 ```
 
-Expected（预期）：前端基线包含已批准设计文档；后端 `master` 能找到 `QtPressJobOperation.java` 和 `changelog-2026-07-22-qt-press-job-operation.xml`。若哈希前进，可以接受新提交，但必须重新核对同名契约；不能因当前 `dev-popo` 也已合入生命周期提交，就把其中无关业务提交带入本功能分支。
+Expected（预期）：前端基线包含已批准设计文档；后端 `master` 能找到 `QtPressJobOperation.java` 和 `changelog-2026-07-22-qt-press-job-operation.xml`。若 `master` 哈希前进，可以接受其新提交，但必须重新核对同名契约；不得读取 `dev`、`dev-popo` 或其他长期分支来替代、补齐或改写本功能基线。
 
 - [ ] 按 `using-git-worktrees` 为前端 `main` 和后端 `master` 各建一个隔离 worktree，分支前缀使用 `PopoY-WorkTree/`；两个写入代理不得修改同一路径。
 
@@ -1257,4 +1265,4 @@ git log --oneline --decorate -5
 - 不补录锁模/解锁/失败操作；已有 operation table 不具备这些可靠记录。
 - 不为每天少于 50 条、单次最多 31 日的数据量增加缓存、虚拟列表、搜索索引或汇总表。若生产 explain plan（执行计划）证明查询慢，再按实际 SQL 和索引证据处理。
 - 不复用旧 `/modbus/pressjob/getHistoryPressJobList/{deviceId}`；它由客户端选择设备、只取一条 parent job（父作业），不满足当前安全和分页契约。
-- 不写入或合并当前后端 `dev-popo` 工作树；执行从 `master` 隔离分支开始，后续如何进入目标长期分支由用户单独决定。
+- 不写入当前后端 `dev`、`dev-popo` 或其他长期分支工作树；ERP 功能分支直接从 `master` 建立，完成后只允许合并回 `master`。
