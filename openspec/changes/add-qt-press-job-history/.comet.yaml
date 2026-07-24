@@ -7,7 +7,7 @@ build_pause: null
 subagent_dispatch: confirmed
 tdd_mode: tdd
 review_mode: thorough
-isolation: null
+isolation: worktree
 verify_mode: null
 auto_transition: true
 base_ref: d518736a633e63c418e4ccee20b9f22b7fb3defd
@@ -21,7 +21,7 @@ created_at: 2026-07-24
 verified_at: null
 archive_confirmation: null
 archived: false
-bound_branch: null
+bound_branch: PopoY-WorkTree/add-qt-press-job-history
 direct_override: null
 handoff_context: openspec/changes/add-qt-press-job-history/.comet/handoff/design-context.json
 handoff_hash: 353efb0abf87b5b97e6941bca4019a835d2f4ed8342d08d450b8350997031d5f
