@@ -1,0 +1,241 @@
+/**
+ * @file PressJobHistoryPage.css - 定义 Press Job History Page（压机历史作业页面）样式。
+ * @author PopoY
+ * @created 2026-07-24 19:52:32
+ * @brief 复用现有 Design Token（设计变量）约束 1280x720 触控布局和详情局部滚动。
+ */
+
+.press-job-history-page {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.press-job-history-page__filters {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  min-height: 62px;
+  padding: 8px 12px;
+  border: 1px solid var(--qt-app-control-blue-line);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--qt-app-control-blue-soft) 36%, transparent);
+}
+
+.press-job-history-page__field {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.press-job-history-page__field:first-child {
+  flex: 0 0 270px;
+}
+
+.press-job-history-page__field:nth-child(2),
+.press-job-history-page__field:nth-child(3) {
+  flex: 0 1 190px;
+}
+
+.press-job-history-page__field .ant-select {
+  width: 100%;
+}
+
+.press-job-history-page__filters :where(.ant-picker, .ant-input, .ant-select-selector, .ant-btn) {
+  min-height: 44px;
+}
+
+.press-job-history-page__validation {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1;
+  padding-top: 2px;
+  color: var(--ant-color-error, currentColor);
+  white-space: nowrap;
+}
+
+.press-job-history-page__query {
+  flex: 0 0 auto;
+}
+
+.press-job-history-page__table,
+.press-job-history-page__table .ant-spin-nested-loading,
+.press-job-history-page__table .ant-spin-container {
+  min-height: 0;
+  height: 100%;
+}
+
+.press-job-history-page__table {
+  overflow: hidden;
+  border: 1px solid var(--qt-app-control-blue-line);
+  border-radius: 6px;
+}
+
+.press-job-history-page__table .ant-spin-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.press-job-history-page__table .ant-table,
+.press-job-history-page__table .ant-table-container {
+  height: 100%;
+  min-height: 0;
+}
+
+.press-job-history-page__table .ant-table-container {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.press-job-history-page__table .ant-table-body {
+  min-height: 0;
+}
+
+.press-job-history-page__table .ant-table-tbody > tr > td {
+  min-height: 44px;
+  padding-block: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.press-job-history-page__table .ant-table-tbody > tr {
+  height: 44px;
+}
+
+.press-job-history-page__table .ant-table-tbody > tr[role="button"] {
+  cursor: pointer;
+}
+
+.press-job-history-page__table .ant-table-tbody > tr[role="button"]:focus-visible {
+  outline: 2px solid var(--qt-app-control-blue);
+  outline-offset: -2px;
+}
+
+.press-job-history-page__table.ant-table-wrapper .ant-table-pagination.ant-pagination {
+  margin: 0 !important;
+  margin-top: auto !important;
+  padding-top: 6px;
+}
+
+.press-job-history-page__row--selected > td,
+.press-job-history-page__row--selected:hover > td,
+.press-job-history-page__row--selected > td.ant-table-cell-row-hover {
+  background: var(--qt-app-control-blue-soft) !important;
+}
+
+.press-job-history-page__table .ant-table-placeholder .ant-table-cell {
+  padding: 16px;
+}
+
+.press-job-history-page__table .ant-alert {
+  text-align: left;
+}
+
+.press-job-history-detail .ant-drawer-close {
+  width: 44px;
+  height: 44px;
+}
+
+.press-job-history-detail .ant-drawer-body {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.press-job-history-detail__layout {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 16px;
+  height: 100%;
+  min-height: 0;
+}
+
+.press-job-history-detail__summary {
+  padding: 12px;
+  border: 1px solid var(--qt-app-control-blue-line);
+  border-radius: 6px;
+  background: var(--qt-app-control-blue-soft);
+}
+
+.press-job-history-detail__summary .ant-descriptions-item-content {
+  overflow-wrap: anywhere;
+}
+
+.press-job-history-detail__body {
+  display: grid;
+  grid-template-columns: minmax(0, 64fr) minmax(260px, 36fr);
+  gap: 16px;
+  min-height: 0;
+}
+
+.press-job-history-detail__parameters,
+.press-job-history-detail__operations {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 12px;
+  overflow: hidden;
+  border: 1px solid var(--qt-app-control-blue-line);
+  border-radius: 6px;
+}
+
+.press-job-history-detail__parameters .ant-typography,
+.press-job-history-detail__operations .ant-typography {
+  margin-block: 0 8px;
+}
+
+.press-job-history-detail__parameter-states {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.press-job-history-detail__parameters .ant-table-wrapper,
+.press-job-history-detail__parameters .ant-spin-nested-loading,
+.press-job-history-detail__parameters .ant-spin-container,
+.press-job-history-detail__parameters .ant-table {
+  min-height: 0;
+  height: 100%;
+}
+
+.press-job-history-detail__parameters .ant-table-body,
+.press-job-history-detail__operations {
+  overflow: auto;
+}
+
+.press-job-history-detail__operation-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.press-job-history-detail__operation-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 8px;
+  min-height: 44px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--qt-app-control-blue-line);
+}
+
+.press-job-history-detail__operation-list time {
+  grid-column: 1 / -1;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .press-job-history-page *,
+  .press-job-history-detail * {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
