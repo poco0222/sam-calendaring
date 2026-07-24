@@ -8,7 +8,7 @@ base-ref: d518736a633e63c418e4ccee20b9f22b7fb3defd
 > @author PopoY
 > @created 2026-07-24 16:31:39
 > @editor PopoY
-> @edited 2026-07-24 17:16:18
+> @edited 2026-07-24 18:51:40
 > @purpose 给出 QT App（Qt 应用）历史作业第四个一级入口、服务端分页列表和 70% 详情抽屉的端到端实施步骤。
 
 # QT App 历史作业页面 Implementation Plan（实施计划）
@@ -417,10 +417,12 @@ git commit -m "feat(qt): 暴露历史作业只读服务"
 
 - Modify: `yr-admin/src/main/java/com/yr/web/controller/system/QtPressWorkingController.java`
 - Modify: `yr-admin/src/test/java/com/yr/web/controller/system/QtPressWorkingControllerTest.java`
+- Modify: `yr-framework/src/main/java/com/yr/framework/security/handle/AuthenticationEntryPointImpl.java`
+- Create: `yr-admin/src/test/java/com/yr/framework/security/handle/AuthenticationEntryPointImplTest.java`
 
 ### Step 4.1：先写 Controller contract（控制器契约）失败测试
 
-- [ ] 在现有测试构造器中加入 `QtPressJobOperationMapper` mock，并增加以下测试边界：
+- [x] 在现有测试构造器中加入 `QtPressJobOperationMapper` mock，并增加以下测试边界：
 
 1. 列表必须要求 `X-Correlation-Id`，从 token context 取 `deviceId=10`，服务只收到该值。
 2. 日期必须是完整的 ISO 8601 offset time（带偏移时间），例如 `2026-07-24T00:00:00+08:00`；拒绝缺失 offset、尾随字符、缺位数字和非法闰日。即使测试把 JVM 默认时区改为 UTC，解析得到的查询 `Date` 仍对应工控机传入的 `+08:00` 边界。
@@ -454,7 +456,7 @@ assertTrue(JsonPath.read(responseJson, "$.data.rows[0].mouldJobId") instanceof S
 assertTrue(JsonPath.read(responseJson, "$.data.rows[0].mouldWorkingTime") instanceof String);
 ```
 
-- [ ] 用 MockMvc（模拟 MVC）新增两个 GET 路由测试：
+- [x] 用 MockMvc（模拟 MVC）新增两个 GET 路由测试：
 
 ```java
 mockMvc.perform(get("/api/qt/press-working/history-jobs")
@@ -474,11 +476,19 @@ mockMvc.perform(get("/api/qt/press-working/history-jobs/123")
 
 另增加不存在详情的 `status().isNotFound()`、缺失 offset 的 `status().isBadRequest()`，以及 Mapper 抛出 `RuntimeException("SQL detail secret")` 后响应只含固定中文错误的测试。测试结束前必须恢复 JVM 原默认时区，避免污染其他用例。
 
-- [ ] 运行 `QtPressWorkingControllerTest` 并确认新增测试失败。
+- [x] 增加 `AuthenticationEntryPointImplTest`：直接调用真实 security entry point（安全入口），锁定无认证 history list/detail 的 HTTP 状态为 401、body code 为 401、四阶段日志完整且关联 ID 已清洗；非 history URI 继续保持既有 HTTP 200/body code 401。该项是任务级审查发现的真实 filter-chain（过滤链）集成缺口，只允许 history 路径采用新语义。
+
+- [x] 补充审查回归测试：合法请求下 Service/Mapper 抛出 `IllegalArgumentException` 必须收口为固定 HTTP 500；缺失关联 ID 或非法输入等早期失败也必须产生完整 `RequestReceived → ActionStarted → ActionCompleted → ResponseSent` 日志。
+
+- [x] 运行 `QtPressWorkingControllerTest` 并确认新增测试失败。
 
 ### Step 4.2：实现输入边界、分页和上下文限定
 
-- [ ] Controller 注入现有 `QtPressJobOperationMapper`，增加两个 GET endpoint。所有 header/query/path 输入先按可空 `String` 接收并在方法体内校验，避免 Spring 参数绑定异常先落入会回显 `e.getMessage()` 的全局异常处理器。列表核心流程固定为：
+- [x] `AuthenticationEntryPointImpl` 仅精确识别 `/api/qt/press-working/history-jobs` 及其单段详情路径，直接写真实 HTTP 401 和固定中文 body，并记录 `RequestReceived → ActionStarted → ActionCompleted → ResponseSent`；不得调用会把状态重置为 200 的 `ServletUtils.renderString`，不得改变其他 URI 的既有行为，也不得记录 URI、异常、token 或原始 header。
+
+- [x] 历史输入校验使用 Controller 私有专用异常，仅该异常映射 HTTP 400；Service/Mapper 的任意 `IllegalArgumentException` 必须进入固定 HTTP 500。`ActionStarted` 前移到所有 Controller 内请求共同经过的位置，并删除成功校验后的重复记录。
+
+- [x] Controller 注入现有 `QtPressJobOperationMapper`，增加两个 GET endpoint。所有 header/query/path 输入先按可空 `String` 接收并在方法体内校验，避免 Spring 参数绑定异常先落入会回显 `e.getMessage()` 的全局异常处理器。列表核心流程固定为：
 
 ```java
 @GetMapping("/history-jobs")
@@ -567,7 +577,7 @@ private HistoryRange parseHistoryRange(String startText, String endText) {
 
 ### Step 4.3：实现详情、参数和操作白名单
 
-- [ ] 详情先按 `context.deviceId + mouldJobId` 查询子作业；`pressJobInfoId` 为空时返回空操作记录，而不是猜测：
+- [x] 详情先按 `context.deviceId + mouldJobId` 查询子作业；`pressJobInfoId` 为空时返回空操作记录，而不是猜测：
 
 ```java
 @GetMapping("/history-jobs/{mouldJobId}")
@@ -613,11 +623,11 @@ public ResponseEntity<AjaxResult> historyJobDetail(
 }
 ```
 
-- [ ] `toParameterProjection` 返回 `recorded | missing | invalid` 和白名单 rows；只接受 String、Boolean 或有限 Number scalar（标量）。不记录原始 JSON，也不把异常对象传给 Logger。
+- [x] `toParameterProjection` 返回 `recorded | missing | invalid` 和白名单 rows；只接受 String、Boolean 或有限 Number scalar（标量）。不记录原始 JSON，也不把异常对象传给 Logger。
 
-- [ ] `toHistoryRows/toHistoryDetail` 对 `mouldJobId` 使用 `String.valueOf(id)`，对非空 `BigDecimal mouldWorkingTime` 使用 `toPlainString()`；空值保持 `null`。不得把这两个字段作为 JSON number 返回。
+- [x] `toHistoryRows/toHistoryDetail` 对 `mouldJobId` 使用 `String.valueOf(id)`，对非空 `BigDecimal mouldWorkingTime` 使用 `toPlainString()`；空值保持 `null`。不得把这两个字段作为 JSON number 返回。
 
-- [ ] 操作类型使用固定中文映射，未知值显示“其他操作”，不能回显原始枚举：
+- [x] 操作类型使用固定中文映射，未知值显示“其他操作”，不能回显原始枚举：
 
 ```java
 private String historyOperationName(String operationType) {
@@ -630,22 +640,22 @@ private String historyOperationName(String operationType) {
 }
 ```
 
-- [ ] `logHistoryLifecycle` 使用稳定 English identifier（英文标识）`event/correlationId/stage/resultCode` 和固定中文摘要；复用现有 `logValue` 防止日志注入。不得输出 request params、异常消息、堆栈或实体。
+- [x] `logHistoryLifecycle` 使用稳定 English identifier（英文标识）`event/correlationId/stage/resultCode` 和固定中文摘要；复用现有 `logValue` 防止日志注入。不得输出 request params、异常消息、堆栈或实体。
 
 ### Step 4.4：运行后端测试和构建
 
-- [ ] 运行 targeted tests（定向测试）：
+- [x] 运行 targeted tests（定向测试）：
 
 ```zsh
 cd "$BACKEND_WORKTREE"
 JAVA_HOME=/Users/popoy/WorkSpace/DevTools/Java/zulu-8.0.492.jdk/Contents/Home \
 /Users/popoy/WorkSpace/DevTools/Maven/bin/mvn \
   -pl yr-admin -am \
-  -Dtest=QtPressWorkingControllerTest,PressMouldJobInfoServiceImplQtTest,PressMouldJobInfoHistoryMapperContractTest \
+  -Dtest=QtPressWorkingControllerTest,AuthenticationEntryPointImplTest,PressMouldJobInfoServiceImplQtTest,PressMouldJobInfoHistoryMapperContractTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
-- [ ] 运行模块构建：
+- [x] 运行模块构建：
 
 ```zsh
 JAVA_HOME=/Users/popoy/WorkSpace/DevTools/Java/zulu-8.0.492.jdk/Contents/Home \
@@ -653,11 +663,13 @@ JAVA_HOME=/Users/popoy/WorkSpace/DevTools/Java/zulu-8.0.492.jdk/Contents/Home \
   -pl yr-admin -am -DskipTests package
 ```
 
-- [ ] Commit：
+- [x] 提交 Task 4 初始实现与审查修复：
 
 ```zsh
 git add yr-admin/src/main/java/com/yr/web/controller/system/QtPressWorkingController.java \
-  yr-admin/src/test/java/com/yr/web/controller/system/QtPressWorkingControllerTest.java
+  yr-admin/src/test/java/com/yr/web/controller/system/QtPressWorkingControllerTest.java \
+  yr-framework/src/main/java/com/yr/framework/security/handle/AuthenticationEntryPointImpl.java \
+  yr-admin/src/test/java/com/yr/framework/security/handle/AuthenticationEntryPointImplTest.java
 git commit -m "feat(qt): 提供历史作业只读接口"
 ```
 
