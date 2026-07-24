@@ -16,14 +16,14 @@ plan: docs/superpowers/plans/2026-07-24-press-job-history-page.md
 verify_result: pass
 verify_failures: 0
 verification_report: docs/superpowers/reports/2026-07-24-add-qt-press-job-history-verify.md
-branch_status: pending
+branch_status: handled
 created_at: 2026-07-24
 verified_at: 2026-07-24
 archive_confirmation: confirmed
 archived: true
-bound_branch: PopoY-WorkTree/add-qt-press-job-history
+bound_branch: main
 direct_override: null
-handoff_context: openspec/changes/add-qt-press-job-history/.comet/handoff/design-context.json
+handoff_context: openspec/changes/archive/2026-07-24-add-qt-press-job-history/.comet/handoff/design-context.json
 handoff_hash: 353efb0abf87b5b97e6941bca4019a835d2f4ed8342d08d450b8350997031d5f
 classic_profile: full
 classic_migration: 1
