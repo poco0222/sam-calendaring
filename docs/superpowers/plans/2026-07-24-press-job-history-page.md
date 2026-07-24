@@ -8,7 +8,7 @@ base-ref: d518736a633e63c418e4ccee20b9f22b7fb3defd
 > @author PopoY
 > @created 2026-07-24 16:31:39
 > @editor PopoY
-> @edited 2026-07-24 20:44:40
+> @edited 2026-07-24 20:59:25
 > @purpose 给出 QT App（Qt 应用）历史作业第四个一级入口、服务端分页列表和 70% 详情抽屉的端到端实施步骤。
 
 # QT App 历史作业页面 Implementation Plan（实施计划）
@@ -1100,7 +1100,7 @@ Review-fix commits（审查修复提交）：
 
 ### Step 7.1：先写 App integration（应用集成）失败测试
 
-- [ ] 在 `App.test.tsx` 固定以下契约：
+- [x] 在 `App.test.tsx` 固定以下契约：
 
 ```ts
 expect(appSource).toContain(
@@ -1114,9 +1114,9 @@ expect(appSource).toContain("fetchPressJobHistory(getJson");
 expect(appSource).toContain("fetchPressJobHistoryDetail(getJson");
 ```
 
-- [ ] 增加安全断言：`PressJobHistoryPage` JSX props 不包含 `sessionToken`、`erpBaseUrl`、`bootstrapSession` 或 `driverSession`，只包含安全 options 和 callbacks。
+- [x] 增加安全断言：`PressJobHistoryPage` JSX props 不包含 `sessionToken`、`erpBaseUrl`、`bootstrapSession` 或 `driverSession`，只包含安全 options 和 callbacks。
 
-- [ ] 运行并确认失败：
+- [x] 运行 Task 7 App 集成测试并确认 RED（红灯）：
 
 ```zsh
 pnpm --dir qt-app/frontend exec vitest run src/App.test.tsx
@@ -1124,9 +1124,9 @@ pnpm --dir qt-app/frontend exec vitest run src/App.test.tsx
 
 ### Step 7.2：实现 App callbacks 与显式渲染分支
 
-- [ ] 扩展 `AppView`，在“压机作业”右侧增加第四项。
+- [x] 扩展 `AppView`，在“压机作业”右侧增加第四项。
 
-- [ ] 在 App 内增加两个 `useCallback`。Token 只出现在闭包调用 `erpClient` 的 input 中：
+- [x] 在 App 内增加两个 `useCallback`。Token 只出现在闭包调用 `erpClient` 的 input 中：
 
 ```ts
 const loadPressJobHistory = useCallback(
@@ -1146,7 +1146,7 @@ const loadPressJobHistory = useCallback(
 
 详情 callback 同理，只接受 `moldJobId/correlationId`。
 
-- [ ] 把原先最终 `else` 的 `PressJobPage` 分支改为显式 `currentView === "pressJob"`，再增加历史页分支：
+- [x] 把原先最终 `else` 的 `PressJobPage` 分支改为显式 `currentView === "pressJob"`，再增加历史页分支：
 
 ```tsx
 <PressJobHistoryPage
@@ -1159,9 +1159,9 @@ const loadPressJobHistory = useCallback(
 
 不得修改 `PressJobPage` 现有四行布局和 props。
 
-- [ ] 重跑 App test 和历史页 test。
+- [x] 重跑 App test 和历史页 test；最终 `31/31` 通过，`tsc --noEmit` 与 production build 均通过。
 
-- [ ] Commit：
+- [x] 提交 Task 7 App Shell 集成：
 
 ```zsh
 git add qt-app/frontend/src/App.tsx qt-app/frontend/src/App.test.tsx

@@ -3,7 +3,7 @@
 @author PopoY
 @created 2026-07-24 17:04:06
 @editor PopoY
-@edited 2026-07-24 20:44:40
+@edited 2026-07-24 20:59:25
 @purpose 以可验证检查项跟踪历史作业跨前后端实现、测试和审查。
 -->
 
@@ -39,8 +39,8 @@
 
 ## 6. App Shell 集成
 
-- [ ] 6.1 先写失败的 App integration test（应用集成测试），再在“压机作业”右侧增加第四个一级入口和显式渲染分支。
-- [ ] 6.2 在 App Shell 内注入两个历史只读回调，确保页面 props 不包含 token、ERP 地址、设备、网络、租约或 Driver Session。
+- [x] 6.1 先写失败的 App integration test（应用集成测试），再在“压机作业”右侧增加第四个一级入口和显式渲染分支。
+- [x] 6.2 在 App Shell 内注入两个历史只读回调，确保页面 props 不包含 token、ERP 地址、设备、网络、租约或 Driver Session。
 
 ## 7. 验证与交付
 
