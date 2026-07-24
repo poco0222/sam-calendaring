@@ -8,7 +8,7 @@ base-ref: d518736a633e63c418e4ccee20b9f22b7fb3defd
 > @author PopoY
 > @created 2026-07-24 16:31:39
 > @editor PopoY
-> @edited 2026-07-24 19:46:00
+> @edited 2026-07-24 19:47:51
 > @purpose 给出 QT App（Qt 应用）历史作业第四个一级入口、服务端分页列表和 70% 详情抽屉的端到端实施步骤。
 
 # QT App 历史作业页面 Implementation Plan（实施计划）
@@ -828,7 +828,7 @@ export async function fetchPressJobHistory(
 
 - [x] 重跑 `erpClient.test.ts` 并确认通过。
 
-- [x] Commit：
+- [x] 提交 Task 5 前端契约初始实现与审查修复：
 
 ```zsh
 git add qt-app/frontend/src/domain/pressJob.ts \
