@@ -18,6 +18,8 @@ import {
   fetchPressMoldCandidates,
   fetchPressMoldInfoRows,
   fetchPressJobCurrentJobs,
+  fetchPressJobHistory,
+  fetchPressJobHistoryDetail,
   fetchPressJobLookupData,
   fetchPressJobTeamOptions,
   fetchPressLockedMolds,
@@ -996,6 +998,246 @@ describe("erpClient", () => {
       },
       body: JSON.stringify({ hello: "world" }),
     });
+  });
+
+  /**
+   * @brief 断言历史作业列表使用转义 query（查询参数）、独立关联头和响应白名单。
+   * @author PopoY
+   */
+  it("fetches a narrowed press job history page with an independent correlation header", async () => {
+    const forbiddenPayload = {
+      deviceId: 10,
+      ip: "192.0.2.10",
+      port: 502,
+      signedLease: "secret-lease",
+      signature: "secret-signature",
+      signalConfig: { raw: true },
+      sessionToken: "secret-token",
+      idempotencyKey: "secret-idempotency",
+      requestFingerprint: "secret-fingerprint",
+    };
+    const getJson = vi.fn().mockResolvedValueOnce({
+      code: 200,
+      data: {
+        rows: [
+          {
+            mouldJobId: "123",
+            deviceName: "一号压机",
+            mouldCode: "M-01",
+            operator: "op-01",
+            craftCode: "CRAFT-01",
+            startTime: "2026-07-24 08:00:00",
+            endTime: "2026-07-24 09:30:00",
+            mouldWorkingTime: "5400.5",
+            status: "UNRECOGNIZED",
+            ...forbiddenPayload,
+          },
+        ],
+        total: 1,
+        pageNum: 1,
+        pageSize: 10,
+        ...forbiddenPayload,
+      },
+    });
+
+    const result = await fetchPressJobHistory(getJson, {
+      erpBaseUrl: sampleConfig.erpBaseUrl,
+      sessionToken: "erp-token",
+      query: {
+        startTime: "2026-07-24T00:00:00+08:00",
+        endTime: "2026-07-25T00:00:00+08:00",
+        mouldCode: "M-01",
+        operator: "op-01",
+        pageNum: 1,
+        pageSize: 10,
+        correlationId: "corr-list-1",
+      },
+    });
+
+    expect(result).toEqual({
+      rows: [
+        {
+          moldJobId: "123",
+          pressName: "一号压机",
+          moldNo: "M-01",
+          operatorId: "op-01",
+          craftCode: "CRAFT-01",
+          startedAt: "2026-07-24 08:00:00",
+          completedAt: "2026-07-24 09:30:00",
+          actualDurationHours: "1.5",
+          status: "UNRECOGNIZED",
+        },
+      ],
+      total: 1,
+      pageNum: 1,
+      pageSize: 10,
+    });
+    expect(getJson).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/api/qt/press-working/history-jobs?startTime=2026-07-24T00%3A00%3A00%2B08%3A00&endTime=2026-07-25T00%3A00%3A00%2B08%3A00&mouldCode=M-01&operator=op-01&pageNum=1&pageSize=10",
+      "erp-token",
+      { headers: { "X-Correlation-Id": "corr-list-1" } },
+    );
+    expect(JSON.stringify(result)).not.toMatch(
+      /deviceId|192\.0\.2\.10|signedLease|secret-signature|signalConfig|secret-token|idempotencyKey|requestFingerprint/,
+    );
+  });
+
+  /**
+   * @brief 断言历史时长仅接收可安全换算的后端 string（字符串）秒数。
+   * @author PopoY
+   */
+  it("rejects missing, unsafe, non-finite, negative, or non-string history durations", async () => {
+    const getJson = vi.fn().mockResolvedValueOnce({
+      code: 200,
+      data: {
+        rows: [
+          { mouldJobId: "1", mouldCode: "M-01", mouldWorkingTime: "360.5" },
+          { mouldJobId: "2", mouldCode: "M-02", mouldWorkingTime: null },
+          {
+            mouldJobId: "3",
+            mouldCode: "M-03",
+            mouldWorkingTime: "9007199254740992",
+          },
+          { mouldJobId: "4", mouldCode: "M-04", mouldWorkingTime: "Infinity" },
+          { mouldJobId: "5", mouldCode: "M-05", mouldWorkingTime: "-1" },
+          { mouldJobId: "6", mouldCode: "M-06", mouldWorkingTime: 3600 },
+        ],
+        total: 6,
+        pageNum: 1,
+        pageSize: 10,
+      },
+    });
+
+    const result = await fetchPressJobHistory(getJson, {
+      erpBaseUrl: sampleConfig.erpBaseUrl,
+      sessionToken: "erp-token",
+      query: {
+        startTime: "2026-07-24T00:00:00+08:00",
+        endTime: "2026-07-25T00:00:00+08:00",
+        pageNum: 1,
+        pageSize: 10,
+        correlationId: "corr-list-duration",
+      },
+    });
+
+    expect(result.rows[0].actualDurationHours).toBe("0.1");
+    expect(result.rows.slice(1)).toHaveLength(5);
+    expect(
+      result.rows.slice(1).every((row) => row.actualDurationHours === undefined),
+    ).toBe(true);
+  });
+
+  /**
+   * @brief 断言历史作业详情转义稳定身份，并仅保留安全参数和操作字段。
+   * @author PopoY
+   */
+  it("fetches a narrowed press job history detail without nested parameter payloads", async () => {
+    const forbiddenPayload = {
+      deviceId: 10,
+      ip: "192.0.2.10",
+      port: 502,
+      signedLease: "secret-lease",
+      signature: "secret-signature",
+      signalConfig: { raw: true },
+      sessionToken: "secret-token",
+      idempotencyKey: "secret-idempotency",
+      requestFingerprint: "secret-fingerprint",
+    };
+    const getJson = vi.fn().mockResolvedValueOnce({
+      code: 200,
+      data: {
+        mouldJobId: "123",
+        pressName: "一号压机",
+        mouldCode: "M-01",
+        operator: "op-01",
+        endOperator: "op-02",
+        craftCode: "CRAFT-01",
+        startTime: "2026-07-24 08:00:00",
+        endTime: "2026-07-24 09:00:00",
+        mouldWorkingTime: "3600",
+        status: "3",
+        startParameterState: "recorded",
+        endParameterState: "invalid",
+        startParameters: [
+          {
+            parameterName: "压力",
+            value: 135.5,
+            unit: "MPa",
+            recordedAt: "2026-07-24 08:00:01",
+            ...forbiddenPayload,
+          },
+          { parameterName: "自动模式", value: true },
+          { parameterName: "备注", value: "稳定" },
+          { parameterName: "嵌套对象", value: { raw: "secret-nested" } },
+          { parameterName: "嵌套数组", value: ["secret-array"] },
+          { parameterName: "非有限值", value: Number.POSITIVE_INFINITY },
+          "drop-non-object",
+        ],
+        endParameters: [],
+        operationRecords: [
+          {
+            operationTime: "2026-07-24 09:00:00",
+            operationName: "完成加工",
+            result: "成功",
+            ...forbiddenPayload,
+          },
+          { operationName: { raw: true }, result: "drop-invalid-operation" },
+        ],
+        ...forbiddenPayload,
+      },
+    });
+
+    const result = await fetchPressJobHistoryDetail(getJson, {
+      erpBaseUrl: sampleConfig.erpBaseUrl,
+      sessionToken: "erp-token",
+      moldJobId: "123 / A",
+      correlationId: "corr-detail-1",
+    });
+
+    expect(result).toEqual({
+      moldJobId: "123",
+      pressName: "一号压机",
+      moldNo: "M-01",
+      operatorId: "op-01",
+      endOperatorId: "op-02",
+      craftCode: "CRAFT-01",
+      startedAt: "2026-07-24 08:00:00",
+      completedAt: "2026-07-24 09:00:00",
+      actualDurationHours: "1.0",
+      status: "3",
+      startParameterState: "recorded",
+      endParameterState: "invalid",
+      startParameters: [
+        {
+          parameterName: "压力",
+          value: 135.5,
+          unit: "MPa",
+          recordedAt: "2026-07-24 08:00:01",
+          status: "recorded",
+        },
+        { parameterName: "自动模式", value: true, status: "recorded" },
+        { parameterName: "备注", value: "稳定", status: "recorded" },
+        { parameterName: "嵌套对象", status: "invalid" },
+        { parameterName: "嵌套数组", status: "invalid" },
+        { parameterName: "非有限值", status: "invalid" },
+      ],
+      endParameters: [],
+      operationRecords: [
+        {
+          operationTime: "2026-07-24 09:00:00",
+          operationName: "完成加工",
+          result: "成功",
+        },
+      ],
+    });
+    expect(getJson).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/api/qt/press-working/history-jobs/123%20%2F%20A",
+      "erp-token",
+      { headers: { "X-Correlation-Id": "corr-detail-1" } },
+    );
+    expect(JSON.stringify(result)).not.toMatch(
+      /deviceId|192\.0\.2\.10|signedLease|secret-signature|signalConfig|secret-token|idempotencyKey|requestFingerprint|secret-nested|secret-array/,
+    );
   });
 
   /**

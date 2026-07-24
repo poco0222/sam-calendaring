@@ -26,6 +26,13 @@ import type {
   PressJobExpectedDurationUpdateRequest,
   PressJobCompleteRequest,
   PressJobCompleteResult,
+  PressJobHistoryDetail,
+  PressJobHistoryOperation,
+  PressJobHistoryPageResult,
+  PressJobHistoryParameter,
+  PressJobHistoryParameterState,
+  PressJobHistoryQuery,
+  PressJobHistoryRow,
   PressJobLookupData,
   PressJobOperatorOption,
   PressJobParameterRecordRequest,
@@ -64,6 +71,7 @@ const PRESS_MOLD_UNLOCKS_PATH = "/api/qt/press-working/mold-unlocks";
 const PRESS_JOB_STARTS_PATH = "/api/qt/press-working/press-job-starts";
 const PRESS_JOB_PARAMETERS_PATH = "/api/qt/press-working/press-job-parameters";
 const PRESS_JOB_COMPLETIONS_PATH = "/api/qt/press-working/press-job-completions";
+const PRESS_JOB_HISTORY_PATH = "/api/qt/press-working/history-jobs";
 const PRESS_MACHINE_STATUS_PATH = "/api/qt/press-working/machine-status";
 const PRESS_SIGNAL_VALUE_FORBIDDEN_KEYS = new Set([
   "credential",
@@ -198,6 +206,23 @@ export type FetchPressJobTeamOptionsInput = FetchPressJobLookupDataInput & {
  * @author PopoY
  */
 export type FetchPressJobCurrentJobsInput = FetchPressJobLookupDataInput;
+
+/**
+ * @brief 定义历史作业列表读取输入，token（令牌）只用于认证请求头。
+ * @author PopoY
+ */
+export type FetchPressJobHistoryInput = FetchPressJobLookupDataInput & {
+  query: PressJobHistoryQuery;
+};
+
+/**
+ * @brief 定义历史作业详情读取输入和独立 correlationId（关联 ID）。
+ * @author PopoY
+ */
+export type FetchPressJobHistoryDetailInput = FetchPressJobLookupDataInput & {
+  moldJobId: string;
+  correlationId: string;
+};
 
 /**
  * @brief Define expected duration（预计时长）update input，sessionToken（会话令牌）不进入 UI request（界面请求）。
@@ -676,6 +701,63 @@ export async function fetchPressJobCurrentJobs(
   );
 
   return narrowPressJobCurrentJobs(response);
+}
+
+/**
+ * @brief 读取历史作业分页数据并投影为脱敏 View Model（视图模型）。
+ * @author PopoY
+ * @param readJson JSON GET helper（辅助函数）。
+ * @param input ERP 地址、认证令牌和历史查询。
+ * @returns 固定每页十条的历史作业分页结果。
+ */
+export async function fetchPressJobHistory(
+  readJson: GetJson,
+  input: FetchPressJobHistoryInput,
+): Promise<PressJobHistoryPageResult> {
+  const url = new URL(PRESS_JOB_HISTORY_PATH, input.erpBaseUrl);
+  url.searchParams.set("startTime", input.query.startTime);
+  url.searchParams.set("endTime", input.query.endTime);
+  if (input.query.mouldCode) {
+    url.searchParams.set("mouldCode", input.query.mouldCode);
+  }
+  if (input.query.operator) {
+    url.searchParams.set("operator", input.query.operator);
+  }
+  url.searchParams.set("pageNum", String(input.query.pageNum));
+  url.searchParams.set("pageSize", String(input.query.pageSize));
+
+  const payload = unwrapErpAjaxResult<unknown>(
+    await readJson<unknown>(url.toString(), input.sessionToken, {
+      headers: { "X-Correlation-Id": input.query.correlationId },
+    }),
+  );
+
+  return narrowPressJobHistoryPage(payload);
+}
+
+/**
+ * @brief 按稳定作业身份读取历史详情并投影参数与操作白名单。
+ * @author PopoY
+ * @param readJson JSON GET helper（辅助函数）。
+ * @param input ERP 地址、认证令牌、作业身份和独立关联 ID。
+ * @returns 不含设备网络、令牌或原始参数对象的历史详情。
+ */
+export async function fetchPressJobHistoryDetail(
+  readJson: GetJson,
+  input: FetchPressJobHistoryDetailInput,
+): Promise<PressJobHistoryDetail> {
+  const payload = unwrapErpAjaxResult<unknown>(
+    await readJson<unknown>(
+      buildErpUrl(
+        input.erpBaseUrl,
+        `${PRESS_JOB_HISTORY_PATH}/${encodeURIComponent(input.moldJobId)}`,
+      ),
+      input.sessionToken,
+      { headers: { "X-Correlation-Id": input.correlationId } },
+    ),
+  );
+
+  return narrowPressJobHistoryDetail(payload);
 }
 
 /**
@@ -1295,6 +1377,247 @@ function narrowPressJobCurrentJobs(value: unknown): PressJobCurrentJobRow[] {
       },
     ];
   });
+}
+
+/**
+ * @brief 将历史作业分页响应逐字段收窄为固定白名单。
+ * @author PopoY
+ * @param value ERP 历史列表原始 payload（载荷）。
+ * @returns 安全分页结果，无效列表行会被丢弃。
+ */
+function narrowPressJobHistoryPage(value: unknown): PressJobHistoryPageResult {
+  const record = readRecord(value);
+  const rows = Array.isArray(record?.rows)
+    ? record.rows.flatMap((item) => {
+        const row = narrowPressJobHistoryRow(item);
+        return row ? [row] : [];
+      })
+    : [];
+  const total =
+    typeof record?.total === "number" &&
+    Number.isSafeInteger(record.total) &&
+    record.total >= 0
+      ? record.total
+      : 0;
+  const pageNum =
+    typeof record?.pageNum === "number" &&
+    Number.isSafeInteger(record.pageNum) &&
+    record.pageNum > 0
+      ? record.pageNum
+      : 1;
+
+  return { rows, total, pageNum, pageSize: 10 };
+}
+
+/**
+ * @brief 将单条历史作业的后端字段映射为前端命名，并拒绝不稳定身份。
+ * @author PopoY
+ * @param value 单条历史作业原始载荷。
+ * @returns 安全历史行；缺少 string（字符串）身份或模具号时返回 null。
+ */
+function narrowPressJobHistoryRow(value: unknown): PressJobHistoryRow | null {
+  const record = readRecord(value);
+  if (!record || Array.isArray(value)) {
+    return null;
+  }
+
+  const moldJobId = readHistoryString(record.mouldJobId);
+  const moldNo = readHistoryString(record.mouldCode);
+  if (!moldJobId || !moldNo) {
+    return null;
+  }
+
+  const row: PressJobHistoryRow = { moldJobId, moldNo };
+  const pressName =
+    readHistoryString(record.pressName) ?? readHistoryString(record.deviceName);
+  const operatorId = readHistoryString(record.operator);
+  const craftCode = readHistoryString(record.craftCode);
+  const startedAt = readHistoryString(record.startTime);
+  const completedAt = readHistoryString(record.endTime);
+  const actualDurationHours = readHistoryDurationHours(
+    record.mouldWorkingTime,
+  );
+  const status = readHistoryString(record.status);
+
+  if (pressName) row.pressName = pressName;
+  if (operatorId) row.operatorId = operatorId;
+  if (craftCode) row.craftCode = craftCode;
+  if (startedAt) row.startedAt = startedAt;
+  if (completedAt) row.completedAt = completedAt;
+  if (actualDurationHours) row.actualDurationHours = actualDurationHours;
+  if (status) row.status = status;
+
+  return row;
+}
+
+/**
+ * @brief 将历史作业详情收窄为概要、参数和操作三组白名单字段。
+ * @author PopoY
+ * @param value ERP 历史详情原始载荷。
+ * @returns 脱敏历史详情。
+ */
+function narrowPressJobHistoryDetail(value: unknown): PressJobHistoryDetail {
+  const record = readRecord(value);
+  const row = narrowPressJobHistoryRow(value);
+  if (!record || !row) {
+    throw new Error("历史作业详情响应无效。");
+  }
+
+  const detail: PressJobHistoryDetail = {
+    ...row,
+    startParameterState: readHistoryParameterState(
+      record.startParameterState,
+    ),
+    endParameterState: readHistoryParameterState(record.endParameterState),
+    startParameters: narrowPressJobHistoryParameters(record.startParameters),
+    endParameters: narrowPressJobHistoryParameters(record.endParameters),
+    operationRecords: narrowPressJobHistoryOperations(record.operationRecords),
+  };
+  const endOperatorId = readHistoryString(record.endOperator);
+  if (endOperatorId) {
+    detail.endOperatorId = endOperatorId;
+  }
+
+  return detail;
+}
+
+/**
+ * @brief 收窄历史参数数组，仅保留名称、标量值、单位、时间和派生状态。
+ * @author PopoY
+ * @param value 历史参数原始数组。
+ * @returns 安全参数行，嵌套或非有限 value（值）仅标记 invalid（无效）。
+ */
+function narrowPressJobHistoryParameters(
+  value: unknown,
+): PressJobHistoryParameter[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((item) => {
+    const record = readRecord(item);
+    if (!record || Array.isArray(item)) {
+      return [];
+    }
+    const parameterName = readHistoryString(record.parameterName);
+    if (!parameterName) {
+      return [];
+    }
+
+    const scalar = readHistoryParameterScalar(record.value);
+    const parameter: PressJobHistoryParameter = {
+      parameterName,
+      status: scalar === undefined ? "invalid" : "recorded",
+    };
+    const unit = readHistoryString(record.unit);
+    const recordedAt = readHistoryString(record.recordedAt);
+    if (scalar !== undefined) parameter.value = scalar;
+    if (unit) parameter.unit = unit;
+    if (recordedAt) parameter.recordedAt = recordedAt;
+
+    return [parameter];
+  });
+}
+
+/**
+ * @brief 收窄历史成功操作，只保留三个展示字段。
+ * @author PopoY
+ * @param value 历史操作原始数组。
+ * @returns 名称和结果完整的安全操作行。
+ */
+function narrowPressJobHistoryOperations(
+  value: unknown,
+): PressJobHistoryOperation[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((item) => {
+    const record = readRecord(item);
+    if (!record || Array.isArray(item)) {
+      return [];
+    }
+    const operationName = readHistoryString(record.operationName);
+    const result = readHistoryString(record.result);
+    if (!operationName || !result) {
+      return [];
+    }
+
+    const operation: PressJobHistoryOperation = { operationName, result };
+    const operationTime = readHistoryString(record.operationTime);
+    if (operationTime) operation.operationTime = operationTime;
+    return [operation];
+  });
+}
+
+/**
+ * @brief 校验后端历史参数整体状态，未知值按 invalid（无效）处理。
+ * @author PopoY
+ * @param value 后端状态字段。
+ * @returns 三态白名单值。
+ */
+function readHistoryParameterState(
+  value: unknown,
+): PressJobHistoryParameterState {
+  return value === "recorded" || value === "missing" || value === "invalid"
+    ? value
+    : "invalid";
+}
+
+/**
+ * @brief 只读取参数允许的 JSON scalar（标量），不透传嵌套结构。
+ * @author PopoY
+ * @param value 参数值。
+ * @returns String、Boolean 或有限 Number；其他值返回 undefined。
+ */
+function readHistoryParameterScalar(
+  value: unknown,
+): string | number | boolean | undefined {
+  return typeof value === "string" ||
+    typeof value === "boolean" ||
+    (typeof value === "number" && Number.isFinite(value))
+    ? value
+    : undefined;
+}
+
+/**
+ * @brief 将安全范围内的十进制秒数字符串换算为一位小数小时。
+ * @author PopoY
+ * @param value 后端 mouldWorkingTime（模具作业秒数）。
+ * @returns 小时文本；null、非字符串、负数、非有限或超安全整数返回 undefined。
+ */
+function readHistoryDurationHours(value: unknown): string | undefined {
+  if (typeof value !== "string" || !/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(value)) {
+    return undefined;
+  }
+
+  const [integerPart, fractionPart = ""] = value.split(".");
+  const integerSeconds = BigInt(integerPart);
+  const maxSafeSeconds = BigInt(Number.MAX_SAFE_INTEGER);
+  if (
+    integerSeconds > maxSafeSeconds ||
+    (integerSeconds === maxSafeSeconds && /[1-9]/.test(fractionPart))
+  ) {
+    return undefined;
+  }
+
+  const seconds = Number(value);
+  return Number.isFinite(seconds) ? (seconds / 3600).toFixed(1) : undefined;
+}
+
+/**
+ * @brief 只读取非空 string（字符串）历史字段，避免对象被隐式字符串化。
+ * @author PopoY
+ * @param value 未知历史响应字段。
+ * @returns 去除首尾空白后的字符串。
+ */
+function readHistoryString(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const text = value.trim();
+  return text.length > 0 ? text : undefined;
 }
 
 /**

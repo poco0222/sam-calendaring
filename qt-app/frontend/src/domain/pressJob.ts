@@ -321,3 +321,85 @@ export type PressMachineStatusUpdateResult = {
   status?: "0" | "9";
   message?: string;
 };
+
+/**
+ * @brief 定义历史作业列表的固定筛选和分页查询。
+ * @author PopoY
+ */
+export type PressJobHistoryQuery = {
+  startTime: string;
+  endTime: string;
+  mouldCode?: string;
+  operator?: string;
+  pageNum: number;
+  pageSize: 10;
+  correlationId: string;
+};
+
+/**
+ * @brief 定义历史作业列表的脱敏 View Model（视图模型）。
+ * @author PopoY
+ */
+export type PressJobHistoryRow = {
+  moldJobId: string;
+  pressName?: string;
+  moldNo: string;
+  operatorId?: string;
+  craftCode?: string;
+  startedAt?: string;
+  completedAt?: string;
+  actualDurationHours?: string;
+  status?: string;
+};
+
+/**
+ * @brief 定义历史参数记录的整体可用状态。
+ * @author PopoY
+ */
+export type PressJobHistoryParameterState = "recorded" | "missing" | "invalid";
+
+/**
+ * @brief 定义单项历史参数的安全标量展示字段。
+ * @author PopoY
+ */
+export type PressJobHistoryParameter = {
+  parameterName: string;
+  value?: string | number | boolean;
+  unit?: string;
+  recordedAt?: string;
+  status: "recorded" | "missing" | "invalid";
+};
+
+/**
+ * @brief 定义历史作业的成功操作记录展示字段。
+ * @author PopoY
+ */
+export type PressJobHistoryOperation = {
+  operationTime?: string;
+  operationName: string;
+  result: string;
+};
+
+/**
+ * @brief 定义历史作业详情的脱敏 View Model（视图模型）。
+ * @author PopoY
+ */
+export type PressJobHistoryDetail = PressJobHistoryRow & {
+  endOperatorId?: string;
+  startParameterState: PressJobHistoryParameterState;
+  endParameterState: PressJobHistoryParameterState;
+  startParameters: PressJobHistoryParameter[];
+  endParameters: PressJobHistoryParameter[];
+  operationRecords: PressJobHistoryOperation[];
+};
+
+/**
+ * @brief 定义历史作业固定每页十条的服务端分页结果。
+ * @author PopoY
+ */
+export type PressJobHistoryPageResult = {
+  rows: PressJobHistoryRow[];
+  total: number;
+  pageNum: number;
+  pageSize: 10;
+};
