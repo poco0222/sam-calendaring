@@ -147,7 +147,7 @@ Expected（预期）：前端基线包含已批准设计文档；后端 `master`
 
 ### Step 2.1：写失败的 mapper contract test（映射契约测试）
 
-- [ ] 新增最小 source contract test（源码契约测试），读取 Mapper XML/Java 源码并锁定以下不可回退条件：
+- [x] 新增最小 source contract test（源码契约测试），读取 Mapper XML/Java 源码并锁定以下不可回退条件：
 
 ```java
 @Test
@@ -184,7 +184,7 @@ void historyDetailAndOperationsCannotCrossDeviceOrGuessByTime() throws Exception
 }
 ```
 
-- [ ] 运行单测并确认因查询方法尚不存在而失败：
+- [x] 运行单测并确认因查询方法尚不存在而失败：
 
 ```zsh
 cd "$BACKEND_WORKTREE"
@@ -197,7 +197,7 @@ JAVA_HOME=/Users/popoy/WorkSpace/DevTools/Java/zulu-8.0.492.jdk/Contents/Home \
 
 ### Step 2.2：增加两个模具作业查询
 
-- [ ] 在 `PressMouldJobInfoMapper.java` 增加精确签名；不创建一次性 query interface（查询接口）：
+- [x] 在 `PressMouldJobInfoMapper.java` 增加精确签名；不创建一次性 query interface（查询接口）：
 
 ```java
 List<PressMouldJobInfo> selectQtPressJobHistoryList(
@@ -212,7 +212,7 @@ PressMouldJobInfo selectQtPressJobHistoryDetail(
         @Param("mouldJobId") Long mouldJobId);
 ```
 
-- [ ] 在 `PressMouldJobInfoMapper.xml` 使用现有 `PressMouldJobInfoResult`，新增明确列清单，不使用 `select *`：
+- [x] 在 `PressMouldJobInfoMapper.xml` 使用现有 `PressMouldJobInfoResult`，新增明确列清单，不使用 `select *`：
 
 ```xml
 <select id="selectQtPressJobHistoryList" resultMap="PressMouldJobInfoResult">
@@ -274,7 +274,7 @@ PressMouldJobInfo selectQtPressJobHistoryDetail(
 
 ### Step 2.3：增加已有操作记录的安全关联查询
 
-- [ ] 在 `QtPressJobOperationMapper.java` 增加 `List` import 和以下查询。只选详情展示/关联所需列；不返回 idempotency key（幂等键）或 fingerprint（指纹）：
+- [x] 在 `QtPressJobOperationMapper.java` 增加 `List` import 和以下查询。只选详情展示/关联所需列；不返回 idempotency key（幂等键）或 fingerprint（指纹）：
 
 ```java
 @Select("select id, press_job_info_id, local_job_session_id, operation_type, create_time " +
@@ -291,9 +291,9 @@ List<QtPressJobOperation> selectHistoryByPressJobInfoId(
 
 `MACHINE_STATUS` 通过该作业任意已绑定操作的 `local_job_session_id` 纳入；不能只用 `START` 的 session，因为前端在 ERP 返回作业 ID 后会把临时 session 切换为 `press-job-id-{id}`。增加“session A 写 START，session B 写 COMPLETE 与无父 ID 的 MACHINE_STATUS，三者均归入同一作业”的 Mapper 测试。不得用时间窗口关联；锁模、解锁和失败操作保持缺失，不新增表或写入逻辑。
 
-- [ ] 重跑 mapper contract test 并确认通过。
+- [x] 重跑 mapper contract test 并确认通过。
 
-- [ ] Commit（提交）：
+- [x] Commit（提交）：
 
 ```zsh
 git add sam-erp/src/main/java/com/yr/smes2/smes/modbus/mapper/PressMouldJobInfoMapper.java \

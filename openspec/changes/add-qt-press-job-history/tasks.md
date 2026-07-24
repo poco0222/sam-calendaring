@@ -14,8 +14,8 @@
 
 ## 2. ERP 历史数据查询
 
-- [ ] 2.1 先写失败的 Mapper contract test（映射契约测试），再实现当前设备、完成状态、半开时间区间、可选筛选和稳定倒序的历史列表/详情 SQL。
-- [ ] 2.2 先覆盖 session A/B 失败场景，再实现按作业任意已绑定 `local_job_session_id` 汇集成功操作记录的安全查询。
+- [x] 2.1 先写失败的 Mapper contract test（映射契约测试），再实现当前设备、完成状态、半开时间区间、可选筛选和稳定倒序的历史列表/详情 SQL。
+- [x] 2.2 先覆盖 session A/B 失败场景，再实现按作业任意已绑定 `local_job_session_id` 汇集成功操作记录的安全查询。
 - [ ] 2.3 先写失败的 Service delegation test（服务委派测试），再通过现有 `IPressMouldJobInfoService` 暴露最薄的设备绑定只读方法。
 
 ## 3. ERP 历史接口与安全投影
