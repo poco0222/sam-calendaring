@@ -72,3 +72,5 @@
 - Round 1 GREEN evidence: 指定 focused Maven 命令通过 `96/96`（mould `30`、job `66`），`0` failures/errors/skips，`BUILD SUCCESS`；`git show --check` 通过，后端工作树干净。
 - Round 1 changed files: 两个既有 service implementation 与两份既有 Qt service test；接口、Controller、Mapper/XML、POM、OpenSpec 均未修改。
 - Round 1 review package: `.superpowers/sdd/review-eb4a1c9a..26a2f3d6.diff`（完整 Task 3 两个提交，`140675` bytes）。
+- Round 1 reviewer: `/root/task3_rereview1`
+- Round 1 rereview dispatched at: `2026-07-25 14:15:44 +0800`
