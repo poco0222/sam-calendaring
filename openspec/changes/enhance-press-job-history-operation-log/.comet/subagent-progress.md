@@ -18,9 +18,9 @@
   - `2.3 成功业务日志必须与对应业务事务同提交/回滚；参数和完成日志只按当次实际子作业列表扇出，共享 correlationId，禁止串到兄弟模具`
   - `2.4 为已通过设备及 actor 校验后发生的 ERP 失败动作通过 REQUIRES_NEW 补写脱敏失败日志，并保证日志失败不覆盖原业务错误`
   - `3.3 保留原有 qt_press_job_operation 的 START/PARAMETER/COMPLETE 幂等/重放职责，重复请求必须返回原结果且不得重复写业务日志；保留旧作业降级来源` (partial; Task 4/7 complete endpoint/fallback verification)
-- Stage: `task-rereview`
+- Stage: `review-fix`
 - Review mode: `thorough`
-- Review-fix round: `1/2`
+- Review-fix round: `2/2`
 - Implementer: `/root/task3_worker`
 - Implementation base: `eb4a1c9a2eca324517dd35b9eea0f79d5189120b`
 - Allowed files:
@@ -74,3 +74,10 @@
 - Round 1 review package: `.superpowers/sdd/review-eb4a1c9a..26a2f3d6.diff`（完整 Task 3 两个提交，`140675` bytes）。
 - Round 1 reviewer: `/root/task3_rereview1`
 - Round 1 rereview dispatched at: `2026-07-25 14:15:44 +0800`
+- Round 1 reviewer returned at: `2026-07-25 14:29:17 +0800`
+- Round 1 rereview result: `Needs fixes`，包含 1 个 Critical、2 个 Important、0 个 Minor；首轮原 6 项问题均确认有对应修复。
+- Round 2 required fixes:
+  - 保持当前旧 Qt START 调用链兼容：首次锁模生成服务端随机父会话后，旧入口不得因客户端只能生成 legacy `localJobSessionId` 而必然失败；可信新入口仍需严格使用服务端会话，不得扩大伪造面。
+  - PARAMETER 实际更新和业务日志必须使用同一份权威子作业集合，缓存/DB 不一致时不得“更新 B、日志记 A”，并补行为回归测试。
+  - 可信 COMPLETE 在 actor 与设备通过验证后的状态校验失败必须进入脱敏 FAILED 日志路径，同时保持 replay 早退及业务写入前拒绝。
+- Round 1 verified strengths retained: 行锁快照、精确行数、legacy `LOCK_MOLD` 回填、跨版本 fingerprint、真实 Spring transaction proxy 和读取会话不变测试均通过静态复审。
