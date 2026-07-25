@@ -18,7 +18,7 @@
   - `2.3 成功业务日志必须与对应业务事务同提交/回滚；参数和完成日志只按当次实际子作业列表扇出，共享 correlationId，禁止串到兄弟模具`
   - `2.4 为已通过设备及 actor 校验后发生的 ERP 失败动作通过 REQUIRES_NEW 补写脱敏失败日志，并保证日志失败不覆盖原业务错误`
   - `3.3 保留原有 qt_press_job_operation 的 START/PARAMETER/COMPLETE 幂等/重放职责，重复请求必须返回原结果且不得重复写业务日志；保留旧作业降级来源` (partial; Task 4/7 complete endpoint/fallback verification)
-- Stage: `implementing`
+- Stage: `task-final-review`
 - Review mode: `thorough`
 - Review-fix round: `4/4` (user-authorized exception)
 - Implementer: `/root/task3_worker`
@@ -126,3 +126,12 @@
 - Fourth-round fix agent: `/root/task3_fix4_session_unlock`
 - Fourth-round dispatched at: `2026-07-25 15:33:33 +0800`
 - Fourth-round report target: `.superpowers/sdd/task-3-report.md`; source scope is exactly two existing service implementations plus two existing Task 3 service tests.
+- Fourth-round agent returned at: `2026-07-25 15:41:54 +0800`
+- Fourth-round fix commit: `a1fd034495356dd71f52c24e5e7767fabcdb487e` (`fix: 保持压机作业会话与解锁一致性`).
+- Fourth-round changed files: exactly the two existing service implementations and two existing Task 3 service tests; no interface/Mapper/XML/Controller/frontend/POM/dependency/schema/new-file changes.
+- Fourth-round RED evidence: focused command ran `106` tests with `2` failures and `0` errors; one proved current-parent refresh cleared `S1`, the other proved a missing trusted unlock code did not fail.
+- Fourth-round GREEN evidence: the same focused command passed `106/106` (`31` mould service + `75` job service), `0` failures/errors/skips, `BUILD SUCCESS`; backend worktree is clean and `git show --check` passed.
+- Fourth-round implementation report: `.superpowers/sdd/task-3-report.md` (appended section `第四轮 Review Fix`).
+- Fourth final review package: `/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be/.worktrees/enhance-press-job-history-operation-log/.superpowers/sdd/review-eb4a1c9a..a1fd0344.diff` (`5` Task 3 commits, `185677` bytes).
+- Fourth final reviewer: `/root/task3_fourth_final_review`
+- Fourth final review dispatched at: `2026-07-25 15:42:51 +0800`
