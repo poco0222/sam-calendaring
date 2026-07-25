@@ -1,7 +1,7 @@
 ## 1. ERP 日志数据模型
 
-- [ ] 1.1 为 `modbus_handle_log` 增加可空作业关联、模具会话、操作码、关联 ID、幂等键、请求指纹、班组/人员快照字段及所需索引，并把变更纳入现有 Liquibase 链路
-- [ ] 1.2 扩展 `ModbusHandleLog` 与 Mapper（映射器）的兼容读写、按 `deviceId + mouldJobId` 时间正序查询和按模具会话精确回填能力
+- [x] 1.1 为 `modbus_handle_log` 增加可空作业关联、模具会话、操作码、关联 ID、幂等键、请求指纹、班组/人员快照字段及所需索引，并把变更纳入现有 Liquibase 链路
+- [x] 1.2 扩展 `ModbusHandleLog` 与 Mapper（映射器）的兼容读写、按 `deviceId + mouldJobId` 时间正序查询和按模具会话精确回填能力
 - [ ] 1.3 为 `PressJobInfo` 增加只随设备当前 JSON 保存的服务端 `pressOperationSessionId`，为 `press_mould_job_info` / `PressMouldJobInfo` 增加 `mouldOperationSessionId`，验证两类会话可稳定读取且模具会话由所有跨日拆分行继承
 
 ## 2. ERP 可信操作日志写入

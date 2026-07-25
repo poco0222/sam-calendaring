@@ -75,11 +75,11 @@ Frontend（前端，相对 `sam-calendaring`）：
 - Produces: `PressJobInfo.pressOperationSessionId:String`（不映射数据库列）；`PressMouldJobInfo.mouldOperationSessionId:String`；`ModbusHandleLog` 新增 `pressJobInfoId`, `mouldJobId`, `mouldOperationSessionId`, `correlationId`, `idempotencyKey`, `requestFingerprint`, `operationCode`, `teamId`, `teamName`, `operatorName`。
 - Produces: `selectByIdempotency(deviceId, operationCode, idempotencyKey)`、`backfillMouldJobIds(deviceId, mouldOperationSessionId, pressJobInfoId, mouldJobId)`、`selectHistoryByMouldSession(deviceId, mouldOperationSessionId)`、`selectHistoryByMouldJobId(deviceId, mouldJobId)`。
 
-- [ ] **Step 1: 写失败的迁移与 Mapper 契约测试**
+- [x] **Step 1: 写失败的迁移与 Mapper 契约测试**
 
 在现有 `PressMouldJobInfoHistoryMapperContractTest` 增加源码契约断言：迁移字段全部 nullable；存在 `(mould_job_id, handle_time, id)`、`mould_operation_session_id`、`(press_job_info_id, handle_time, id)`、`correlation_id`、`(device_id, operation_code, idempotency_key)` 索引；回填 SQL 同时限制 `device_id` 与 `mould_operation_session_id`；历史查询按 `handle_time ASC, id ASC`。
 
-- [ ] **Step 2: 运行测试并确认失败**
+- [x] **Step 2: 运行测试并确认失败**
 
 ```zsh
 cd "$BACKEND_WORKTREE"
@@ -91,15 +91,15 @@ JAVA_HOME=/Users/popoy/WorkSpace/DevTools/Java/zulu-8.0.492.jdk/Contents/Home \
 
 Expected（预期）：FAIL，指出迁移文件、新列或 Mapper 方法尚不存在。
 
-- [ ] **Step 3: 写最小迁移、Domain 和 Mapper 实现**
+- [x] **Step 3: 写最小迁移、Domain 和 Mapper 实现**
 
 迁移只做 `addColumn` / `createIndex`，全部新列 nullable；`press_mould_job_info.mould_operation_session_id` 同样可空。`ModbusHandleLogMapper.xml` 保留旧 CRUD 列并追加新列，不能要求旧调用方提供新值。`PressJobInfo.pressOperationSessionId` 不加入 MyBatis resultMap；它仅由 FastJSON 随设备当前作业 JSON 保存。
 
-- [ ] **Step 4: 运行契约测试并确认通过**
+- [x] **Step 4: 运行契约测试并确认通过**
 
 重复 Step 2 命令。Expected：PASS。
 
-- [ ] **Step 5: 提交后端数据模型**
+- [x] **Step 5: 提交后端数据模型**
 
 ```zsh
 git add yr-admin/src/main/resources/db/liquibase/changelog/smes/changelog-2026-07-25-press-operation-log.xml \
