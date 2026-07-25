@@ -81,3 +81,6 @@
   - PARAMETER 实际更新和业务日志必须使用同一份权威子作业集合，缓存/DB 不一致时不得“更新 B、日志记 A”，并补行为回归测试。
   - 可信 COMPLETE 在 actor 与设备通过验证后的状态校验失败必须进入脱敏 FAILED 日志路径，同时保持 replay 早退及业务写入前拒绝。
 - Round 1 verified strengths retained: 行锁快照、精确行数、legacy `LOCK_MOLD` 回填、跨版本 fingerprint、真实 Spring transaction proxy 和读取会话不变测试均通过静态复审。
+- Round 2 implementer: `/root/task3_fix2`
+- Round 2 dispatched at: `2026-07-25 14:30:39 +0800`
+- Round 2 constraints: 仍限 Task 3 六文件；旧 START 在服务边界解析服务端会话、可信 START 保持严格校验；PARAMETER 更新与日志同一权威集合；可信 COMPLETE 校验失败安全补写 FAILED；不得提前修改 Task 4 Controller/前端或新增依赖/表/抽象。
