@@ -1,78 +1,57 @@
 > @file subagent-progress.md
 > @author PopoY
-> @created 2026-07-25 11:23:48
+> @created 2026-07-25 12:09:31
 > @purpose 记录 Comet 子代理实施与审查恢复状态。
 
 # Subagent Progress（子代理进度）
 
-- Current task: `Task 1: 扩展既有日志与作业会话数据模型`
+- Current task: `Task 2: 实现可信 actor 快照与最小日志 Writer`
 - Plan task texts:
-  - `Task 1 / Step 1: 写失败的迁移与 Mapper 契约测试`
-  - `Task 1 / Step 2: 运行测试并确认失败`
-  - `Task 1 / Step 3: 写最小迁移、Domain 和 Mapper 实现`
-  - `Task 1 / Step 4: 运行契约测试并确认通过`
-  - `Task 1 / Step 5: 提交后端数据模型`
+  - `Task 2 / Step 1: 写失败的 Writer 单元测试`
+  - `Task 2 / Step 2: 运行测试并确认类尚不存在`
+  - `Task 2 / Step 3: 实现一个具体 Writer Bean`
+  - `Task 2 / Step 4: 运行测试并确认通过`
+  - `Task 2 / Step 5: 提交 Writer`
 - Mapped OpenSpec task texts:
-  - `1.1 为 modbus_handle_log 增加可空作业关联、模具会话、操作码、关联 ID、幂等键、请求指纹、班组/人员快照字段及所需索引，并把变更纳入现有 Liquibase 链路`
-  - `1.2 扩展 ModbusHandleLog 与 Mapper（映射器）的兼容读写、按 deviceId + mouldJobId 时间正序查询和按模具会话精确回填能力`
-  - `1.3 为 PressJobInfo 增加只随设备当前 JSON 保存的服务端 pressOperationSessionId，为 press_mould_job_info / PressMouldJobInfo 增加 mouldOperationSessionId，验证两类会话可稳定读取且模具会话由所有跨日拆分行继承`
-- Stage: `done`
+  - `2.1 复用现有班组/人员主数据校验，实现最小 PressOperationLogWriter，只接受可信设备、作业关联、允许列表操作码、固定中文摘要、结果和 actor（操作者）快照`
+  - `2.4 为已通过设备及 actor 校验后发生的 ERP 失败动作通过 REQUIRES_NEW 补写脱敏失败日志，并保证日志失败不覆盖原业务错误` (partial; Task 3 integrates caller behavior)
+- Stage: `task-review`
 - Review mode: `thorough`
 - Review-fix round: `2/2`
-- Implementer: `/root/task1_data_model`
-- Implementation base: `426a02af`
-- Implementation commit: `5b5b574879ba31fbcf5f870f7413ddef5507a33c`
+- Implementer: `/root/task2_writer`
+- Implementation base: `56c666114519d740cd7c751d857484e44fd661e1`
+- Implementation commit: `954bcc9f1958db4d93d71bde9171a7f5644869e0`
 - Changed files:
-  - `yr-admin/src/main/resources/db/liquibase/changelog/smes/changelog-2026-07-25-press-operation-log.xml`
-  - `sam-erp/src/main/java/com/yr/smes2/smes/modbus/domain/ModbusHandleLog.java`
-  - `sam-erp/src/main/java/com/yr/smes2/smes/modbus/domain/PressJobInfo.java`
-  - `sam-erp/src/main/java/com/yr/smes2/smes/modbus/domain/PressMouldJobInfo.java`
-  - `sam-erp/src/main/java/com/yr/smes2/smes/modbus/mapper/ModbusHandleLogMapper.java`
-  - `sam-erp/src/main/resources/mapper/smes/modbus/ModbusHandleLogMapper.xml`
-  - `sam-erp/src/main/resources/mapper/smes/modbus/PressMouldJobInfoMapper.xml`
-  - `sam-erp/src/test/java/com/yr/smes2/smes/modbus/mapper/PressMouldJobInfoHistoryMapperContractTest.java`
-- RED evidence: 指定 Maven 命令 `BUILD FAILURE`，7 项测试中 4 项因迁移、Domain 字段与 Mapper SQL 缺失而失败。
-- GREEN evidence: 同一 Maven 命令 `BUILD SUCCESS`，7/7 通过；`git diff --check` 与 3 个 XML 的 `xmllint --noout` 均为 exit 0。
-- Risk signals: data/schema migration, SQL, single-task diff 440 insertions/deletions context lines over 200.
-- Review stages passed: initial task review, fix-1 re-review, and final task re-review; final verdict `Spec compliant`, `Task quality: Approved`.
+  - `sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/impl/PressOperationLogWriter.java`
+  - `sam-erp/src/test/java/com/yr/smes2/smes/modbus/service/impl/PressOperationLogWriterTest.java`
+- RED evidence: first compile RED because Writer/internal types did not exist; second behavior RED 9 tests with 1 failure because actor snapshot construction could bypass authorization.
+- GREEN evidence: same Maven command `BUILD SUCCESS`, 9/9 passed; `git diff --check` passed and backend worktree clean.
+- Risk signals: actor authorization, transaction propagation, single-task diff 519 lines over 200.
+- Review stages passed: initial task review completed; fixed allowlist/content mapping and transaction structure passed.
 - Unresolved reviewer feedback:
-  - Resolved Important: `selectHistoryByMouldSession` and `selectHistoryByMouldJobId` now explicitly project existing `handle_content`; focused RED/GREEN test passed.
-  - Resolved Important: `@JsonIgnore` plus real `ObjectMapper` RED/GREEN test now blocks legacy JSON serialization and deserialization of `idempotencyKey` / `requestFingerprint` while preserving Java/MyBatis internal access.
-  - Minor: contract test does not fully lock idempotency SQL predicates/projection.
-  - Minor: migration test does not independently bind `mould_operation_session_id` to both target tables or fully assert rollback.
-  - Minor: history-query test does not lock the remaining explicit projection against `select *` or sensitive fields.
+  - Important: blank/null `teamId` or `operatorId` can throw uncontrolled `NullPointerException` at equality checks. Reject both at method entry with the existing Chinese `CustomException` contract and focused RED/GREEN tests.
+  - Resolved Important: blank/null actor IDs now fail with Chinese `CustomException` before any data access; 13/13 GREEN.
+  - Cross-task finding under adjudication: a method-body catch cannot intercept Spring proxy begin/commit failures around `REQUIRES_NEW`. Task 3/4 callers must catch the proxied call and rethrow the original business exception; the plan will state and test that caller responsibility explicitly rather than adding Writer self-proxy abstractions.
+  - Minor: actor tests do not cover nonexistent/disabled team, missing department, or the real projection's null status/delFlag shape.
+  - Minor: transaction tests verify annotations/direct behavior but not actual Spring proxy suspension/independent commit.
   - Accepted existing noise: Maven output contains pre-existing Druid `systemPath` messages and Lombok warnings.
-- Dispatched at: `2026-07-25 11:23:48 +0800`
-- Implementer returned at: `2026-07-25 11:33:39 +0800`
-- Implementer report: `.superpowers/sdd/task-1-report.md`
-- Reviewer: `/root/task1_review`
-- Review package: `.superpowers/sdd/review-426a02af..5b5b5748.diff`
-- Review dispatched at: `2026-07-25 11:34:31 +0800`
-- Review returned at: `2026-07-25 11:42:22 +0800`
-- Fix agent: `/root/task1_fix1`
-- Fix dispatched at: `2026-07-25 11:43:22 +0800`
-- Fix report target: `.superpowers/sdd/task-1-report.md` (append)
-- Fix commit: `3cfe2b6ccc8b7e10b1482daf06b57a3097e01a95`
-- Fix RED evidence: 同一 Maven 命令 7 项测试中 1 项因两段历史查询缺少 `handle_content` 而失败。
-- Fix GREEN evidence: 同一 Maven 命令 `BUILD SUCCESS`，7/7 通过；`git diff --check` exit 0。
-- Fix returned at: `2026-07-25 11:47:26 +0800`
-- Re-review package: `.superpowers/sdd/review-426a02af..3cfe2b6c.diff`
-- Re-reviewer: `/root/task1_rereview`
-- Re-review dispatched at: `2026-07-25 11:48:01 +0800`
-- Re-review returned at: `2026-07-25 11:55:03 +0800`
-- Re-review verdict: `Spec issues found`, `Task quality: Needs fixes`.
-- Fix agent 2: `/root/task1_fix2`
-- Fix 2 dispatched at: `2026-07-25 11:56:02 +0800`
-- Fix 2 report target: `.superpowers/sdd/task-1-report.md` (append)
-- Fix 2 commit: `56c666114519d740cd7c751d857484e44fd661e1`
-- Fix 2 RED evidence: 真实 ObjectMapper 测试 8 项中 1 项失败，聚合断言确认两个内部字段共 4 个读写边界失败。
-- Fix 2 GREEN evidence: 同一 Maven 命令 `BUILD SUCCESS`，8/8 通过；`git diff --check` exit 0。
-- Fix 2 returned at: `2026-07-25 12:00:04 +0800`
-- Final task re-review package: `.superpowers/sdd/review-426a02af..56c66611.diff`
-- Final task re-reviewer: `/root/task1_final_rereview`
-- Final task re-review dispatched at: `2026-07-25 12:00:40 +0800`
-- Final task re-review returned at: `2026-07-25 12:05:24 +0800`
-- Final task re-review verdict: `Spec compliant`, `Task quality: Approved`, no Critical/Important.
-- Checkoff remediation: the first verification found duplicate generic plan text `Step 2: 运行测试并确认失败`; all plan checkboxes now use unique `Task N / Step M` prefixes before retrying targeted verification.
-- Checkoff result: all five Task 1 plan steps and OpenSpec 1.1/1.2 passed `comet state task-checkoff`; OpenSpec 1.3 remains pending for Task 3 cross-day inheritance.
-- Completed at: `2026-07-25 12:08:15 +0800`
+- Dispatched at: `2026-07-25 12:09:31 +0800`
+- Implementer report: `.superpowers/sdd/task-2-report.md`
+- Implementer returned at: `2026-07-25 12:19:38 +0800`
+- Review package: `.superpowers/sdd/review-56c66611..954bcc9f.diff`
+- Reviewer: `/root/task2_review`
+- Review dispatched at: `2026-07-25 12:20:23 +0800`
+- Review returned at: `2026-07-25 12:27:05 +0800`
+- Review verdict: `Spec issues found`, `Task quality: Needs fixes`.
+- Fix agent: `/root/task2_fix1`
+- Fix dispatched at: `2026-07-25 12:28:03 +0800`
+- Fix report target: `.superpowers/sdd/task-2-report.md` (append)
+- Fix commit: `2114d915e77ae71a9fe7db218d514d37e642545e`
+- Fix RED evidence: same Maven command 13 tests with 4 failures, each proving null/blank actor IDs reached data access before validation.
+- Fix GREEN evidence: same Maven command `BUILD SUCCESS`, 13/13 passed; `git diff --check` and cached check passed.
+- Fix returned at: `2026-07-25 12:32:51 +0800`
+- Re-review package: `.superpowers/sdd/review-56c66611..2114d915.diff`
+- Re-reviewer: `/root/task2_rereview`
+- Re-review dispatched at: `2026-07-25 12:33:25 +0800`
+- Re-review returned at: `2026-07-25 12:40:17 +0800`
+- Re-review verdict: `Spec issues found`, `Task quality: Needs fixes`; controller classifies the proxy exception as a Task 3/4 caller responsibility and is clarifying the plan before final Task 2 review.

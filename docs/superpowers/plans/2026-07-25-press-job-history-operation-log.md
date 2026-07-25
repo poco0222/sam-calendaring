@@ -125,7 +125,7 @@ git commit -m "feat: 扩展压机业务操作日志关联模型"
 
 - [ ] **Task 2 / Step 1: 写失败的 Writer 单元测试**
 
-覆盖：班组不属于压机范围时拒绝；人员不属于班组部门时拒绝；成功快照保存 `handleBy=operatorId`、`teamId/teamName/operatorName`；操作码映射为固定中文 `handleType/handleContent`；Writer 无法接收 IP、port、参数 JSON、信号配置或异常正文；失败写入异常不替换调用方原异常。
+覆盖：班组不属于压机范围时拒绝；人员不属于班组部门时拒绝；成功快照保存 `handleBy=operatorId`、`teamId/teamName/operatorName`；操作码映射为固定中文 `handleType/handleContent`；Writer 无法接收 IP、port、参数 JSON、信号配置或异常正文；失败方法体内的 Mapper 异常只做脱敏告警。`REQUIRES_NEW` 事务代理在方法体外发生的 begin/commit 异常由 Task 3 调用方捕获并保证不替换原业务异常，本任务只验证注解与外部 Bean 调用契约。
 
 - [ ] **Task 2 / Step 2: 运行测试并确认类尚不存在**
 
@@ -184,6 +184,7 @@ git commit -m "feat: 增加可信压机操作日志写入器"
 解锁/跨日 -> 分段行继承原模具会话
 业务回滚 -> 成功日志一起回滚
 已验证上下文后的业务失败 -> 固定失败日志通过 REQUIRES_NEW 保留
+失败日志代理 begin/commit 异常 -> 调用方脱敏告警并重新抛出原业务异常
 Qt replay -> 不重复写业务日志
 ```
 
@@ -201,7 +202,7 @@ Expected：FAIL，缺少会话生成、回填或日志调用。
 
 - [ ] **Task 3 / Step 3: 实现最小生命周期接入**
 
-锁模时按父作业真实 `status` 区分待开始与加工中，不能复用 `pressJobInfo != null` 作为 `isWorking`。首次锁模用 `UUID.randomUUID().toString()` 生成父/模具会话；已有会话不重置。开始流程插入父/子作业后按完全相同的模具会话回填。父级动作只对当次真实子作业列表写一条/模具，不在查询阶段扩散。成功日志放在业务落库成功边界且同事务；失败日志捕获后调用外部注入 Writer Bean 并重新抛出原异常。
+锁模时按父作业真实 `status` 区分待开始与加工中，不能复用 `pressJobInfo != null` 作为 `isWorking`。首次锁模用 `UUID.randomUUID().toString()` 生成父/模具会话；已有会话不重置。开始流程插入父/子作业后按完全相同的模具会话回填。父级动作只对当次真实子作业列表写一条/模具，不在查询阶段扩散。成功日志放在业务落库成功边界且同事务；失败日志捕获后，通过外部注入的 Writer Bean 调用 `REQUIRES_NEW` 方法；调用方必须在事务代理外包住整个调用，连同 begin/commit 异常一起做脱敏告警，随后重新抛出原业务异常。
 
 - [ ] **Task 3 / Step 4: 运行测试并确认通过**
 
