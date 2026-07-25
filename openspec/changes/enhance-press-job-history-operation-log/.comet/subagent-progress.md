@@ -91,3 +91,5 @@
 - Round 2 GREEN evidence: 指定 focused Maven 命令通过 `103/103`，`0` failures/errors/skips，`BUILD SUCCESS`；`git show --check` 通过，后端工作树干净。
 - Round 2 changed files: `IPressMouldJobInfoService`、两个 service implementation 和 `PressJobInfoServiceImplQtTest`；未修改 Controller、frontend、Mapper/XML、POM、依赖、表或新文件。
 - Final review package: `.superpowers/sdd/review-eb4a1c9a..a197a3c6.diff`（完整 Task 3 三个提交，`163054` bytes）。
+- Final reviewer: `/root/task3_final_review2`
+- Final review dispatched at: `2026-07-25 14:46:17 +0800`
