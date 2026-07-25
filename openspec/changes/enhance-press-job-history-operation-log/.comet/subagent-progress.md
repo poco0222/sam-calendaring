@@ -18,7 +18,7 @@
   - `2.3 成功业务日志必须与对应业务事务同提交/回滚；参数和完成日志只按当次实际子作业列表扇出，共享 correlationId，禁止串到兄弟模具`
   - `2.4 为已通过设备及 actor 校验后发生的 ERP 失败动作通过 REQUIRES_NEW 补写脱敏失败日志，并保证日志失败不覆盖原业务错误`
   - `3.3 保留原有 qt_press_job_operation 的 START/PARAMETER/COMPLETE 幂等/重放职责，重复请求必须返回原结果且不得重复写业务日志；保留旧作业降级来源` (partial; Task 4/7 complete endpoint/fallback verification)
-- Stage: `review-fix`
+- Stage: `task-final-review`
 - Review mode: `thorough`
 - Review-fix round: `2/2`
 - Implementer: `/root/task3_worker`
@@ -86,3 +86,8 @@
 - Round 2 constraints: 仍限 Task 3 六文件；旧 START 在服务边界解析服务端会话、可信 START 保持严格校验；PARAMETER 更新与日志同一权威集合；可信 COMPLETE 校验失败安全补写 FAILED；不得提前修改 Task 4 Controller/前端或新增依赖/表/抽象。
 - Round 2 design checkpoint at `2026-07-25 14:35:47 +0800`: START 不新增 boolean mode overload；锁定设备 JSON 内父会话始终是唯一业务权威值，客户端 `localJobSessionId` 仅保留原幂等 fingerprint/replay/响应关联，不能用于选择父作业。PARAMETER 仅在既有 mould service interface 增加真实父服务调用的最小显式子作业集合 overload；COMPLETE 空集合使用现有 Writer 表达父级 FAILED。
 - Round 2 RED at `2026-07-25 14:41:51 +0800`: 指定 focused Maven 命令运行 `103` 个测试，`4` failures、`1` error、`0` skipped；5 个目标红灯分别命中 PARAMETER 更新错误 DB 兄弟集合、COMPLETE 校验失败无 FAILED、空当前子作业无父级 FAILED、失败日志代理异常路径未触发、旧 Controller 派生 local session 被误作父会话校验。一次测试 helper CGLIB 回归已单独定位并纠正，最终 RED 仅保留目标失败。
+- Round 2 implementer returned at: `2026-07-25 14:45:08 +0800`
+- Round 2 fix commit: `a197a3c63ab921ba4590ed84e96e7ed25fb76d30` (`fix: 修复压机生命周期日志归属`).
+- Round 2 GREEN evidence: 指定 focused Maven 命令通过 `103/103`，`0` failures/errors/skips，`BUILD SUCCESS`；`git show --check` 通过，后端工作树干净。
+- Round 2 changed files: `IPressMouldJobInfoService`、两个 service implementation 和 `PressJobInfoServiceImplQtTest`；未修改 Controller、frontend、Mapper/XML、POM、依赖、表或新文件。
+- Final review package: `.superpowers/sdd/review-eb4a1c9a..a197a3c6.diff`（完整 Task 3 三个提交，`163054` bytes）。
