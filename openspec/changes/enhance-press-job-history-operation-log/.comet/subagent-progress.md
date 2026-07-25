@@ -85,3 +85,4 @@
 - Round 2 dispatched at: `2026-07-25 14:30:39 +0800`
 - Round 2 constraints: 仍限 Task 3 六文件；旧 START 在服务边界解析服务端会话、可信 START 保持严格校验；PARAMETER 更新与日志同一权威集合；可信 COMPLETE 校验失败安全补写 FAILED；不得提前修改 Task 4 Controller/前端或新增依赖/表/抽象。
 - Round 2 design checkpoint at `2026-07-25 14:35:47 +0800`: START 不新增 boolean mode overload；锁定设备 JSON 内父会话始终是唯一业务权威值，客户端 `localJobSessionId` 仅保留原幂等 fingerprint/replay/响应关联，不能用于选择父作业。PARAMETER 仅在既有 mould service interface 增加真实父服务调用的最小显式子作业集合 overload；COMPLETE 空集合使用现有 Writer 表达父级 FAILED。
+- Round 2 RED at `2026-07-25 14:41:51 +0800`: 指定 focused Maven 命令运行 `103` 个测试，`4` failures、`1` error、`0` skipped；5 个目标红灯分别命中 PARAMETER 更新错误 DB 兄弟集合、COMPLETE 校验失败无 FAILED、空当前子作业无父级 FAILED、失败日志代理异常路径未触发、旧 Controller 派生 local session 被误作父会话校验。一次测试 helper CGLIB 回归已单独定位并纠正，最终 RED 仅保留目标失败。
