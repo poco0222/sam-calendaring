@@ -163,3 +163,9 @@
 - Rollback review package: backend worktree `.superpowers/sdd/review-a1fd0344..a0aa195e.diff`（`1` 个回退提交，`185466` bytes）。
 - Rollback reviewer: `/root/task3_rollback_review`
 - Rollback review dispatched at: `2026-07-25 16:08:30 +0800`
+- Rollback reviewer returned at: `2026-07-25 16:14:33 +0800`
+- Rollback review result: `APPROVED`，`0` Critical、`0` Important、`0` Minor。
+- Independent tree evidence: `a0aa195e^{tree}` 与 `eb4a1c9^{tree}` 均为 `00eea77b6b197b85295ae58440b7004284583b9b`；回退差异与五个 Task 3 提交累计反向差异逐字一致，九文件范围无逃逸，Task 1/2 Domain/Mapper/Writer blobs 保持不变，无 unmerged index 或冲突标记。
+- Rollback recovery status: `done`；Task 3 仍未勾选，backend 已恢复到 Task 2 内容基线。不得重新应用旧 Task 3 提交。
+- Redesign exploration: `/root/task3_redesign_explorer` 已完成只读模式调查；确认可复用既有 `selectBoundPressForUpdate(operationIp, deviceId)`，无需新增 Mapper/抽象，并建议把共享设备 JSON 行锁、锁模/解锁、START 回填、PARAMETER/COMPLETE 编排拆成独立 TDD/commit/review 单元。
+- Current stage: `blocked`（等待用户批准重新设计方法后，才可更新 Design Doc 与 Implementation Plan；未批准前不写 backend source、不进入 Task 4）。
