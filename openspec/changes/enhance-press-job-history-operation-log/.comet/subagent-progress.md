@@ -5,81 +5,35 @@
 
 # Subagent Progress（子代理进度）
 
-- Current task: `Task 2: 实现可信 actor 快照与最小日志 Writer`
+- Current task: `Task 3: 把 ERP 生命周期动作接入业务日志`
 - Plan task texts:
-  - `Task 2 / Step 1: 写失败的 Writer 单元测试`
-  - `Task 2 / Step 2: 运行测试并确认类尚不存在`
-  - `Task 2 / Step 3: 实现一个具体 Writer Bean`
-  - `Task 2 / Step 4: 运行测试并确认通过`
-  - `Task 2 / Step 5: 提交 Writer`
+  - `Task 3 / Step 1: 先写生命周期失败测试`
+  - `Task 3 / Step 2: 运行测试并确认失败`
+  - `Task 3 / Step 3: 实现最小生命周期接入`
+  - `Task 3 / Step 4: 运行测试并确认通过`
+  - `Task 3 / Step 5: 提交生命周期接入`
 - Mapped OpenSpec task texts:
-  - `2.1 复用现有班组/人员主数据校验，实现最小 PressOperationLogWriter，只接受可信设备、作业关联、允许列表操作码、固定中文摘要、结果和 actor（操作者）快照`
-  - `2.4 为已通过设备及 actor 校验后发生的 ERP 失败动作通过 REQUIRES_NEW 补写脱敏失败日志，并保证日志失败不覆盖原业务错误` (partial; Task 3 integrates caller behavior)
-- Stage: `done`
+  - `1.3 在锁模时创建并保存每个父作业唯一 pressOperationSessionId、每个模具唯一 mouldOperationSessionId；读取设备当前 JSON 不得重建，且跨日分段继承原模具会话`
+  - `2.2 记录锁模、连接、开始、参数开始/结束、移入/移出、入线/出线、完成、断开、解锁的成功、部分成功或失败结果，并在成功开始后按同一模具会话回填真实 pressJobInfoId 和 mouldJobId`
+  - `2.3 成功业务日志必须与对应业务事务同提交/回滚；参数和完成日志只按当次实际子作业列表扇出，共享 correlationId，禁止串到兄弟模具`
+  - `2.4 为已通过设备及 actor 校验后发生的 ERP 失败动作通过 REQUIRES_NEW 补写脱敏失败日志，并保证日志失败不覆盖原业务错误`
+  - `3.3 保留原有 qt_press_job_operation 的 START/PARAMETER/COMPLETE 幂等/重放职责，重复请求必须返回原结果且不得重复写业务日志；保留旧作业降级来源` (partial; Task 4/7 complete endpoint/fallback verification)
+- Stage: `implementing`
 - Review mode: `thorough`
-- Review-fix round: `3/3` (user-authorized exception)
-- Implementer: `/root/task2_writer`
-- Implementation base: `56c666114519d740cd7c751d857484e44fd661e1`
-- Implementation commit: `954bcc9f1958db4d93d71bde9171a7f5644869e0`
-- Changed files:
-  - `sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/impl/PressOperationLogWriter.java`
-  - `sam-erp/src/test/java/com/yr/smes2/smes/modbus/service/impl/PressOperationLogWriterTest.java`
-- RED evidence: first compile RED because Writer/internal types did not exist; second behavior RED 9 tests with 1 failure because actor snapshot construction could bypass authorization.
-- GREEN evidence: same Maven command `BUILD SUCCESS`, 9/9 passed; `git diff --check` passed and backend worktree clean.
-- Risk signals: actor authorization, transaction propagation, single-task diff 519 lines over 200.
-- Review stages passed: initial task review completed; fixed allowlist/content mapping and transaction structure passed.
-- Unresolved reviewer feedback:
-  - Important: blank/null `teamId` or `operatorId` can throw uncontrolled `NullPointerException` at equality checks. Reject both at method entry with the existing Chinese `CustomException` contract and focused RED/GREEN tests.
-  - Resolved Important: blank/null actor IDs now fail with Chinese `CustomException` before any data access; 13/13 GREEN.
-  - Important: the failure-path test constructs a Mapper exception containing sensitive text but does not capture and assert the emitted warning. It therefore cannot prove that the warning contains only the Chinese summary, `correlationId`, `exceptionType`, and `exceptionHash`, or that it excludes the exception message and throwable.
-  - Cross-task checkpoint: a method-body catch cannot intercept Spring proxy begin/commit failures around `REQUIRES_NEW`. Task 3 callers must catch the proxied call, emit a sanitized warning, and rethrow the original business exception; OpenSpec 2.4 remains unchecked until that integration passes.
-  - Minor: actor tests do not cover nonexistent/disabled team, missing department, or the real projection's null status/delFlag shape.
-  - Minor: transaction tests verify annotations/direct behavior but not actual Spring proxy suspension/independent commit.
-  - Accepted existing noise: Maven output contains pre-existing Druid `systemPath` messages and Lombok warnings.
-- Dispatched at: `2026-07-25 12:09:31 +0800`
-- Implementer report: `.superpowers/sdd/task-2-report.md`
-- Implementer returned at: `2026-07-25 12:19:38 +0800`
-- Review package: `.superpowers/sdd/review-56c66611..954bcc9f.diff`
-- Reviewer: `/root/task2_review`
-- Review dispatched at: `2026-07-25 12:20:23 +0800`
-- Review returned at: `2026-07-25 12:27:05 +0800`
-- Review verdict: `Spec issues found`, `Task quality: Needs fixes`.
-- Fix agent: `/root/task2_fix1`
-- Fix dispatched at: `2026-07-25 12:28:03 +0800`
-- Fix report target: `.superpowers/sdd/task-2-report.md` (append)
-- Fix commit: `2114d915e77ae71a9fe7db218d514d37e642545e`
-- Fix RED evidence: same Maven command 13 tests with 4 failures, each proving null/blank actor IDs reached data access before validation.
-- Fix GREEN evidence: same Maven command `BUILD SUCCESS`, 13/13 passed; `git diff --check` and cached check passed.
-- Fix returned at: `2026-07-25 12:32:51 +0800`
-- Re-review package: `.superpowers/sdd/review-56c66611..2114d915.diff`
-- Re-reviewer: `/root/task2_rereview`
-- Re-review dispatched at: `2026-07-25 12:33:25 +0800`
-- Re-review returned at: `2026-07-25 12:40:17 +0800`
-- Re-review verdict: `Spec issues found`, `Task quality: Needs fixes`; controller classifies the proxy exception as a Task 3/4 caller responsibility and is clarifying the plan before final Task 2 review.
-- Final reviewer: `/root/task2_final_review`
-- Final review dispatched at: `2026-07-25 12:42:19 +0800`
-- Updated Task 2 brief: method-body Mapper failures are Task 2; Spring proxy begin/commit preservation is an explicit Task 3 caller test and remains unchecked under OpenSpec 2.4.
-- Final review returned at: `2026-07-25 12:47:56 +0800`
-- Final review verdict: `Spec issues found`, `Task quality: Needs fixes`; the remaining Task 2 Important is the missing sanitized-warning content assertion.
-- Block reason: thorough review-fix budget is exhausted at `2/2`; Comet forbids a third Task 2 fix round without a new user decision.
-- User decision: at `2026-07-25 12:54:35 +0800`, the user explicitly authorized one additional Task 2 fix round limited to the sanitized-warning content assertion.
-- Third fix agent: `/root/task2_fix3`
-- Third fix dispatched at: `2026-07-25 12:54:35 +0800`
-- Third fix scope: test-only warning capture and redaction assertions; no new dependency or production abstraction, with temporary uncommitted mutation allowed only to prove RED if the compliant production implementation makes the new test pass immediately.
-- Third fix returned at: `2026-07-25 12:59:05 +0800`
-- Third fix commit: `eb4a1c9a2eca324517dd35b9eea0f79d5189120b`
-- Third fix changed file: `sam-erp/src/test/java/com/yr/smes2/smes/modbus/service/impl/PressOperationLogWriterTest.java`
-- Third fix RED evidence: temporary uncommitted sensitive-warning mutation produced `Tests run: 13, Failures: 1`, detecting both exception-message and throwable leakage; the mutation was fully restored and is absent from the commit.
-- Third fix GREEN evidence: the same focused Maven command produced `Tests run: 13, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`; diff checks passed and the backend worktree is clean.
-- Third fix status: `DONE_WITH_CONCERNS`; only accepted baseline Druid/Lombok build noise remains in the implementer report.
-- Third final review package: `.superpowers/sdd/review-56c66611..eb4a1c9a.diff`
-- Third final reviewer: `/root/task2_third_final_review`
-- Third final review dispatched at: `2026-07-25 13:00:06 +0800`
-- Third final review returned at: `2026-07-25 13:05:57 +0800`
-- Third final review verdict: `Spec compliant`, `Task quality: Approved`; no Critical, Important, or Minor findings.
-- Resolved Important: the Logback `ListAppender` test now directly locks the single sanitized warning and rejects exception-message or throwable leakage.
-- Remaining cross-task checkpoint: Task 3 must protect Spring proxy begin/commit failures outside the proxied `REQUIRES_NEW` call; OpenSpec 2.4 remains unchecked.
-- Task checkoff completed at: `2026-07-25 13:07:27 +0800`
-- Plan checkoff verification: all five unique Task 2 step texts passed `comet state task-checkoff`.
-- OpenSpec checkoff verification: task 2.1 passed `comet state task-checkoff`; task 2.4 deliberately remains unchecked for Task 3 integration.
-- Final Task 2 backend range: `56c666114519d740cd7c751d857484e44fd661e1..eb4a1c9a2eca324517dd35b9eea0f79d5189120b`.
+- Review-fix round: `0/2`
+- Implementer: `/root/task3_worker`
+- Implementation base: `eb4a1c9a2eca324517dd35b9eea0f79d5189120b`
+- Allowed files:
+  - `sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/IPressMouldJobInfoService.java`
+  - `sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/IPressJobInfoService.java`
+  - `sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/impl/PressMouldJobInfoServiceImpl.java`
+  - `sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/impl/PressJobInfoServiceImpl.java`
+  - `sam-erp/src/test/java/com/yr/smes2/smes/modbus/service/impl/PressMouldJobInfoServiceImplQtTest.java`
+  - `sam-erp/src/test/java/com/yr/smes2/smes/modbus/service/impl/PressJobInfoServiceImplQtTest.java`
+- Dependency commits: Task 1 through `56c666114519d740cd7c751d857484e44fd661e1`; Task 2 through `eb4a1c9a2eca324517dd35b9eea0f79d5189120b`.
+- Required cross-task checkpoint: catch the entire proxied `writeFailureInNewTransaction` call outside the Spring proxy, emit only sanitized warning fields, and rethrow the original business exception even when transaction begin/commit fails.
+- Required preservation: existing Qt START/PARAMETER/COMPLETE idempotency and replay results remain authoritative and must not duplicate business logs.
+- Risk signals: cross-module integration, transaction propagation, idempotency/replay, shared state/session identity, expected diff over 200 lines.
+- Dispatched at: `2026-07-25 13:08:54 +0800`
+- Implementer brief: `.superpowers/sdd/task-3-brief.md`
+- Implementer report target: `.superpowers/sdd/task-3-report.md`
