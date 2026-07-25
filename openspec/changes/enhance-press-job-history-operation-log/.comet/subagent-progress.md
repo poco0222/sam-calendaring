@@ -18,9 +18,9 @@
   - `2.3 成功业务日志必须与对应业务事务同提交/回滚；参数和完成日志只按当次实际子作业列表扇出，共享 correlationId，禁止串到兄弟模具`
   - `2.4 为已通过设备及 actor 校验后发生的 ERP 失败动作通过 REQUIRES_NEW 补写脱敏失败日志，并保证日志失败不覆盖原业务错误`
   - `3.3 保留原有 qt_press_job_operation 的 START/PARAMETER/COMPLETE 幂等/重放职责，重复请求必须返回原结果且不得重复写业务日志；保留旧作业降级来源` (partial; Task 4/7 complete endpoint/fallback verification)
-- Stage: `blocked`
+- Stage: `implementing`
 - Review mode: `thorough`
-- Review-fix round: `3/3` (user-authorized exception)
+- Review-fix round: `4/4` (user-authorized exception)
 - Implementer: `/root/task3_worker`
 - Implementation base: `eb4a1c9a2eca324517dd35b9eea0f79d5189120b`
 - Allowed files:
@@ -120,3 +120,9 @@
 - Coordinator evidence check: both paths are confirmed in current source (`PressJobInfoServiceImpl.java:1017-1035`, `PressMouldJobInfoServiceImpl.java:862-875,960-983`); neither is covered by the user-authorized third-round Mapper scope.
 - Exhausted exception budget: review-fix round `3/3` is complete and still not approved; Task 3 remains unchecked and requires a new user decision before any fourth fix dispatch.
 - Proposed fourth-round scope: preserve cached `pressOperationSessionId` when refreshing the same current parent job, reject trusted unlock requests unless every requested mould code matches the locked snapshot, and add focused RED/GREEN regressions in the existing Task 3 service tests; restrict production changes to the two existing service implementations and no Mapper/Controller/frontend/POM/dependency/schema changes.
+- User decision: at `2026-07-25 15:32:12 +0800`, the user explicitly authorized Task 3 review-fix round 4 for parent-session preservation and exact locked-mould matching, with production scope limited to the two existing service implementations and existing Task 3 tests.
+- Fourth-round prohibited scope: Mapper/XML, Controller, frontend, POM, dependencies, database schema, new files/abstractions and unrelated refactors.
+- Fourth-round TDD targets: updating the same active parent must preserve the cached non-persistent `pressOperationSessionId`; trusted unlock must reject any requested mould-code token that is not present in the locked snapshot, enter the existing sanitized FAILED path, and never return an empty successful audit.
+- Fourth-round fix agent: `/root/task3_fix4_session_unlock`
+- Fourth-round dispatched at: `2026-07-25 15:33:33 +0800`
+- Fourth-round report target: `.superpowers/sdd/task-3-report.md`; source scope is exactly two existing service implementations plus two existing Task 3 service tests.
