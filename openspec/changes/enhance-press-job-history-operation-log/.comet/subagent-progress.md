@@ -18,7 +18,7 @@
   - `2.3 成功业务日志必须与对应业务事务同提交/回滚；参数和完成日志只按当次实际子作业列表扇出，共享 correlationId，禁止串到兄弟模具`
   - `2.4 为已通过设备及 actor 校验后发生的 ERP 失败动作通过 REQUIRES_NEW 补写脱敏失败日志，并保证日志失败不覆盖原业务错误`
   - `3.3 保留原有 qt_press_job_operation 的 START/PARAMETER/COMPLETE 幂等/重放职责，重复请求必须返回原结果且不得重复写业务日志；保留旧作业降级来源` (partial; Task 4/7 complete endpoint/fallback verification)
-- Stage: `implementing`
+- Stage: `task-review`
 - Review mode: `thorough`
 - Review-fix round: `0/2`
 - Implementer: `/root/task3_worker`
@@ -41,3 +41,10 @@
 - Current debug status at `2026-07-25 13:25:14 +0800`: first GREEN attempt still has `1 failure, 3 errors`, all in the same start-path test fixture/expectations; no file-scope expansion is required.
 - Debug gate: implementer was instructed to load `systematic-debugging` and establish the shared root cause before further source changes.
 - Debug result at `2026-07-25 13:28:03 +0800`: the same focused Maven run passed `79/79`; the implementer is now adding the remaining plan-mandated lifecycle/failure-proxy behavior assertions before the final run.
+- Implementer returned at: `2026-07-25 13:37:43 +0800`
+- Implementation commit: `b35c2696f0a513933a7bc0a98b1f15daa0a30261`
+- Changed files: exactly the six allowed Task 3 service/interface/test files.
+- Final GREEN evidence: the specified focused Maven command passed `84/84` (`26` mould-service tests and `58` job-service tests), zero failures/errors/skips, `BUILD SUCCESS`.
+- Verification evidence: `git diff HEAD^ HEAD --check` passed and the backend worktree is clean.
+- Implementer status: completed with one non-blocking note that per-row ERP server timestamps may differ by milliseconds; the contract requires shared `correlationId`, not identical `handleTime`.
+- Implementer report: `.superpowers/sdd/task-3-report.md`
