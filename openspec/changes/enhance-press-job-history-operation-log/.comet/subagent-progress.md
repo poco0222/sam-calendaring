@@ -152,3 +152,7 @@
 - User rollback decision: at `2026-07-25 16:02:12 +0800`, user replied `11`, accepted as option `1`: 完整回退五个 Task 3 提交到已审通过的 Task 2 基线，不再进行第五轮局部修复。
 - Rollback policy: 只使用可审计、非破坏性的 `git revert --no-commit` 将 `a1fd0344` 至 `b35c2696` 按逆序合并为一个回退提交；禁止 `reset --hard`、禁止修改 Task 1/2、禁止推送或合并。
 - Rollback verification: 回退后的 backend 文件树必须与 `eb4a1c9` 一致；运行现有 Task 1/2 聚焦测试 `PressMouldJobInfoHistoryMapperContractTest,PressOperationLogWriterTest`，并核对工作树干净。Task 3 保持未勾选，验证通过后进入重新拆分设计，不得直接进入 Task 4。
+- Rollback worker: `/root/task3_rollback`
+- Rollback dispatched at: `2026-07-25 16:03:12 +0800`
+- Current stage: `implementing`（仅执行完整回退与 Task 1/2 基线验证，不实现 Task 3 新逻辑）。
+- Rollback report target: backend worktree `.superpowers/sdd/task-3-rollback-report.md`；报告不提交，必须包含精确回退、树一致性、测试与 clean-worktree 证据。
