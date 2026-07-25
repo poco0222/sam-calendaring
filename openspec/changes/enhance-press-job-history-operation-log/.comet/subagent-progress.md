@@ -18,9 +18,9 @@
   - `2.3 成功业务日志必须与对应业务事务同提交/回滚；参数和完成日志只按当次实际子作业列表扇出，共享 correlationId，禁止串到兄弟模具`
   - `2.4 为已通过设备及 actor 校验后发生的 ERP 失败动作通过 REQUIRES_NEW 补写脱敏失败日志，并保证日志失败不覆盖原业务错误`
   - `3.3 保留原有 qt_press_job_operation 的 START/PARAMETER/COMPLETE 幂等/重放职责，重复请求必须返回原结果且不得重复写业务日志；保留旧作业降级来源` (partial; Task 4/7 complete endpoint/fallback verification)
-- Stage: `task-review`
+- Stage: `review-fix`
 - Review mode: `thorough`
-- Review-fix round: `0/2`
+- Review-fix round: `1/2`
 - Implementer: `/root/task3_worker`
 - Implementation base: `eb4a1c9a2eca324517dd35b9eea0f79d5189120b`
 - Allowed files:
@@ -51,3 +51,13 @@
 - Review package: `.superpowers/sdd/review-eb4a1c9a..b35c2696.diff`
 - Reviewer: `/root/task3_review`
 - Review dispatched at: `2026-07-25 13:38:51 +0800`
+- Reviewer returned at: `2026-07-25 13:49:39 +0800`
+- Review result: `Needs fixes`，包含 2 个 Critical、3 个 Important、1 个 Minor。
+- Round 1 required fixes:
+  - 锁模/解锁复用现有设备行锁，避免同设备 JSON 并发读改写覆盖，并补同设备并发回归测试。
+  - 对锁模/解锁要求精确命中的 Mapper 写入校验影响行数；0 行必须回滚并写失败日志，不得返回成功或记录成功审计。
+  - 保持旧锁模入口到 start 的兼容，避免没有新版 `LOCK_MOLD` 日志的既有会话因强制回填而失败。
+  - 保持 PARAMETER/COMPLETE 持久化幂等指纹兼容，覆盖旧记录经新可信 actor 重载 replay 的场景。
+  - 增加真实 Spring Transaction Proxy（Spring 事务代理）聚焦测试，验证成功日志随业务回滚、失败日志独立提交，以及 begin/commit 失败不替换原异常且 warning 脱敏。
+  - 修正读取设备当前 JSON 测试，直接断言返回值和序列化缓存中的父/模具会话不变。
+- Reviewer strengths retained: 服务端会话生成、真实状态判定、按实际子作业扇出、共享 `correlationId`、replay 早退、跨日会话继承和脱敏代理异常处理方向正确。
