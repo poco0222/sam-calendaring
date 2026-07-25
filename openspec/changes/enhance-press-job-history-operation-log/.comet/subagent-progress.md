@@ -149,3 +149,6 @@
 - Provenance evidence: 多行回填误判与 caller-controlled trusted-lock FAILED 归属均由 Task 3 引入；无设备行锁的 JSON read-modify-write 来自旧提交 `c475dc35`，Task 3 未引入但新会话一致性依赖使其成为当前集成风险。
 - Rollback evidence: 对 `eb4a1c9..a1fd0344` 执行只读 reverse-apply check 已通过；五个 Task 3 提交可作为完整连续区间撤销而保留 Task 1/2 基线。回退会移除两项 Task 3 新增风险，但旧的无锁 JSON 并发缺口仍需独立处理或在重新设计 Task 3 时纳入。
 - User decision required: 在“完整回退 Task 3 后重新拆分设计”与“保留当前隔离分支、先只读重设计再决定修复”之间选择；未选择前不修改 backend source、不进入 Task 4。
+- User rollback decision: at `2026-07-25 16:02:12 +0800`, user replied `11`, accepted as option `1`: 完整回退五个 Task 3 提交到已审通过的 Task 2 基线，不再进行第五轮局部修复。
+- Rollback policy: 只使用可审计、非破坏性的 `git revert --no-commit` 将 `a1fd0344` 至 `b35c2696` 按逆序合并为一个回退提交；禁止 `reset --hard`、禁止修改 Task 1/2、禁止推送或合并。
+- Rollback verification: 回退后的 backend 文件树必须与 `eb4a1c9` 一致；运行现有 Task 1/2 聚焦测试 `PressMouldJobInfoHistoryMapperContractTest,PressOperationLogWriterTest`，并核对工作树干净。Task 3 保持未勾选，验证通过后进入重新拆分设计，不得直接进入 Task 4。
