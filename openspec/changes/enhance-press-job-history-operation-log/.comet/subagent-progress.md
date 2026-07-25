@@ -18,7 +18,7 @@
   - `2.3 成功业务日志必须与对应业务事务同提交/回滚；参数和完成日志只按当次实际子作业列表扇出，共享 correlationId，禁止串到兄弟模具`
   - `2.4 为已通过设备及 actor 校验后发生的 ERP 失败动作通过 REQUIRES_NEW 补写脱敏失败日志，并保证日志失败不覆盖原业务错误`
   - `3.3 保留原有 qt_press_job_operation 的 START/PARAMETER/COMPLETE 幂等/重放职责，重复请求必须返回原结果且不得重复写业务日志；保留旧作业降级来源` (partial; Task 4/7 complete endpoint/fallback verification)
-- Stage: `task-final-review`
+- Stage: `blocked`
 - Review mode: `thorough`
 - Review-fix round: `3/3` (user-authorized exception)
 - Implementer: `/root/task3_worker`
@@ -113,3 +113,10 @@
 - Third final review package: `/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be/.worktrees/enhance-press-job-history-operation-log/.superpowers/sdd/review-eb4a1c9a..b08ce421.diff` (`4` Task 3 commits, `178371` bytes).
 - Third final reviewer: `/root/task3_third_final_review`
 - Third final review dispatched at: `2026-07-25 15:18:37 +0800`
+- Third final reviewer returned at: `2026-07-25 15:28:15 +0800`
+- Third final review result: `Needs fixes`，包含 `0` 个 Critical、`2` 个 Important、`0` 个 Minor；第三轮 PARAMETER Mapper 原子归属修复本身确认正确。
+- Remaining Important 1: `PressJobInfoServiceImpl.syncModbusCurrentPressJobInfo` 使用不含非持久化 `pressOperationSessionId` 的数据库实体覆盖设备缓存，更新进行中作业后会把稳定父会话清空，随后再次锁模会为同一父作业生成新 UUID。
+- Remaining Important 2: trusted unlock 在锁内快照没有精确命中请求模具时仍可能按成功 no-op 返回，且 `selectedJobs` 为空导致 `UNLOCK_MOLD` 成功/失败日志均为零条；必须在业务写入前要求请求模具全部精确命中并进入现有脱敏 FAILED 路径。
+- Coordinator evidence check: both paths are confirmed in current source (`PressJobInfoServiceImpl.java:1017-1035`, `PressMouldJobInfoServiceImpl.java:862-875,960-983`); neither is covered by the user-authorized third-round Mapper scope.
+- Exhausted exception budget: review-fix round `3/3` is complete and still not approved; Task 3 remains unchecked and requires a new user decision before any fourth fix dispatch.
+- Proposed fourth-round scope: preserve cached `pressOperationSessionId` when refreshing the same current parent job, reject trusted unlock requests unless every requested mould code matches the locked snapshot, and add focused RED/GREEN regressions in the existing Task 3 service tests; restrict production changes to the two existing service implementations and no Mapper/Controller/frontend/POM/dependency/schema changes.
