@@ -143,3 +143,9 @@
 - Coordinator evidence check: 三项均已在当前源代码与 Mapper SQL 中复核；第四轮已授权的两个 Service implementation 范围不足以安全修复设备行锁问题。
 - Exhausted exception budget: review-fix round `4/4` 已用完；Task 3 保持未勾选，阶段标记为 `blocked`，不得自动进入 Task 4。
 - Proposed consolidated root-close scope if authorized: 仅修改既有 `ModbusMapper.java`、两个 Service implementation 与现有 Task 3/Mapper tests；不修改 Mapper XML、Controller、frontend、POM、依赖、数据库 schema 或新增抽象。三个 TDD 目标分别为接受同会话多条回填日志、缓存刷新持有设备行锁、身份未证明的 trusted lock 失败只写父级 FAILED。
+- Root-cause audit completed at: `2026-07-25 15:58:57 +0800`；按 Systematic Debugging 的 `3+ fixes` 停止条件，不再自动派发第五轮修复，先进行架构/回退决策。
+- Isolation evidence: calendaring 与 backend worktree 均干净；当前本地 remote-tracking refs 不包含 `ddee770` 或 `a1fd0344`，没有合并或推送证据，主分支与生产未受本次 Task 3 提交影响。
+- Change-size evidence: Task 3 五个连续提交累计修改 `9` 个文件，新增 `2053` 行、删除 `138` 行；提交链为 `eb4a1c9 -> b35c2696 -> 26a2f3d6 -> a197a3c6 -> b08ce421 -> a1fd0344`。
+- Provenance evidence: 多行回填误判与 caller-controlled trusted-lock FAILED 归属均由 Task 3 引入；无设备行锁的 JSON read-modify-write 来自旧提交 `c475dc35`，Task 3 未引入但新会话一致性依赖使其成为当前集成风险。
+- Rollback evidence: 对 `eb4a1c9..a1fd0344` 执行只读 reverse-apply check 已通过；五个 Task 3 提交可作为完整连续区间撤销而保留 Task 1/2 基线。回退会移除两项 Task 3 新增风险，但旧的无锁 JSON 并发缺口仍需独立处理或在重新设计 Task 3 时纳入。
+- User decision required: 在“完整回退 Task 3 后重新拆分设计”与“保留当前隔离分支、先只读重设计再决定修复”之间选择；未选择前不修改 backend source、不进入 Task 4。
