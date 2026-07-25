@@ -135,3 +135,11 @@
 - Fourth final review package: `/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be/.worktrees/enhance-press-job-history-operation-log/.superpowers/sdd/review-eb4a1c9a..a1fd0344.diff` (`5` Task 3 commits, `185677` bytes).
 - Fourth final reviewer: `/root/task3_fourth_final_review`
 - Fourth final review dispatched at: `2026-07-25 15:42:51 +0800`
+- Fourth final reviewer returned at: `2026-07-25 15:52:25 +0800`
+- Fourth final review result: `Needs fixes`，包含 `1` 个 Critical、`2` 个 Important、`0` 个 Minor；第四轮父会话保留与完整锁内模具命中修复本身确认正确。
+- Remaining Critical: legacy START 回填 SQL 会更新同设备、同模具会话的全部日志，但 service 将合法的 `affectedRows > 1` 当作失败；同会话存在多条可靠日志时会永久阻塞 START。最小修复只需让现代日志要求 `affectedRows >= 1`，保留无现代日志时 `0` 行兼容。
+- Remaining Important 1: `syncModbusCurrentPressJobInfo` 仍通过无 `FOR UPDATE` 的设备读取后整体覆盖父作业与模具 JSON；它可与锁模/解锁的行锁写入竞争并丢失更新。需要在既有 `ModbusMapper` 增加按 `deviceId` 的最小行锁查询并复用现有事务。
+- Remaining Important 2: trusted lock 在服务端验证并覆盖子作业身份前可能因重复模具编码失败，catch 随后使用调用方输入写 FAILED 日志；调用方可伪造 `id/session` 污染其他作业历史。身份未证明时应复用现有父级 FAILED 表达。
+- Coordinator evidence check: 三项均已在当前源代码与 Mapper SQL 中复核；第四轮已授权的两个 Service implementation 范围不足以安全修复设备行锁问题。
+- Exhausted exception budget: review-fix round `4/4` 已用完；Task 3 保持未勾选，阶段标记为 `blocked`，不得自动进入 Task 4。
+- Proposed consolidated root-close scope if authorized: 仅修改既有 `ModbusMapper.java`、两个 Service implementation 与现有 Task 3/Mapper tests；不修改 Mapper XML、Controller、frontend、POM、依赖、数据库 schema 或新增抽象。三个 TDD 目标分别为接受同会话多条回填日志、缓存刷新持有设备行锁、身份未证明的 trusted lock 失败只写父级 FAILED。
