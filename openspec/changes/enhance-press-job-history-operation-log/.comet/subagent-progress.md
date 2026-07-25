@@ -65,3 +65,4 @@
 - Round 1 dispatched at: `2026-07-25 13:51:47 +0800`
 - Round 1 constraints: 仅修改 Task 3 既定六个 service/interface/test 文件；先补 RED 测试，再做最小修复；不得迁移 Task 4 Controller 或扩展 Mapper/POM/依赖。
 - Round 1 progress at `2026-07-25 14:00:04 +0800`: 已确认真实 Spring Transaction Proxy 测试可复用现有 `ProxyFactory`、`TransactionInterceptor`、`AnnotationTransactionAttributeSource` 与测试内最小事务管理器落地，无需新增依赖或文件；正在完成 RED 回归测试，无范围阻塞。
+- Round 1 test patch at `2026-07-25 14:03:15 +0800`: 首批 RED 用例已仅落入两份既有 Qt service test，覆盖设备行锁定快照、关键写入 0 行、读取会话不变、legacy PARAMETER/COMPLETE fingerprint replay 与业务 payload 冲突；正在补 legacy start 回填及真实事务代理用例。
