@@ -1,0 +1,8 @@
+{
+  "openspec_proposal": "openspec/changes/enhance-press-job-history-operation-log/proposal.md",
+  "openspec_design": "openspec/changes/enhance-press-job-history-operation-log/design.md",
+  "openspec_tasks": "openspec/changes/enhance-press-job-history-operation-log/tasks.md",
+  "openspec_delta_spec": "openspec/changes/enhance-press-job-history-operation-log/specs/press-job-history-query/spec.md",
+  "handoff_context": "openspec/changes/enhance-press-job-history-operation-log/.comet/handoff/design-context.json",
+  "handoff_markdown": "openspec/changes/enhance-press-job-history-operation-log/.comet/handoff/design-context.md"
+}

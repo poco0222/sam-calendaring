@@ -57,6 +57,8 @@ output/
 .impeccable/live/
 .codegraph
 .comet/current-change.json
+# Git Worktree（工作树）隔离目录，避免把并行开发目录纳入版本控制。
+.worktrees/
 
 # Runtime data（运行时数据）和 local database（本地数据库）
 *.db
