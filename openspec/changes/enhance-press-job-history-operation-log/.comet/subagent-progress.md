@@ -7,11 +7,11 @@
 
 - Current task: `Task 1: 扩展既有日志与作业会话数据模型`
 - Plan task texts:
-  - `Step 1: 写失败的迁移与 Mapper 契约测试`
-  - `Step 2: 运行测试并确认失败`
-  - `Step 3: 写最小迁移、Domain 和 Mapper 实现`
-  - `Step 4: 运行契约测试并确认通过`
-  - `Step 5: 提交后端数据模型`
+  - `Task 1 / Step 1: 写失败的迁移与 Mapper 契约测试`
+  - `Task 1 / Step 2: 运行测试并确认失败`
+  - `Task 1 / Step 3: 写最小迁移、Domain 和 Mapper 实现`
+  - `Task 1 / Step 4: 运行契约测试并确认通过`
+  - `Task 1 / Step 5: 提交后端数据模型`
 - Mapped OpenSpec task texts:
   - `1.1 为 modbus_handle_log 增加可空作业关联、模具会话、操作码、关联 ID、幂等键、请求指纹、班组/人员快照字段及所需索引，并把变更纳入现有 Liquibase 链路`
   - `1.2 扩展 ModbusHandleLog 与 Mapper（映射器）的兼容读写、按 deviceId + mouldJobId 时间正序查询和按模具会话精确回填能力`
@@ -73,3 +73,4 @@
 - Final task re-review dispatched at: `2026-07-25 12:00:40 +0800`
 - Final task re-review returned at: `2026-07-25 12:05:24 +0800`
 - Final task re-review verdict: `Spec compliant`, `Task quality: Approved`, no Critical/Important.
+- Checkoff remediation: the first verification found duplicate generic plan text `Step 2: 运行测试并确认失败`; all plan checkboxes now use unique `Task N / Step M` prefixes before retrying targeted verification.
