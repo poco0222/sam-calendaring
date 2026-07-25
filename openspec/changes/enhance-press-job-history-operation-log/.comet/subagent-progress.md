@@ -160,3 +160,6 @@
 - Rollback result: `DONE`；唯一提交 `a0aa195ecd90df66f3c7d1ebc808495e3543627c` (`revert: 回退 Task 3 压机生命周期日志实现`)。
 - Rollback evidence: 五提交 newest-to-oldest 无冲突反向应用；提交前后 backend 文件树均与 `eb4a1c9` 一致；Task 1/2 聚焦测试 `21/21`（Mapper contract `8` + Writer `13`）通过，`0` failures/errors/skips，`BUILD SUCCESS`；`git show --check` 通过且 backend worktree 干净。
 - Current stage: `task-review`；`review_mode: thorough`，必须由 fresh reviewer 独立确认回退区间、基线树、保留 Task 1/2 和无范围逃逸。Task 3 仍未勾选。
+- Rollback review package: backend worktree `.superpowers/sdd/review-a1fd0344..a0aa195e.diff`（`1` 个回退提交，`185466` bytes）。
+- Rollback reviewer: `/root/task3_rollback_review`
+- Rollback review dispatched at: `2026-07-25 16:08:30 +0800`
