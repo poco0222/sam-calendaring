@@ -37,3 +37,6 @@
 - Dispatched at: `2026-07-25 13:08:54 +0800`
 - Implementer brief: `.superpowers/sdd/task-3-brief.md`
 - Implementer report target: `.superpowers/sdd/task-3-report.md`
+- RED evidence reported at `2026-07-25 13:18:11 +0800`: focused Maven run executed 79 tests with `1 failure, 2 errors`, exposing missing session creation and four trusted actor/correlation overloads.
+- Current debug status at `2026-07-25 13:25:14 +0800`: first GREEN attempt still has `1 failure, 3 errors`, all in the same start-path test fixture/expectations; no file-scope expansion is required.
+- Debug gate: implementer was instructed to load `systematic-debugging` and establish the shared root cause before further source changes.
