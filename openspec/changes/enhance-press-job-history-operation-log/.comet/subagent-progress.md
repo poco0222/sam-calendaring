@@ -15,7 +15,7 @@
 - Mapped OpenSpec task texts:
   - `2.1 复用现有班组/人员主数据校验，实现最小 PressOperationLogWriter，只接受可信设备、作业关联、允许列表操作码、固定中文摘要、结果和 actor（操作者）快照`
   - `2.4 为已通过设备及 actor 校验后发生的 ERP 失败动作通过 REQUIRES_NEW 补写脱敏失败日志，并保证日志失败不覆盖原业务错误` (partial; Task 3 integrates caller behavior)
-- Stage: `task-review`
+- Stage: `checkoff`
 - Review mode: `thorough`
 - Review-fix round: `3/3` (user-authorized exception)
 - Implementer: `/root/task2_writer`
@@ -75,3 +75,7 @@
 - Third final review package: `.superpowers/sdd/review-56c66611..eb4a1c9a.diff`
 - Third final reviewer: `/root/task2_third_final_review`
 - Third final review dispatched at: `2026-07-25 13:00:06 +0800`
+- Third final review returned at: `2026-07-25 13:05:57 +0800`
+- Third final review verdict: `Spec compliant`, `Task quality: Approved`; no Critical, Important, or Minor findings.
+- Resolved Important: the Logback `ListAppender` test now directly locks the single sanitized warning and rejects exception-message or throwable leakage.
+- Remaining cross-task checkpoint: Task 3 must protect Spring proxy begin/commit failures outside the proxied `REQUIRES_NEW` call; OpenSpec 2.4 remains unchecked.
