@@ -15,7 +15,7 @@
 - Mapped OpenSpec task texts:
   - `2.1 复用现有班组/人员主数据校验，实现最小 PressOperationLogWriter，只接受可信设备、作业关联、允许列表操作码、固定中文摘要、结果和 actor（操作者）快照`
   - `2.4 为已通过设备及 actor 校验后发生的 ERP 失败动作通过 REQUIRES_NEW 补写脱敏失败日志，并保证日志失败不覆盖原业务错误` (partial; Task 3 integrates caller behavior)
-- Stage: `task-review`
+- Stage: `blocked`
 - Review mode: `thorough`
 - Review-fix round: `2/2`
 - Implementer: `/root/task2_writer`
@@ -31,7 +31,8 @@
 - Unresolved reviewer feedback:
   - Important: blank/null `teamId` or `operatorId` can throw uncontrolled `NullPointerException` at equality checks. Reject both at method entry with the existing Chinese `CustomException` contract and focused RED/GREEN tests.
   - Resolved Important: blank/null actor IDs now fail with Chinese `CustomException` before any data access; 13/13 GREEN.
-  - Cross-task finding under adjudication: a method-body catch cannot intercept Spring proxy begin/commit failures around `REQUIRES_NEW`. Task 3/4 callers must catch the proxied call and rethrow the original business exception; the plan will state and test that caller responsibility explicitly rather than adding Writer self-proxy abstractions.
+  - Important: the failure-path test constructs a Mapper exception containing sensitive text but does not capture and assert the emitted warning. It therefore cannot prove that the warning contains only the Chinese summary, `correlationId`, `exceptionType`, and `exceptionHash`, or that it excludes the exception message and throwable.
+  - Cross-task checkpoint: a method-body catch cannot intercept Spring proxy begin/commit failures around `REQUIRES_NEW`. Task 3 callers must catch the proxied call, emit a sanitized warning, and rethrow the original business exception; OpenSpec 2.4 remains unchecked until that integration passes.
   - Minor: actor tests do not cover nonexistent/disabled team, missing department, or the real projection's null status/delFlag shape.
   - Minor: transaction tests verify annotations/direct behavior but not actual Spring proxy suspension/independent commit.
   - Accepted existing noise: Maven output contains pre-existing Druid `systemPath` messages and Lombok warnings.
@@ -55,3 +56,9 @@
 - Re-review dispatched at: `2026-07-25 12:33:25 +0800`
 - Re-review returned at: `2026-07-25 12:40:17 +0800`
 - Re-review verdict: `Spec issues found`, `Task quality: Needs fixes`; controller classifies the proxy exception as a Task 3/4 caller responsibility and is clarifying the plan before final Task 2 review.
+- Final reviewer: `/root/task2_final_review`
+- Final review dispatched at: `2026-07-25 12:42:19 +0800`
+- Updated Task 2 brief: method-body Mapper failures are Task 2; Spring proxy begin/commit preservation is an explicit Task 3 caller test and remains unchecked under OpenSpec 2.4.
+- Final review returned at: `2026-07-25 12:47:56 +0800`
+- Final review verdict: `Spec issues found`, `Task quality: Needs fixes`; the remaining Task 2 Important is the missing sanitized-warning content assertion.
+- Block reason: thorough review-fix budget is exhausted at `2/2`; Comet forbids a third Task 2 fix round without a new user decision.
