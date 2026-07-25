@@ -15,9 +15,9 @@
 - Mapped OpenSpec task texts:
   - `2.1 复用现有班组/人员主数据校验，实现最小 PressOperationLogWriter，只接受可信设备、作业关联、允许列表操作码、固定中文摘要、结果和 actor（操作者）快照`
   - `2.4 为已通过设备及 actor 校验后发生的 ERP 失败动作通过 REQUIRES_NEW 补写脱敏失败日志，并保证日志失败不覆盖原业务错误` (partial; Task 3 integrates caller behavior)
-- Stage: `blocked`
+- Stage: `implementing`
 - Review mode: `thorough`
-- Review-fix round: `2/2`
+- Review-fix round: `3/3` (user-authorized exception)
 - Implementer: `/root/task2_writer`
 - Implementation base: `56c666114519d740cd7c751d857484e44fd661e1`
 - Implementation commit: `954bcc9f1958db4d93d71bde9171a7f5644869e0`
@@ -62,3 +62,7 @@
 - Final review returned at: `2026-07-25 12:47:56 +0800`
 - Final review verdict: `Spec issues found`, `Task quality: Needs fixes`; the remaining Task 2 Important is the missing sanitized-warning content assertion.
 - Block reason: thorough review-fix budget is exhausted at `2/2`; Comet forbids a third Task 2 fix round without a new user decision.
+- User decision: at `2026-07-25 12:54:35 +0800`, the user explicitly authorized one additional Task 2 fix round limited to the sanitized-warning content assertion.
+- Third fix agent: `/root/task2_fix3`
+- Third fix dispatched at: `2026-07-25 12:54:35 +0800`
+- Third fix scope: test-only warning capture and redaction assertions; no new dependency or production abstraction, with temporary uncommitted mutation allowed only to prove RED if the compliant production implementation makes the new test pass immediately.
