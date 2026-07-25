@@ -61,3 +61,6 @@
   - 增加真实 Spring Transaction Proxy（Spring 事务代理）聚焦测试，验证成功日志随业务回滚、失败日志独立提交，以及 begin/commit 失败不替换原异常且 warning 脱敏。
   - 修正读取设备当前 JSON 测试，直接断言返回值和序列化缓存中的父/模具会话不变。
 - Reviewer strengths retained: 服务端会话生成、真实状态判定、按实际子作业扇出、共享 `correlationId`、replay 早退、跨日会话继承和脱敏代理异常处理方向正确。
+- Round 1 implementer: `/root/task3_fix1`
+- Round 1 dispatched at: `2026-07-25 13:51:47 +0800`
+- Round 1 constraints: 仅修改 Task 3 既定六个 service/interface/test 文件；先补 RED 测试，再做最小修复；不得迁移 Task 4 Controller 或扩展 Mapper/POM/依赖。
