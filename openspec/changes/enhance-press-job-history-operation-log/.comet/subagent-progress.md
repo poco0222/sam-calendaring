@@ -16,7 +16,7 @@
   - `1.1 为 modbus_handle_log 增加可空作业关联、模具会话、操作码、关联 ID、幂等键、请求指纹、班组/人员快照字段及所需索引，并把变更纳入现有 Liquibase 链路`
   - `1.2 扩展 ModbusHandleLog 与 Mapper（映射器）的兼容读写、按 deviceId + mouldJobId 时间正序查询和按模具会话精确回填能力`
   - `1.3 为 PressJobInfo 增加只随设备当前 JSON 保存的服务端 pressOperationSessionId，为 press_mould_job_info / PressMouldJobInfo 增加 mouldOperationSessionId，验证两类会话可稳定读取且模具会话由所有跨日拆分行继承`
-- Stage: `checkoff`
+- Stage: `done`
 - Review mode: `thorough`
 - Review-fix round: `2/2`
 - Implementer: `/root/task1_data_model`
@@ -74,3 +74,5 @@
 - Final task re-review returned at: `2026-07-25 12:05:24 +0800`
 - Final task re-review verdict: `Spec compliant`, `Task quality: Approved`, no Critical/Important.
 - Checkoff remediation: the first verification found duplicate generic plan text `Step 2: 运行测试并确认失败`; all plan checkboxes now use unique `Task N / Step M` prefixes before retrying targeted verification.
+- Checkoff result: all five Task 1 plan steps and OpenSpec 1.1/1.2 passed `comet state task-checkoff`; OpenSpec 1.3 remains pending for Task 3 cross-day inheritance.
+- Completed at: `2026-07-25 12:08:15 +0800`
