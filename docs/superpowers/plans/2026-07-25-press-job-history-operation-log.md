@@ -437,7 +437,7 @@ Expected：OpenSpec valid、diff check 无输出；敏感词命中只能位于�
 
 - [ ] **Step 5: 按已选择的 review_mode 完成代码审查**
 
-`standard`：一次全量 correctness/security/edge-case review；`thorough`：按每 3 个任务分段审查并做一次最终全量审查。必须修复 CRITICAL，其他接受项要在持久产物记录理由。重点检查事务、设备隔离、同键异载荷、actor replay 顺序、作业切换延迟、加工中追加锁模、敏感字段和 PLC 不重放。
+`standard`：一次全量 correctness/security/edge-case review；`thorough`：每个任务完成一次规格与质量审查，并做一次最终全量审查。必须修复 CRITICAL，其他接受项要在持久产物记录理由。重点检查事务、设备隔离、同键异载荷、actor replay 顺序、作业切换延迟、加工中追加锁模、敏感字段和 PLC 不重放。
 
 - [ ] **Step 6: 记录 Comet build evidence 并检查任务**
 
