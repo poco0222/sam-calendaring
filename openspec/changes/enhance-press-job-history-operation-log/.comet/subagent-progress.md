@@ -18,9 +18,9 @@
   - `2.3 成功业务日志必须与对应业务事务同提交/回滚；参数和完成日志只按当次实际子作业列表扇出，共享 correlationId，禁止串到兄弟模具`
   - `2.4 为已通过设备及 actor 校验后发生的 ERP 失败动作通过 REQUIRES_NEW 补写脱敏失败日志，并保证日志失败不覆盖原业务错误`
   - `3.3 保留原有 qt_press_job_operation 的 START/PARAMETER/COMPLETE 幂等/重放职责，重复请求必须返回原结果且不得重复写业务日志；保留旧作业降级来源` (partial; Task 4/7 complete endpoint/fallback verification)
-- Stage: `awaiting-user-authorization`
+- Stage: `implementing`
 - Review mode: `thorough`
-- Review-fix round: `2/2`
+- Review-fix round: `3/3` (user-authorized exception)
 - Implementer: `/root/task3_worker`
 - Implementation base: `eb4a1c9a2eca324517dd35b9eea0f79d5189120b`
 - Allowed files:
@@ -98,3 +98,9 @@
 - Exhausted review-fix budget: `2/2`; Task 3 未 checkoff，等待用户是否授权第 3 轮修复。
 - Remaining Important: PARAMETER 已让更新与日志共用同一锁内缓存集合，但既有更新 SQL 仅以 child `id` 为条件，不能原子证明数据库行仍匹配当前 `press_job_info_id`、`device_id`、`status` 与 `mould_operation_session_id`；陈旧/漂移 JSON 可更新兄弟或历史行并写出矛盾日志关联。
 - Proposed third-round scope if authorized: 为参数写入复用/增加最小条件更新（精确 `id + parent + device + status + session`，兼容双方会话均空的 legacy 行），严格校验影响行数；补缓存伪装但 DB 条件不匹配时事务失败、无成功日志/幂等记录且不把 FAILED 归属到伪装会话的回归测试。该修复可能需要扩展到既有 Mapper interface/XML 与对应 Task 3 tests，禁止其他范围扩张。
+- User decision: at `2026-07-25 15:04:25 +0800`, the user explicitly authorized Task 3 review-fix round 3 and the proposed Mapper interface/XML scope expansion.
+- Third-round allowed expansion: existing `PressMouldJobInfoMapper` interface/XML plus the existing Task 3 service/interface/test files only; Controller, frontend, POM, dependencies, database schema and unrelated files remain prohibited.
+- Third-round TDD target: prove a stale or forged cached child cannot update a database row whose `id` matches but parent, device, status or mould session identity does not; legacy session matching is allowed only when both snapshot and database session are empty.
+- Third-round fix agent: `/root/task3_fix3_mapper`
+- Third-round dispatched at: `2026-07-25 15:05:54 +0800`
+- Third-round report target: `.superpowers/sdd/task-3-report.md`; the agent must append RED/GREEN evidence and commit details without modifying plan/OpenSpec/checkpoint files.
