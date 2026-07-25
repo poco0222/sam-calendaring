@@ -18,7 +18,7 @@
   - `2.3 成功业务日志必须与对应业务事务同提交/回滚；参数和完成日志只按当次实际子作业列表扇出，共享 correlationId，禁止串到兄弟模具`
   - `2.4 为已通过设备及 actor 校验后发生的 ERP 失败动作通过 REQUIRES_NEW 补写脱敏失败日志，并保证日志失败不覆盖原业务错误`
   - `3.3 保留原有 qt_press_job_operation 的 START/PARAMETER/COMPLETE 幂等/重放职责，重复请求必须返回原结果且不得重复写业务日志；保留旧作业降级来源` (partial; Task 4/7 complete endpoint/fallback verification)
-- Stage: `implementing`
+- Stage: `task-final-review`
 - Review mode: `thorough`
 - Review-fix round: `3/3` (user-authorized exception)
 - Implementer: `/root/task3_worker`
@@ -104,3 +104,12 @@
 - Third-round fix agent: `/root/task3_fix3_mapper`
 - Third-round dispatched at: `2026-07-25 15:05:54 +0800`
 - Third-round report target: `.superpowers/sdd/task-3-report.md`; the agent must append RED/GREEN evidence and commit details without modifying plan/OpenSpec/checkpoint files.
+- Third-round agent returned at: `2026-07-25 15:17:39 +0800`
+- Third-round fix commit: `b08ce421326db41c0fbbc14962ad12ffe483ee40` (`fix: 原子校验压机参数作业归属`).
+- Third-round changed files: existing `PressMouldJobInfoMapper` interface/XML, two service implementations and three existing Task 3/Mapper tests; no Controller/frontend/POM/dependency/schema/new-file changes.
+- Third-round RED evidence: focused command ran `113` tests with `2` failures and `0` errors; one proved the forged locked child was accepted, the other proved the conditional Mapper method was absent.
+- Third-round GREEN evidence: the same focused command passed `113/113` (`9` mapper contract + `30` mould service + `74` job service), `0` failures/errors/skips, `BUILD SUCCESS`; backend worktree is clean and `git show --check` passed.
+- Third-round implementation report: `.superpowers/sdd/task-3-report.md` (appended section `第三轮 Review Fix`).
+- Third final review package: `/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be/.worktrees/enhance-press-job-history-operation-log/.superpowers/sdd/review-eb4a1c9a..b08ce421.diff` (`4` Task 3 commits, `178371` bytes).
+- Third final reviewer: `/root/task3_third_final_review`
+- Third final review dispatched at: `2026-07-25 15:18:37 +0800`
