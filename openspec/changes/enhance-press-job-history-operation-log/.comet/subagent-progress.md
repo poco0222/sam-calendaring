@@ -15,7 +15,7 @@
 - Mapped OpenSpec task texts:
   - `2.1 复用现有班组/人员主数据校验，实现最小 PressOperationLogWriter，只接受可信设备、作业关联、允许列表操作码、固定中文摘要、结果和 actor（操作者）快照`
   - `2.4 为已通过设备及 actor 校验后发生的 ERP 失败动作通过 REQUIRES_NEW 补写脱敏失败日志，并保证日志失败不覆盖原业务错误` (partial; Task 3 integrates caller behavior)
-- Stage: `implementing`
+- Stage: `task-review`
 - Review mode: `thorough`
 - Review-fix round: `3/3` (user-authorized exception)
 - Implementer: `/root/task2_writer`
@@ -66,3 +66,9 @@
 - Third fix agent: `/root/task2_fix3`
 - Third fix dispatched at: `2026-07-25 12:54:35 +0800`
 - Third fix scope: test-only warning capture and redaction assertions; no new dependency or production abstraction, with temporary uncommitted mutation allowed only to prove RED if the compliant production implementation makes the new test pass immediately.
+- Third fix returned at: `2026-07-25 12:59:05 +0800`
+- Third fix commit: `eb4a1c9a2eca324517dd35b9eea0f79d5189120b`
+- Third fix changed file: `sam-erp/src/test/java/com/yr/smes2/smes/modbus/service/impl/PressOperationLogWriterTest.java`
+- Third fix RED evidence: temporary uncommitted sensitive-warning mutation produced `Tests run: 13, Failures: 1`, detecting both exception-message and throwable leakage; the mutation was fully restored and is absent from the commit.
+- Third fix GREEN evidence: the same focused Maven command produced `Tests run: 13, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`; diff checks passed and the backend worktree is clean.
+- Third fix status: `DONE_WITH_CONCERNS`; only accepted baseline Druid/Lombok build noise remains in the implementer report.
