@@ -123,11 +123,11 @@ git commit -m "feat: 扩展压机业务操作日志关联模型"
 - Produces: `resolveActorSnapshot(String teamId, String operatorId)`；`writeSuccess(WriteContext context)`；`@Transactional(propagation = Propagation.REQUIRES_NEW) writeFailureInNewTransaction(WriteContext context)`。
 - Constraint: `WriteContext` 是 Writer 内部小型 static value type（值类型），不创建 interface/factory；只含可信设备/作业关联、固定操作码/结果、correlationId 和 actor 快照。
 
-- [ ] **Task 2 / Step 1: 写失败的 Writer 单元测试**
+- [x] **Task 2 / Step 1: 写失败的 Writer 单元测试**
 
 覆盖：班组不属于压机范围时拒绝；人员不属于班组部门时拒绝；成功快照保存 `handleBy=operatorId`、`teamId/teamName/operatorName`；操作码映射为固定中文 `handleType/handleContent`；Writer 无法接收 IP、port、参数 JSON、信号配置或异常正文；失败方法体内的 Mapper 异常只做脱敏告警。`REQUIRES_NEW` 事务代理在方法体外发生的 begin/commit 异常由 Task 3 调用方捕获并保证不替换原业务异常，本任务只验证注解与外部 Bean 调用契约。
 
-- [ ] **Task 2 / Step 2: 运行测试并确认类尚不存在**
+- [x] **Task 2 / Step 2: 运行测试并确认类尚不存在**
 
 ```zsh
 cd "$BACKEND_WORKTREE"
@@ -138,15 +138,15 @@ JAVA_HOME=/Users/popoy/WorkSpace/DevTools/Java/zulu-8.0.492.jdk/Contents/Home \
 
 Expected：FAIL，`PressOperationLogWriter` 尚不存在。
 
-- [ ] **Task 2 / Step 3: 实现一个具体 Writer Bean**
+- [x] **Task 2 / Step 3: 实现一个具体 Writer Bean**
 
 使用固定 operation code allowlist：`LOCK_MOLD`, `CONNECT`, `START_JOB`, `PARAMETER_START`, `PARAMETER_END`, `MOVE_IN`, `MOVE_OUT`, `LINE_IN`, `LINE_OUT`, `COMPLETE_JOB`, `DISCONNECT`, `UNLOCK_MOLD`。`OK` 写 `handleResult="true"`；`PARTIAL_OK` / `FAILED` 写 `"false"`；内容只能由 code + result 映射生成。成功方法加入调用方事务；失败方法仅接受已经构造好的脱敏上下文并使用 `REQUIRES_NEW`。
 
-- [ ] **Task 2 / Step 4: 运行测试并确认通过**
+- [x] **Task 2 / Step 4: 运行测试并确认通过**
 
 重复 Step 2 命令。Expected：PASS。
 
-- [ ] **Task 2 / Step 5: 提交 Writer**
+- [x] **Task 2 / Step 5: 提交 Writer**
 
 ```zsh
 git add sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/impl/PressOperationLogWriter.java \
