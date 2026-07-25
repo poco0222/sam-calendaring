@@ -48,3 +48,6 @@
 - Verification evidence: `git diff HEAD^ HEAD --check` passed and the backend worktree is clean.
 - Implementer status: completed with one non-blocking note that per-row ERP server timestamps may differ by milliseconds; the contract requires shared `correlationId`, not identical `handleTime`.
 - Implementer report: `.superpowers/sdd/task-3-report.md`
+- Review package: `.superpowers/sdd/review-eb4a1c9a..b35c2696.diff`
+- Reviewer: `/root/task3_review`
+- Review dispatched at: `2026-07-25 13:38:51 +0800`
