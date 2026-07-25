@@ -18,7 +18,7 @@
   - `2.3 成功业务日志必须与对应业务事务同提交/回滚；参数和完成日志只按当次实际子作业列表扇出，共享 correlationId，禁止串到兄弟模具`
   - `2.4 为已通过设备及 actor 校验后发生的 ERP 失败动作通过 REQUIRES_NEW 补写脱敏失败日志，并保证日志失败不覆盖原业务错误`
   - `3.3 保留原有 qt_press_job_operation 的 START/PARAMETER/COMPLETE 幂等/重放职责，重复请求必须返回原结果且不得重复写业务日志；保留旧作业降级来源` (partial; Task 4/7 complete endpoint/fallback verification)
-- Stage: `review-fix`
+- Stage: `task-rereview`
 - Review mode: `thorough`
 - Review-fix round: `1/2`
 - Implementer: `/root/task3_worker`
@@ -67,3 +67,8 @@
 - Round 1 progress at `2026-07-25 14:00:04 +0800`: 已确认真实 Spring Transaction Proxy 测试可复用现有 `ProxyFactory`、`TransactionInterceptor`、`AnnotationTransactionAttributeSource` 与测试内最小事务管理器落地，无需新增依赖或文件；正在完成 RED 回归测试，无范围阻塞。
 - Round 1 test patch at `2026-07-25 14:03:15 +0800`: 首批 RED 用例已仅落入两份既有 Qt service test，覆盖设备行锁定快照、关键写入 0 行、读取会话不变、legacy PARAMETER/COMPLETE fingerprint replay 与业务 payload 冲突；正在补 legacy start 回填及真实事务代理用例。
 - Round 1 RED at `2026-07-25 14:07:27 +0800`: 指定 focused Maven 命令运行 `96` 个测试，`4` failures、`3` errors、`0` skipped；命中 lock/unlock 未使用 `FOR UPDATE`、关键写入 0 行未失败、legacy session start 回填 0 行报错、可信 PARAMETER/COMPLETE 对旧 fingerprint 冲突。真实 Spring proxy 的外层成功日志回滚、`REQUIRES_NEW` 失败日志独立提交，以及 begin/commit 异常保护测试已通过。
+- Round 1 implementer returned at: `2026-07-25 14:14:47 +0800`
+- Round 1 fix commit: `26a2f3d6eddec6e03e5e4e6867eff3b330025ba6` (`fix: 修复压机生命周期日志一致性`).
+- Round 1 GREEN evidence: 指定 focused Maven 命令通过 `96/96`（mould `30`、job `66`），`0` failures/errors/skips，`BUILD SUCCESS`；`git show --check` 通过，后端工作树干净。
+- Round 1 changed files: 两个既有 service implementation 与两份既有 Qt service test；接口、Controller、Mapper/XML、POM、OpenSpec 均未修改。
+- Round 1 review package: `.superpowers/sdd/review-eb4a1c9a..26a2f3d6.diff`（完整 Task 3 两个提交，`140675` bytes）。
