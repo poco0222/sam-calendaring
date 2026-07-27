@@ -2,7 +2,7 @@
 > @author PopoY
 > @created 2026-07-25 12:09:31
 > Editor: PopoY
-> Edited: 2026-07-27 12:02:06
+> Edited: 2026-07-27 12:16:21
 > @purpose 记录 Comet 子代理实施与审查恢复状态。
 
 # Subagent Progress（子代理进度）
@@ -14,7 +14,7 @@
   - `2.1 为 START、PARAMETER_START、PARAMETER_END、LINE_IN、LINE_OUT、COMPLETE 增加最小请求类型和客户端调用`
   - `2.2 在真实操作结果确定后 best-effort 异步上报，保持主结果不变且日志失败只写脱敏诊断`
   - `2.3 增加六类结果、完成后出线、敏感字段缺失和日志失败隔离定向测试`
-- Stage: `implementing`
+- Stage: `task-review`
 - Implementer: `/root/task3_qt_reporting`（dispatched 2026-07-27 11:33:15）
 - Fixer: `/root/task3_fix1`（dispatched 2026-07-27 12:02:06）
 - Review mode: `thorough`
@@ -27,7 +27,9 @@
 - RED evidence: 指定 2 文件测试 24 failed / 165 passed；缺少 client 方法和六类 workflow 上报调用
 - GREEN evidence: `erpClient.test.ts` 49 + `PressJobPage.test.tsx` 140，共 189/189 PASS
 - Risk signals: 单 Task diff 703 行（>200）；Public API contract；domain/service/App/PressJobPage 跨层 workflow 集成；敏感输入诊断边界
-- Review status: `Spec ❌ / Task quality Needs fixes`
-- Unresolved feedback: `App.tsx` 的设备事件订阅 effect 把 `pressJobFilters.teamId/operatorId` 作为依赖，筛选变化会关闭并重建不可回放的 EventSource，窗口期可能漏掉阈值事件及对应 `PARAMETER_START` 日志；需用 refs 读取最新筛选身份并补 App 级生命周期回归测试。
+- Fix status: `DONE_WITH_CONCERNS`；commit `c43b143d888fe5a4b31dde35c0b47dba877e7bc9`
+- Fix RED/GREEN: App lifecycle RED `17 passed / 1 failed`（旧实现 subscribe=2）；mutation 同样 RED；最终 App `18/18`、Task 3 `207/207` PASS，`git diff --check` PASS。
+- Review status: `pending rereview`
+- Unresolved feedback: 原 SSE 重建问题待独立复审；额外 `tsc --noEmit` 发现 `PressJobPage.test.tsx:3380,3384` 的既有测试事件名类型错误，当前修复未越界处理，须在最终 TypeScript 门禁前收口。
 - Fix scope: 只允许持久修改 `qt-app/frontend/src/App.tsx` 与 `qt-app/frontend/src/App.test.tsx`；不新增依赖、重连或回放机制。
 - Historical note: 旧 Task 1–3 及旧方案已完整回退，不得从旧账本恢复。
