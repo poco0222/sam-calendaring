@@ -4,5 +4,6 @@
   "openspec_tasks": "openspec/changes/enhance-press-job-history-operation-log/tasks.md",
   "openspec_delta_spec": "openspec/changes/enhance-press-job-history-operation-log/specs/press-job-history-query/spec.md",
   "handoff_context": "openspec/changes/enhance-press-job-history-operation-log/.comet/handoff/design-context.json",
-  "handoff_markdown": "openspec/changes/enhance-press-job-history-operation-log/.comet/handoff/design-context.md"
+  "handoff_markdown": "openspec/changes/enhance-press-job-history-operation-log/.comet/handoff/design-context.md",
+  "archive_directory": "openspec/changes/archive/2026-07-27-enhance-press-job-history-operation-log"
 }

@@ -2,6 +2,7 @@
 change: enhance-press-job-history-operation-log
 design-doc: docs/superpowers/specs/2026-07-25-press-job-history-operation-log-design.md
 base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
+archived-with: 2026-07-27-enhance-press-job-history-operation-log
 ---
 
 # 压机历史作业操作日志 Implementation Plan（实施计划）

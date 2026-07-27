@@ -2,6 +2,8 @@
 comet_change: enhance-press-job-history-operation-log
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-27-enhance-press-job-history-operation-log
+status: final
 ---
 
 # 压机历史作业操作日志最小技术设计
