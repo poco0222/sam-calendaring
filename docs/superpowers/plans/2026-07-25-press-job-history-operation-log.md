@@ -6,17 +6,17 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 
 # 压机历史作业操作日志 Implementation Plan（实施计划）
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 > @file 2026-07-25-press-job-history-operation-log.md
 > @author PopoY
 > @created 2026-07-25 11:04:52
 > Editor: PopoY
-> Edited: 2026-07-27 09:17:15
+> Edited: 2026-07-27 10:55:08
 
 **Goal:** 参考 `sam-erp-fe` 既有 `logHandle`，在六个压机真实操作结果确定后 best-effort（尽力而为）写入 `modbus_handle_log`，并在历史详情按父作业展示班组、作业人员和整段时间线，同时完成指定筛选与抽屉 UI 调整。
 
-**Architecture:** ERP 只扩展现有日志表、现有压机作业 Service（服务）和现有 Qt Controller（控制器）；服务端从认证上下文取得设备与授权主机，复用两条已有父作业关联路径，不能可靠关联时只写 device-only log（仅设备日志）。QT App 在主操作结果已经确定后触发不等待的六字段日志请求；历史详情优先整组使用新日志，完全没有新日志时整组降级现有 `qt_press_job_operation` 投影。
+**Architecture:** ERP 只扩展现有日志表、现有压机作业 Service（服务）和现有 Qt Controller（控制器）；服务端从认证上下文取得设备与授权主机，复用两条已有父作业关联路径，不能可靠关联时只写 device-only log（仅设备日志）。QT App 在主操作结果已经确定后触发不等待的六字段日志请求；历史详情优先整组使用可信新日志，完全没有可信新日志时整组降级现有 `qt_press_job_operation` 投影。通用 `/modbus/handleLog` 只在 HTTP Trust Boundary（HTTP 信任边界）忽略客户端 `pressJobInfoId`，不改变 Java Service 契约。
 
 **Tech Stack:** Java 8、Spring MVC、MyBatis、Liquibase、JUnit 5、React、TypeScript、Ant Design、dayjs、Vitest。
 
@@ -28,6 +28,8 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 - 请求正文严格只有 `correlationId`、`localJobSessionId`、`operationCode`、`result`、`teamId`、`operatorId`；`result` 必须是 JSON Boolean（布尔值）。
 - 只允许 `START`、`PARAMETER_START`、`PARAMETER_END`、`LINE_IN`、`LINE_OUT`、`COMPLETE`；操作中文名称和内容由服务端固定映射。
 - 服务端只从认证上下文取得 `deviceId`、`granteeHostId`；请求不得包含设备、网络、原始参数、信号配置、异常正文、credential（凭据）、token（令牌）、lease（租约）或 signature（签名）。
+- QT DTO（数据传输对象）未知字段只记录内部 boolean 标记；Controller 在认证解析与 Service 调用前返回固定中文业务错误，不得产生或记录 Jackson/Spring 异常栈。
+- 通用 `POST /modbus/handleLog` 必须在 Controller 调用既有 Service 前清空客户端 `pressJobInfoId`；不得改变 Domain、Mapper 或通用 Service 的 Java contract（Java 契约）。
 - 父作业只复用 `press-job-id-*` 直连和现有 Qt `START` 会话映射；只校验父作业属于认证设备与授权主机，不要求仍在加工，不增加 actor-team（人员班组）二次关系校验。
 - 无可靠父作业时保存 `press_job_info_id = null` 的 device-only log；它不进入历史详情，不回填、不按时间猜测。
 - 日志上报必须发生在真实操作结果确定后，不等待、不重试、不排队、不补偿；日志失败不得改变主操作返回或异常。
@@ -47,6 +49,8 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 | 后端 | `sam-erp/src/main/java/com/yr/smes2/smes/modbus/mapper/ModbusHandleLogMapper.java`、`sam-erp/src/main/resources/mapper/smes/modbus/ModbusHandleLogMapper.xml` | 写入新增 ID，并按设备与父作业稳定查询及关联主数据 |
 | 后端 | `sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/IPressJobInfoService.java`、`sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/impl/PressJobInfoServiceImpl.java` | 复用现有父作业解析并保存固定日志，不新增 Service/Writer |
 | 后端 | `yr-admin/src/main/java/com/yr/web/controller/system/QtPressWorkingController.java` | 六字段薄端点、请求白名单与历史整组 fallback |
+| 后端 | `sam-erp/src/main/java/com/yr/smes2/smes/modbus/controller/ModbusHandleLogController.java` | 通用日志 HTTP 入口忽略客户端父作业关联，不改变既有 Service |
+| 后端 | `sam-erp/src/test/java/com/yr/smes2/smes/modbus/controller/ModbusHandleLogControllerTest.java` | 锁定通用入口清空 `pressJobInfoId` 的最小回归 |
 | 前端 | `qt-app/frontend/src/domain/pressJob.ts`、`qt-app/frontend/src/services/erpClient.ts`、`qt-app/frontend/src/App.tsx` | 最小请求/历史类型、HTTP 调用与现有依赖注入 |
 | 前端 | `qt-app/frontend/src/components/PressJobPage.tsx` | 六个既有 workflow（流程）的 post-action 上报 |
 | 前端 | `qt-app/frontend/src/components/PressJobHistoryPage.tsx`、`qt-app/frontend/src/components/PressJobHistoryPage.css` | 单行筛选、快捷日期、80% Drawer、Boolean 翻译和 Timeline（时间线） |
@@ -126,65 +130,147 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 - Modify: `/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be/.worktrees/enhance-press-job-history-operation-log/sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/IPressJobInfoService.java`
 - Modify: `/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be/.worktrees/enhance-press-job-history-operation-log/sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/impl/PressJobInfoServiceImpl.java`
 - Modify: `/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be/.worktrees/enhance-press-job-history-operation-log/yr-admin/src/main/java/com/yr/web/controller/system/QtPressWorkingController.java`
+- Modify: `/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be/.worktrees/enhance-press-job-history-operation-log/sam-erp/src/main/java/com/yr/smes2/smes/modbus/controller/ModbusHandleLogController.java`
 - Modify: `/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be/.worktrees/enhance-press-job-history-operation-log/sam-erp/src/test/java/com/yr/smes2/smes/modbus/service/impl/PressJobInfoServiceImplQtTest.java`
 - Modify: `/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be/.worktrees/enhance-press-job-history-operation-log/yr-admin/src/test/java/com/yr/web/controller/system/QtPressWorkingControllerTest.java`
+- Create: `/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be/.worktrees/enhance-press-job-history-operation-log/sam-erp/src/test/java/com/yr/smes2/smes/modbus/controller/ModbusHandleLogControllerTest.java`
 
 **Interfaces:**
 - Consumes: Task 1 的 `insertModbusHandleLog`、`selectHistoryByPressJobInfoId`；现有 `resolveQtPressContext()`、`press-job-id-*` 和 Qt `START` 映射。
-- Produces: `void recordPressJobOperationForQt(QtPressJobContext context, String correlationId, String localJobSessionId, String operationCode, boolean result, String teamId, String operatorId)`；`POST /api/qt/press-working/operation-logs`；历史 `operationRecords` 每条为 `operationTime/operationName/result/content/teamName/operatorName`。
+- Produces: `void recordPressJobOperationForQt(QtPressJobContext context, String correlationId, String localJobSessionId, String operationCode, boolean result, String teamId, String operatorId)`；`POST /api/qt/press-working/operation-logs`；历史 `operationRecords` 每条为 `operationTime/operationName/result/content/teamName/operatorName`；通用 `POST /modbus/handleLog` 传给 Service 的 `pressJobInfoId` 恒为 `null`。
 
-- [ ] **Task 2 / Step 1: 写端点、关联和历史投影失败测试**
+- [ ] **Task 2 / Step 1: 写两项信任边界失败测试**
 
-  Service 测试覆盖：`press-job-id-*` 直连、Qt `START` 会话、完成后仍关联、无法关联写 null、他设备/他授权主机不得关联、不校验 operator-team 关系、`handle_result` 只写字符串 `true/false`。Controller 测试覆盖六操作码固定映射、非 Boolean/未知码/额外敏感字段拒绝、认证设备不可由请求覆盖、新日志优先、零条新日志整组 fallback、兄弟模具共享同一父作业时间线、缺失主数据返回 null；“未记录”仅由 Task 4 的 UI 显示。
+  Task 2 核心实现已由后端提交 `66a97a6a14d9d4edae8ed9fecc24ac8451e47060` 完成。本轮只为审查发现的两个 Trust Boundary（信任边界）补失败测试，不重写既有 Service、历史投影或 Mapper。
+
+  新建 `ModbusHandleLogControllerTest`。创建文件前先运行 `date '+%Y-%m-%d %H:%M:%S'`，把实际输出写入 `@created`；测试正文固定为：
 
   ```java
-  verify(pressJobInfoService).recordPressJobOperationForQt(
-          context, "corr-1", "press-job-id-42", "COMPLETE", true, "team-1", "user-1");
-  assertEquals("失败", operationRecords.get(0).get("result"));
-  assertNull(operationRecords.get(0).get("teamName"));
+  /**
+   * @file ModbusHandleLogControllerTest.java
+   * @author PopoY
+   * @created 2026-07-27 10:55:08
+   * @purpose 验证通用 Modbus 日志入口不得接受客户端父作业关联。
+   */
+  package com.yr.smes2.smes.modbus.controller;
+
+  import com.yr.smes2.smes.modbus.domain.ModbusHandleLog;
+  import com.yr.smes2.smes.modbus.service.IModbusHandleLogService;
+  import org.junit.jupiter.api.Test;
+  import org.mockito.ArgumentCaptor;
+
+  import java.lang.reflect.Field;
+
+  import static org.junit.jupiter.api.Assertions.assertNull;
+  import static org.mockito.Mockito.mock;
+  import static org.mockito.Mockito.verify;
+  import static org.mockito.Mockito.when;
+
+  class ModbusHandleLogControllerTest {
+      @Test
+      void addClearsClientPressJobInfoIdBeforeService() throws Exception {
+          IModbusHandleLogService service = mock(IModbusHandleLogService.class);
+          ModbusHandleLogController controller = new ModbusHandleLogController();
+          Field serviceField = ModbusHandleLogController.class
+                  .getDeclaredField("modbusHandleLogService");
+          serviceField.setAccessible(true);
+          serviceField.set(controller, service);
+          when(service.insertModbusHandleLog(org.mockito.ArgumentMatchers.any()))
+                  .thenReturn(1);
+          ModbusHandleLog request = new ModbusHandleLog();
+          request.setPressJobInfoId(42L);
+
+          controller.add(request);
+
+          ArgumentCaptor<ModbusHandleLog> captor =
+                  ArgumentCaptor.forClass(ModbusHandleLog.class);
+          verify(service).insertModbusHandleLog(captor.capture());
+          assertNull(captor.getValue().getPressJobInfoId());
+      }
+  }
   ```
 
-- [ ] **Task 2 / Step 2: 运行测试并确认 RED（红）**
+  在既有 `operationLogEndpointRejectsUnknownNonBooleanMissingAndExtraSensitiveFields` 中，仅把携带 `deviceId/signedLease` 的请求替换为以下完整片段；既有前三个非法结果请求及结尾 `verifyNoInteractions(service)` 保留：
+
+  ```java
+  Logger globalLogger = (Logger) LoggerFactory.getLogger(GlobalExceptionHandler.class);
+  ListAppender<ILoggingEvent> globalAppender = new ListAppender<>();
+  globalAppender.start();
+  globalLogger.addAppender(globalAppender);
+  try {
+      MvcResult extraFieldResult = mockMvc.perform(post(
+                      "/api/qt/press-working/operation-logs")
+                      .header("X-Correlation-Id", "corr-operation")
+                      .contentType(MediaType.APPLICATION_JSON)
+                      .content(validPrefix
+                              + "\"result\":true,\"teamId\":\"team-01\","
+                              + "\"operatorId\":\"op-01\",\"deviceId\":999,"
+                              + "\"signedLease\":\"secret\"}"))
+              .andExpect(status().isOk())
+              .andExpect(jsonPath("$.code").value(500))
+              .andExpect(jsonPath("$.msg").value("请求包含未知字段"))
+              .andReturn();
+      String responseJson = new String(
+              extraFieldResult.getResponse().getContentAsByteArray(),
+              StandardCharsets.UTF_8);
+      assertFalse(responseJson.contains("secret"));
+      assertFalse(responseJson.contains("JsonMappingException"));
+      assertEquals(0, globalAppender.list.size());
+  } finally {
+      globalLogger.detachAppender(globalAppender);
+      globalAppender.stop();
+  }
+  ```
+
+- [ ] **Task 2 / Step 2: 运行信任边界测试并确认 RED（红）**
 
   ```bash
-  JAVA_HOME=/Users/popoy/WorkSpace/DevTools/Java/zulu-8.0.492.jdk/Contents/Home /Users/popoy/WorkSpace/DevTools/Maven/bin/mvn -pl yr-admin -am -Dtest=PressJobInfoServiceImplQtTest,QtPressWorkingControllerTest -Dsurefire.failIfNoSpecifiedTests=false test
+  JAVA_HOME=/Users/popoy/WorkSpace/DevTools/Java/zulu-8.0.492.jdk/Contents/Home /Users/popoy/WorkSpace/DevTools/Maven/bin/mvn -pl yr-admin -am -Dtest=ModbusHandleLogControllerTest,PressJobInfoServiceImplQtTest,QtPressWorkingControllerTest -Dsurefire.failIfNoSpecifiedTests=false test
   ```
 
-  Expected: FAIL，原因是新 Service 方法、端点与六字段投影尚不存在。
+  Expected: FAIL，至少包含两条预期证据：通用 Controller 传给 Service 的 `pressJobInfoId` 仍为 `42`；额外字段响应仍含 Jackson 包装错误或 GlobalExceptionHandler 产生异常日志。
 
-- [ ] **Task 2 / Step 3: 实现最薄 Service 与 Controller**
+- [ ] **Task 2 / Step 3: 实现两个最小 Controller 修复**
 
-  在现有 `IPressJobInfoService/PressJobInfoServiceImpl` 增加上方一个方法，不新增接口、Writer、事务传播或会话对象。父作业解析顺序固定为：
+  在 `recordPressJobOperation` 读取请求字段前先检查内部标记；标记存在时抛固定 `CustomException`，不得调用认证解析或 Service：
 
-  ```text
-  press-job-id-* -> 按 context.deviceId + context.granteeHostId 查父作业
-  其他 localJobSessionId -> 按认证设备查现有 Qt START -> 再确认授权主机
-  未命中或不属于上下文 -> pressJobInfoId = null
+  ```java
+  if (request != null && request.unknownFieldPresent) {
+      throw new CustomException("请求包含未知字段");
+  }
   ```
 
-  Service 用 Java 8 `switch` 映射固定值：
+  `PressJobOperationLogRequest` 保持六个 Bean property（Bean 属性）；class-level Lombok 注解不得为内部标记生成 getter/setter。`@JsonAnySetter` 只置位，不读取、不保存、不回显字段名和值：
 
-  ```text
-  START=开始加工；PARAMETER_START=开始参数记录；PARAMETER_END=完工参数记录
-  LINE_IN=入线；LINE_OUT=出线；COMPLETE=完成加工
-  handle_content = handle_type + (result ? "成功" : "失败")
+  ```java
+  @Getter(lombok.AccessLevel.NONE)
+  @Setter(lombok.AccessLevel.NONE)
+  private boolean unknownFieldPresent;
+
+  @JsonAnySetter
+  public void markUnknownField(String ignoredFieldName, Object ignoredValue) {
+      unknownFieldPresent = true;
+  }
   ```
 
-  然后设置 `handle_result = String.valueOf(result)`、`handle_by = operatorId`、`team_id = teamId`、`device_id = context.deviceId`。不查询人员是否属于班组，不要求父作业 active/current。
+  在 `ModbusHandleLogController.add` 调用既有 Service 前只增加一行；不修改 Domain、Mapper、Service 或其他字段：
 
-  Controller 内新增只有六个属性的 `PressJobOperationLogRequest`，未知 JSON 属性在反序列化时拒绝；六字段都校验非空，`Boolean result` 非 null 后才拆箱。复用 `requireMatchingCorrelation` 与 `resolveQtPressContext()`，成功只返回现有 `AjaxResult.success()`，不得回显请求正文。
+  ```java
+  log.setPressJobInfoId(null);
+  return toAjax(modbusHandleLogService.insertModbusHandleLog(log));
+  ```
 
-  历史详情先调用 Task 1 新查询；结果非空时投影六字段，空时才调用现有 `qtPressJobOperationMapper.selectHistoryByPressJobInfoId(...)`，禁止逐条混合两类日志。
+  修改两个生产文件的 file header（文件头）时，执行 `date '+%Y-%m-%d %H:%M:%S'`，保留已有作者并用实际输出追加或更新 `Editor: PopoY` / `Edited`。`ModbusHandleLogController.java` 当前没有文件头，新增含 `@author PopoY`、实际 `@created` 和中文 purpose（目的）的文件头。
 
-- [ ] **Task 2 / Step 4: 运行测试并确认 GREEN（绿）**
+- [ ] **Task 2 / Step 4: 运行完整 Task 2 测试并确认 GREEN（绿）**
 
-  重复 Step 2 命令。Expected: 两个定向测试类 PASS，Maven `BUILD SUCCESS`。
+  重复 Step 2 命令。Expected: 三个定向测试类合计 89/89 PASS，Maven `BUILD SUCCESS`；额外字段响应为固定中文错误，GlobalExceptionHandler 无异常日志，通用 Service 捕获对象的 `pressJobInfoId == null`。
 
-- [ ] **Task 2 / Step 5: 提交后端业务边界**
+- [ ] **Task 2 / Step 5: 提交信任边界修复**
 
   ```bash
-  git add sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/IPressJobInfoService.java sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/impl/PressJobInfoServiceImpl.java sam-erp/src/test/java/com/yr/smes2/smes/modbus/service/impl/PressJobInfoServiceImplQtTest.java yr-admin/src/main/java/com/yr/web/controller/system/QtPressWorkingController.java yr-admin/src/test/java/com/yr/web/controller/system/QtPressWorkingControllerTest.java
-  git commit -m "feat: 记录压机作业操作日志"
+  git add sam-erp/src/main/java/com/yr/smes2/smes/modbus/controller/ModbusHandleLogController.java sam-erp/src/test/java/com/yr/smes2/smes/modbus/controller/ModbusHandleLogControllerTest.java yr-admin/src/main/java/com/yr/web/controller/system/QtPressWorkingController.java yr-admin/src/test/java/com/yr/web/controller/system/QtPressWorkingControllerTest.java
+  git commit -m "fix: 收紧压机日志可信关联边界"
   ```
 
 ### Task 3: QT post-action best-effort（操作后尽力上报）

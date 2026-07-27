@@ -1,11 +1,12 @@
 > Editor: PopoY
-> Edited: 2026-07-27 08:46:41
+> Edited: 2026-07-27 10:55:08
 
 ## 1. 最小日志表与端点
 
 - [x] 1.1 为 `modbus_handle_log` 仅增加 nullable `press_job_info_id`、`team_id` 和 `(device_id, press_job_info_id, handle_time, id)` 索引，保留既有字段语义与旧入口兼容性
 - [x] 1.2 扩展现有 Domain（领域模型）和 Mapper（映射器）读写，新增按认证设备与父作业时间正序查询，并在查询时关联现有班组、用户主数据
 - [ ] 1.3 新增最薄 QT operation-log endpoint（操作日志端点），只接受六字段请求、固定操作码和 Boolean 结果，复用 `press-job-id-*` 直连或现有 Qt `START` 会话映射且不要求作业仍进行中，无法关联时保存 device-only log
+- [ ] 1.4 收紧两项 Trust Boundary（信任边界）：QT 未知字段由 Controller 固定中文拒绝且不产生第三方异常栈；通用 `/modbus/handleLog` 忽略客户端 `pressJobInfoId`，只有认证 QT 专用服务端路径建立父作业关联
 
 ## 2. QT post-action 上报
 
