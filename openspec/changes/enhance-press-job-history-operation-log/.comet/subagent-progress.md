@@ -2,7 +2,7 @@
 > @author PopoY
 > @created 2026-07-25 12:09:31
 > Editor: PopoY
-> Edited: 2026-07-27 10:55:08
+> Edited: 2026-07-27 11:00:54
 > @purpose 记录 Comet 子代理实施与审查恢复状态。
 
 # Subagent Progress（子代理进度）
@@ -14,10 +14,11 @@
   - `1.3 新增最薄 QT operation-log endpoint，只接受六字段请求、固定操作码和 Boolean 结果，复用 press-job-id-* 直连或现有 Qt START 会话映射且不要求作业仍进行中，无法关联时保存 device-only log`
   - `1.4 收紧 QT 未知字段异常和通用日志父作业关联两项信任边界`
   - `3.1 历史详情由 mouldJobId 取得父 pressJobInfoId，按认证设备与父作业查询新日志；无新日志时整组降级现有 Qt 生命周期记录`
-- Stage: `ready-for-fix`
+- Stage: `implementing`
 - Implementer: `/root/task2_endpoint`（dispatched 2026-07-27 10:08:14）
 - Review mode: `thorough`
-- Review-fix round: `0/2`（增量书面规格已确认；下一步进入修复轮次 1/2）
+- Review-fix round: `1/2`
+- Fixer: `/root/task2_fix1`（dispatched 2026-07-27 11:00:54）
 - Implementation status: `DONE_WITH_CONCERNS`
 - Implementation commit: `66a97a6a14d9d4edae8ed9fecc24ac8451e47060`
 - Changed files: 5 个 Task 2 后端文件，范围核验通过
