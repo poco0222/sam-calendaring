@@ -2,7 +2,7 @@
 > @author PopoY
 > @created 2026-07-25 12:09:31
 > Editor: PopoY
-> Edited: 2026-07-27 14:48:57
+> Edited: 2026-07-27 14:53:51
 > @purpose 记录 Comet 子代理实施与审查恢复状态。
 
 # Subagent Progress（子代理进度）
@@ -11,7 +11,7 @@
 - Previous task: `Task 4` complete（frontend `a553b8b..424ab6a`; final review clean after fix rounds 2/2; frontend 226/226、TypeScript/build、backend 91/91/compile/XML PASS）
 - Current task: `Task 5: 修正 OpenSpec 归档语义并重新验证`
 - Mapped OpenSpec task: `5.1 按 OpenSpec delta semantics 补全 MODIFIED 场景并归类 ADDED requirement`
-- Stage: `final-fix-review`
+- Stage: `final-review`
 - Implementer: `/root/task5_archive_spec_repair`（dispatched 2026-07-27 13:55:36）
 - Reviewer: `/root/task5_archive_spec_review`（dispatched 2026-07-27 14:01:51）
 - Review mode: `thorough`
@@ -42,4 +42,5 @@
 - Final fix 2 implementer: `/root/task5_final_fix2`；commit `07a4957ece77afe9c74de4b382ccf27b534e2c9b`
 - Final fix 2 changed files: Backend `AuthenticationEntryPointImpl.java`、`AuthenticationEntryPointImplTest.java`
 - Final fix 2 TDD: RED 3 tests / 1 failure（expected 401, was 200）；GREEN 3/3，13/13 Reactor SUCCESS，`git diff --check` PASS
-- Final fix 2 review: pending fresh reviewer
+- Final fix 2 review: `/root/task5_final_fix2_review`；`Task quality: Approved`，Critical/Important/Minor 均为 0
+- Final review status: pending fresh whole-branch reviewer after fix rounds `2/2`
