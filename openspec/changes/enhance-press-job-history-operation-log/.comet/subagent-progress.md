@@ -2,7 +2,7 @@
 > @author PopoY
 > @created 2026-07-25 12:09:31
 > Editor: PopoY
-> Edited: 2026-07-27 10:03:48
+> Edited: 2026-07-27 10:06:12
 > @purpose 记录 Comet 子代理实施与审查恢复状态。
 
 # Subagent Progress（子代理进度）
@@ -30,4 +30,5 @@
 - Reviewer: `/root/task1_review`（dispatched 2026-07-27 09:43:04）
 - Re-reviewer: `/root/task1_rereview1`（round 1/2, dispatched 2026-07-27 09:58:23）
 - Unresolved feedback: none
+- Checkoff verification: `Step 2` 文本重复导致首次校验阻断；已为 20 个计划步骤补 Task/Step 唯一标识，待重新校验
 - Historical note: 旧 Task 1–3 及旧方案已完整回退，不得从旧账本恢复。

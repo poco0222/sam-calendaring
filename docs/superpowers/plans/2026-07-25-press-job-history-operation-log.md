@@ -65,7 +65,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 - Consumes: 既有 `insertModbusHandleLog(ModbusHandleLog log)` 与 `modbus_handle_log.handle_type/handle_content/handle_result/handle_by/handle_time/device_id`。
 - Produces: `List<ModbusHandleLog> selectHistoryByPressJobInfoId(Long deviceId, Long pressJobInfoId)`；结果按 `handle_time ASC, id ASC`，对象可读 `pressJobInfoId`、`teamId`、`teamName`、`operatorName`。
 
-- [x] **Step 1: 写 Mapper/Liquibase 失败契约测试**
+- [x] **Task 1 / Step 1: 写 Mapper/Liquibase 失败契约测试**
 
   在 `ModbusHandleLogMapperContractTest` 用 classpath 读取 changelog 与 Mapper XML，精确断言只出现下列 schema/query 契约，并断言没有 `mould_job_id`、`correlation_id`、session/fingerprint 列：
 
@@ -80,7 +80,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
   assertFalse(mapper.contains("request_fingerprint"));
   ```
 
-- [x] **Step 2: 运行测试并确认 RED（红）**
+- [x] **Task 1 / Step 2: 运行测试并确认 RED（红）**
 
   Run（后端工作树）：
 
@@ -90,7 +90,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 
   Expected: FAIL，原因是 changelog 和 `selectHistoryByPressJobInfoId` 尚不存在。
 
-- [x] **Step 3: 实现两列一索引和最小 Mapper 扩展**
+- [x] **Task 1 / Step 3: 实现两列一索引和最小 Mapper 扩展**
 
   changelog 只包含两个 `addColumn`、一个 `createIndex` 及对称 rollback；目标文件由 `master.xml` 既有递归 `includeAll` 唯一装载，不再增加显式 include，并用根 changelog 契约测试防止重复装载。Domain 追加 nullable ID 与查询展示字段；Mapper insert 只追加 `press_job_info_id/team_id`，查询签名固定为：
 
@@ -109,11 +109,11 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 
   使用 `LEFT JOIN` 保留主数据缺失日志，并以 `ORDER BY log.handle_time ASC, log.id ASC` 收尾。
 
-- [x] **Step 4: 运行测试并确认 GREEN（绿）**
+- [x] **Task 1 / Step 4: 运行测试并确认 GREEN（绿）**
 
   重复 Step 2 命令。Expected: `ModbusHandleLogMapperContractTest` PASS，且 Maven `BUILD SUCCESS`。
 
-- [x] **Step 5: 提交最小数据边界**
+- [x] **Task 1 / Step 5: 提交最小数据边界**
 
   ```bash
   git add yr-admin/src/main/resources/db/liquibase/master.xml yr-admin/src/main/resources/db/liquibase/changelog/smes/changelog-2026-07-27-qt-press-job-operation-log.xml sam-erp/src/main/java/com/yr/smes2/smes/modbus/domain/ModbusHandleLog.java sam-erp/src/main/java/com/yr/smes2/smes/modbus/mapper/ModbusHandleLogMapper.java sam-erp/src/main/resources/mapper/smes/modbus/ModbusHandleLogMapper.xml sam-erp/src/test/java/com/yr/smes2/smes/modbus/mapper/ModbusHandleLogMapperContractTest.java
@@ -133,7 +133,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 - Consumes: Task 1 的 `insertModbusHandleLog`、`selectHistoryByPressJobInfoId`；现有 `resolveQtPressContext()`、`press-job-id-*` 和 Qt `START` 映射。
 - Produces: `void recordPressJobOperationForQt(QtPressJobContext context, String correlationId, String localJobSessionId, String operationCode, boolean result, String teamId, String operatorId)`；`POST /api/qt/press-working/operation-logs`；历史 `operationRecords` 每条为 `operationTime/operationName/result/content/teamName/operatorName`。
 
-- [ ] **Step 1: 写端点、关联和历史投影失败测试**
+- [ ] **Task 2 / Step 1: 写端点、关联和历史投影失败测试**
 
   Service 测试覆盖：`press-job-id-*` 直连、Qt `START` 会话、完成后仍关联、无法关联写 null、他设备/他授权主机不得关联、不校验 operator-team 关系、`handle_result` 只写字符串 `true/false`。Controller 测试覆盖六操作码固定映射、非 Boolean/未知码/额外敏感字段拒绝、认证设备不可由请求覆盖、新日志优先、零条新日志整组 fallback、兄弟模具共享同一父作业时间线、缺失主数据返回 null；“未记录”仅由 Task 4 的 UI 显示。
 
@@ -144,7 +144,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
   assertNull(operationRecords.get(0).get("teamName"));
   ```
 
-- [ ] **Step 2: 运行测试并确认 RED（红）**
+- [ ] **Task 2 / Step 2: 运行测试并确认 RED（红）**
 
   ```bash
   JAVA_HOME=/Users/popoy/WorkSpace/DevTools/Java/zulu-8.0.492.jdk/Contents/Home /Users/popoy/WorkSpace/DevTools/Maven/bin/mvn -pl yr-admin -am -Dtest=PressJobInfoServiceImplQtTest,QtPressWorkingControllerTest -Dsurefire.failIfNoSpecifiedTests=false test
@@ -152,7 +152,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 
   Expected: FAIL，原因是新 Service 方法、端点与六字段投影尚不存在。
 
-- [ ] **Step 3: 实现最薄 Service 与 Controller**
+- [ ] **Task 2 / Step 3: 实现最薄 Service 与 Controller**
 
   在现有 `IPressJobInfoService/PressJobInfoServiceImpl` 增加上方一个方法，不新增接口、Writer、事务传播或会话对象。父作业解析顺序固定为：
 
@@ -176,11 +176,11 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 
   历史详情先调用 Task 1 新查询；结果非空时投影六字段，空时才调用现有 `qtPressJobOperationMapper.selectHistoryByPressJobInfoId(...)`，禁止逐条混合两类日志。
 
-- [ ] **Step 4: 运行测试并确认 GREEN（绿）**
+- [ ] **Task 2 / Step 4: 运行测试并确认 GREEN（绿）**
 
   重复 Step 2 命令。Expected: 两个定向测试类 PASS，Maven `BUILD SUCCESS`。
 
-- [ ] **Step 5: 提交后端业务边界**
+- [ ] **Task 2 / Step 5: 提交后端业务边界**
 
   ```bash
   git add sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/IPressJobInfoService.java sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/impl/PressJobInfoServiceImpl.java sam-erp/src/test/java/com/yr/smes2/smes/modbus/service/impl/PressJobInfoServiceImplQtTest.java yr-admin/src/main/java/com/yr/web/controller/system/QtPressWorkingController.java yr-admin/src/test/java/com/yr/web/controller/system/QtPressWorkingControllerTest.java
@@ -201,7 +201,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 - Consumes: Task 2 的 `POST /api/qt/press-working/operation-logs`。
 - Produces: `PressJobOperationCode` 六值 union、`PressJobOperationLogRequest` 六字段类型、`recordPressJobOperation(request): Promise<void>`；`PressJobPageProps.recordPressJobOperation?` 注入点。
 
-- [ ] **Step 1: 写客户端白名单和 workflow 失败测试**
+- [ ] **Task 3 / Step 1: 写客户端白名单和 workflow 失败测试**
 
   `erpClient.test.ts` 精确断言 URL、`X-Correlation-Id` 和 JSON body 六个键，且 body 不含 `deviceId/ip/port/signalValues/error/signature/signedLease/sessionToken`。`PressJobPage.test.tsx` 覆盖 START、参数开始、参数结束、完成、入线、出线；断言 ERP `OK/IDEMPOTENCY_REPLAY=true`，其他 code/throw=false，入线/出线只有整体 `OK=true`，`PARTIAL_OK/FAILED=false`，日志 Promise reject 不改变 workflow 原结果，并专门覆盖完成加工清除 current job 后，出线仍使用保留的 `localJobSessionId/teamId/operatorId` 上报。
 
@@ -212,7 +212,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
   });
   ```
 
-- [ ] **Step 2: 运行测试并确认 RED（红）**
+- [ ] **Task 3 / Step 2: 运行测试并确认 RED（红）**
 
   Run（前端工作树 `qt-app/frontend`）：
 
@@ -222,7 +222,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 
   Expected: FAIL，原因是日志请求类型、client（客户端）和 post-action 调用尚不存在。
 
-- [ ] **Step 3: 实现一个最小上报函数并接入六个结果边界**
+- [ ] **Task 3 / Step 3: 实现一个最小上报函数并接入六个结果边界**
 
   `pressJob.ts` 只新增：
 
@@ -238,11 +238,11 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 
   START、PARAMETER_START、PARAMETER_END、COMPLETE 分别紧贴各自 ERP 调用结果/异常分支上报；LINE_IN/LINE_OUT 只在现有 Driver+ERP 聚合结果形成后上报。完成加工后保留父作业会话与班组/人员上下文供 LINE_OUT 上报，不再从已清除的 current job 推导。不得记录 connect、disconnect、moveIn、moveOut、lock、unlock；不得 await、retry 或改变返回值。
 
-- [ ] **Step 4: 运行测试并确认 GREEN（绿）**
+- [ ] **Task 3 / Step 4: 运行测试并确认 GREEN（绿）**
 
   重复 Step 2 命令。Expected: 两个定向测试文件 PASS；日志拒绝不影响主流程断言 PASS。
 
-- [ ] **Step 5: 提交 QT 上报边界**
+- [ ] **Task 3 / Step 5: 提交 QT 上报边界**
 
   ```bash
   git add qt-app/frontend/src/domain/pressJob.ts qt-app/frontend/src/services/erpClient.ts qt-app/frontend/src/services/erpClient.test.ts qt-app/frontend/src/App.tsx qt-app/frontend/src/components/PressJobPage.tsx qt-app/frontend/src/components/PressJobPage.test.tsx
@@ -264,7 +264,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 - Consumes: Task 2 历史详情六字段 `operationRecords`，现有 dayjs、Ant Design `RangePicker/Button/Drawer` 和诊断日志 Timeline CSS。
 - Produces: 历史页面单行筛选、1/3/7/30 日 preset（快捷选项）、80% Drawer、严格 Boolean“是/否”、六字段时间线。
 
-- [ ] **Step 1: 写 UI 与解析失败测试**
+- [ ] **Task 4 / Step 1: 写 UI 与解析失败测试**
 
   测试覆盖：快捷值分别生成 `[today-(n-1), today]`，提交仍为本地零点到下一日零点排他上界且最多 31 日；筛选容器不换行；查询按钮含 `SearchOutlined` 与“查询”可访问文字；Drawer 为 `80%`；参数只有原始 Boolean 转“是/否”；字符串 `"true"`、数字 `1` 原样显示；操作记录逐条显示时间、操作、成功/失败、内容、班组、作业人员，缺失显示“未记录”。
 
@@ -274,7 +274,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
   expect(screen.getByText("班组：未记录")).toBeInTheDocument();
   ```
 
-- [ ] **Step 2: 运行测试并确认 RED（红）**
+- [ ] **Task 4 / Step 2: 运行测试并确认 RED（红）**
 
   ```bash
   npm test -- --run src/services/erpClient.test.ts src/components/PressJobHistoryPage.test.tsx
@@ -282,7 +282,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 
   Expected: FAIL，原因是新 operation 字段、快捷日期、80% Drawer 与 Timeline 展示尚未实现。
 
-- [ ] **Step 3: 实现指定历史 UI**
+- [ ] **Task 4 / Step 3: 实现指定历史 UI**
 
   在 `pressJob.ts/erpClient.ts` 把 operation record 固定为 `operationTime/operationName/result/content/teamName/operatorName`，解析缺失名称为 `undefined` 交给页面显示“未记录”。`PressJobHistoryPage.tsx`：
 
@@ -295,7 +295,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 
   每次渲染按当前本地自然日生成 presets 后交给现有 `RangePicker`，避免应用跨午夜后继续使用旧日期；查询按钮使用 `icon={<SearchOutlined aria-hidden="true" />}` 并保留文字；Drawer `size="80%"`。`formatHistoryParameterValue` 仅对 `typeof value === "boolean"` 翻译。操作列表沿用现有 `<ol>/<li>/<time>`，CSS 复用 `DiagnosticLogsPage.css` 的线、圆点、间距和值，不引入新组件、依赖、主题或视觉效果；筛选 CSS 使用单行 flex/grid 且按钮不另起行。
 
-- [ ] **Step 4: 运行前后端最终验证**
+- [ ] **Task 4 / Step 4: 运行前后端最终验证**
 
   ```bash
   npm test -- --run src/services/erpClient.test.ts src/components/PressJobPage.test.tsx src/components/PressJobHistoryPage.test.tsx
@@ -314,7 +314,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 
   Expected: 三个定向测试类 PASS，Java 8 compile（编译）`BUILD SUCCESS`，Liquibase XML 可解析。最后用 `git diff --check` 检查两个工作树，并人工核对网络请求仅六字段、无敏感正文、无真实设备请求、无旧 session/fingerprint/writer/锁解锁改动。
 
-- [ ] **Step 5: 提交历史 UI 边界**
+- [ ] **Task 4 / Step 5: 提交历史 UI 边界**
 
   ```bash
   git add qt-app/frontend/src/domain/pressJob.ts qt-app/frontend/src/services/erpClient.ts qt-app/frontend/src/services/erpClient.test.ts qt-app/frontend/src/components/PressJobHistoryPage.tsx qt-app/frontend/src/components/PressJobHistoryPage.css qt-app/frontend/src/components/PressJobHistoryPage.test.tsx
