@@ -9,7 +9,7 @@ canonical_spec: openspec
 - Author: PopoY
 - Created: 2026-07-25 10:23:37
 - Editor: PopoY
-- Edited: 2026-07-27 10:49:02
+- Edited: 2026-07-27 13:56:54
 - Change: `enhance-press-job-history-operation-log`
 - Canonical requirements: `openspec/changes/enhance-press-job-history-operation-log/specs/`
 
@@ -168,3 +168,7 @@ ERP 从认证上下文取得 `deviceId` 与 `granteeHostId`，再复用现有 `l
 - UI 是否只做现有组件和样式内的指定调整。
 
 原边界已确认并据此生成 Implementation Plan；本次增量边界经书面复核后，只补充 Task 2 的文件范围与测试步骤，实施期间不得突破本清单。
+
+## 10. 归档语义校正
+
+本次仅按 OpenSpec delta semantics（增量语义）把 `MODIFIED Requirements` 补全为归档后的完整需求与既有场景，并把全新父作业操作日志需求归入 `ADDED Requirements`；不改变已批准设计、实现或业务行为。
