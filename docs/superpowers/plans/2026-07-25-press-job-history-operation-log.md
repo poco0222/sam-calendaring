@@ -12,7 +12,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 > @author PopoY
 > @created 2026-07-25 11:04:52
 > Editor: PopoY
-> Edited: 2026-07-27 10:55:08
+> Edited: 2026-07-27 11:29:30
 
 **Goal:** 参考 `sam-erp-fe` 既有 `logHandle`，在六个压机真实操作结果确定后 best-effort（尽力而为）写入 `modbus_handle_log`，并在历史详情按父作业展示班组、作业人员和整段时间线，同时完成指定筛选与抽屉 UI 调整。
 
@@ -139,7 +139,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 - Consumes: Task 1 的 `insertModbusHandleLog`、`selectHistoryByPressJobInfoId`；现有 `resolveQtPressContext()`、`press-job-id-*` 和 Qt `START` 映射。
 - Produces: `void recordPressJobOperationForQt(QtPressJobContext context, String correlationId, String localJobSessionId, String operationCode, boolean result, String teamId, String operatorId)`；`POST /api/qt/press-working/operation-logs`；历史 `operationRecords` 每条为 `operationTime/operationName/result/content/teamName/operatorName`；通用 `POST /modbus/handleLog` 传给 Service 的 `pressJobInfoId` 恒为 `null`。
 
-- [ ] **Task 2 / Step 1: 写两项信任边界失败测试**
+- [x] **Task 2 / Step 1: 写两项信任边界失败测试**
 
   Task 2 核心实现已由后端提交 `66a97a6a14d9d4edae8ed9fecc24ac8451e47060` 完成。本轮只为审查发现的两个 Trust Boundary（信任边界）补失败测试，不重写既有 Service、历史投影或 Mapper。
 
@@ -222,7 +222,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
   }
   ```
 
-- [ ] **Task 2 / Step 2: 运行信任边界测试并确认 RED（红）**
+- [x] **Task 2 / Step 2: 运行信任边界测试并确认 RED（红）**
 
   ```bash
   JAVA_HOME=/Users/popoy/WorkSpace/DevTools/Java/zulu-8.0.492.jdk/Contents/Home /Users/popoy/WorkSpace/DevTools/Maven/bin/mvn -pl yr-admin -am -Dtest=ModbusHandleLogControllerTest,PressJobInfoServiceImplQtTest,QtPressWorkingControllerTest -Dsurefire.failIfNoSpecifiedTests=false test
@@ -230,7 +230,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 
   Expected: FAIL，至少包含两条预期证据：通用 Controller 传给 Service 的 `pressJobInfoId` 仍为 `42`；额外字段响应仍含 Jackson 包装错误或 GlobalExceptionHandler 产生异常日志。
 
-- [ ] **Task 2 / Step 3: 实现两个最小 Controller 修复**
+- [x] **Task 2 / Step 3: 实现两个最小 Controller 修复**
 
   在 `recordPressJobOperation` 读取请求字段前先检查内部标记；标记存在时抛固定 `CustomException`，不得调用认证解析或 Service：
 
@@ -262,11 +262,11 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 
   修改两个生产文件的 file header（文件头）时，执行 `date '+%Y-%m-%d %H:%M:%S'`，保留已有作者并用实际输出追加或更新 `Editor: PopoY` / `Edited`。`ModbusHandleLogController.java` 当前没有文件头，新增含 `@author PopoY`、实际 `@created` 和中文 purpose（目的）的文件头。
 
-- [ ] **Task 2 / Step 4: 运行完整 Task 2 测试并确认 GREEN（绿）**
+- [x] **Task 2 / Step 4: 运行完整 Task 2 测试并确认 GREEN（绿）**
 
   重复 Step 2 命令。Expected: 三个定向测试类合计 89/89 PASS，Maven `BUILD SUCCESS`；额外字段响应为固定中文错误，GlobalExceptionHandler 无异常日志，通用 Service 捕获对象的 `pressJobInfoId == null`。
 
-- [ ] **Task 2 / Step 5: 提交信任边界修复**
+- [x] **Task 2 / Step 5: 提交信任边界修复**
 
   ```bash
   git add sam-erp/src/main/java/com/yr/smes2/smes/modbus/controller/ModbusHandleLogController.java sam-erp/src/test/java/com/yr/smes2/smes/modbus/controller/ModbusHandleLogControllerTest.java yr-admin/src/main/java/com/yr/web/controller/system/QtPressWorkingController.java yr-admin/src/test/java/com/yr/web/controller/system/QtPressWorkingControllerTest.java

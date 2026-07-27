@@ -1,12 +1,12 @@
 > Editor: PopoY
-> Edited: 2026-07-27 10:55:08
+> Edited: 2026-07-27 11:29:30
 
 ## 1. 最小日志表与端点
 
 - [x] 1.1 为 `modbus_handle_log` 仅增加 nullable `press_job_info_id`、`team_id` 和 `(device_id, press_job_info_id, handle_time, id)` 索引，保留既有字段语义与旧入口兼容性
 - [x] 1.2 扩展现有 Domain（领域模型）和 Mapper（映射器）读写，新增按认证设备与父作业时间正序查询，并在查询时关联现有班组、用户主数据
-- [ ] 1.3 新增最薄 QT operation-log endpoint（操作日志端点），只接受六字段请求、固定操作码和 Boolean 结果，复用 `press-job-id-*` 直连或现有 Qt `START` 会话映射且不要求作业仍进行中，无法关联时保存 device-only log
-- [ ] 1.4 收紧两项 Trust Boundary（信任边界）：QT 未知字段由 Controller 固定中文拒绝且不产生第三方异常栈；通用 `/modbus/handleLog` 忽略客户端 `pressJobInfoId`，只有认证 QT 专用服务端路径建立父作业关联
+- [x] 1.3 新增最薄 QT operation-log endpoint（操作日志端点），只接受六字段请求、固定操作码和 Boolean 结果，复用 `press-job-id-*` 直连或现有 Qt `START` 会话映射且不要求作业仍进行中，无法关联时保存 device-only log
+- [x] 1.4 收紧两项 Trust Boundary（信任边界）：QT 未知字段由 Controller 固定中文拒绝且不产生第三方异常栈；通用 `/modbus/handleLog` 忽略客户端 `pressJobInfoId`，只有认证 QT 专用服务端路径建立父作业关联
 
 ## 2. QT post-action 上报
 
@@ -16,7 +16,7 @@
 
 ## 3. 历史投影与 UI
 
-- [ ] 3.1 历史详情由 `mouldJobId` 取得父 `pressJobInfoId`，按认证设备与父作业查询新日志；无新日志时整组降级现有 Qt 生命周期记录
+- [x] 3.1 历史详情由 `mouldJobId` 取得父 `pressJobInfoId`，按认证设备与父作业查询新日志；无新日志时整组降级现有 Qt 生命周期记录
 - [ ] 3.2 返回并展示时间、操作、结果、内容、班组、作业人员，缺失字段显示“未记录”，兄弟模具共享父作业时间线
 - [ ] 3.3 完成单行筛选、查询图标与文字、最近 1/3/7/30 个本地自然日、80% Drawer、JSON Boolean 翻译和诊断日志 Timeline CSS 复用
 - [ ] 3.4 增加历史投影和前端定向测试，覆盖新日志优先、旧作业降级、缺失主数据、日期范围和展示契约
