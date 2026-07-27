@@ -2,7 +2,7 @@
 > @author PopoY
 > @created 2026-07-25 12:09:31
 > Editor: PopoY
-> Edited: 2026-07-27 12:23:05
+> Edited: 2026-07-27 12:23:58
 > @purpose 记录 Comet 子代理实施与审查恢复状态。
 
 # Subagent Progress（子代理进度）
@@ -14,9 +14,10 @@
   - `2.1 为 START、PARAMETER_START、PARAMETER_END、LINE_IN、LINE_OUT、COMPLETE 增加最小请求类型和客户端调用`
   - `2.2 在真实操作结果确定后 best-effort 异步上报，保持主结果不变且日志失败只写脱敏诊断`
   - `2.3 增加六类结果、完成后出线、敏感字段缺失和日志失败隔离定向测试`
-- Stage: `ready-for-fix`
+- Stage: `implementing`
 - Implementer: `/root/task3_qt_reporting`（dispatched 2026-07-27 11:33:15）
 - Fixer: `/root/task3_fix1`（dispatched 2026-07-27 12:02:06）
+- Fixer 2: `/root/task3_fix2`（dispatched 2026-07-27 12:23:58）
 - Review mode: `thorough`
 - Reviewer: `/root/task3_review`（dispatched 2026-07-27 11:50:13）
 - Rereviewer: `/root/task3_rereview1`（dispatched 2026-07-27 12:17:02）
