@@ -9,7 +9,7 @@ canonical_spec: openspec
 - Author: PopoY
 - Created: 2026-07-25 10:23:37
 - Editor: PopoY
-- Edited: 2026-07-27 08:46:41
+- Edited: 2026-07-27 09:17:15
 - Change: `enhance-press-job-history-operation-log`
 - Canonical requirements: `openspec/changes/enhance-press-job-history-operation-log/specs/`
 
@@ -17,7 +17,7 @@ canonical_spec: openspec
 
 本文件记录用户已批准的 simple approach（简单方案）：参考 `sam-erp-fe` 原有 `logHandle`，在每次真实操作结果确定后按业务结果异步写一条 `modbus_handle_log`。日志失败不得影响主操作，不为日志建立第二套业务关系校验。
 
-该方案仍处于书面规格复核阶段。旧 Implementation Plan（实施计划）已废弃；用户书面确认前，不生成新计划、不恢复旧任务、不开始开发。
+书面规格已完成复核并经用户确认。旧 Implementation Plan（实施计划）继续保持废弃；新的最小实施计划已按本设计重新生成，执行配置确认前不开始生产代码开发。
 
 ## 2. 最小职责
 
@@ -147,7 +147,7 @@ ERP 从认证上下文取得 `deviceId` 与 `granteeHostId`，再复用现有 `l
 - 不迁移旧数据，不按设备与时间窗口猜测，不改变现有 Qt 生命周期幂等记录。
 - 不增加 actor-team（人员班组）第二套关系校验、队列、重试、补偿、锁、依赖或新主题。
 
-## 9. 书面复核清单
+## 9. 实施前复核清单
 
 - 数据库变更是否严格为两列一索引。
 - 请求是否严格为六字段，且操作码严格为六个。
@@ -157,4 +157,4 @@ ERP 从认证上下文取得 `deviceId` 与 `granteeHostId`，再复用现有 `l
 - 历史详情是否按父作业共享时间线，并在完全没有新日志时整组降级。
 - UI 是否只做现有组件和样式内的指定调整。
 
-全部确认后，才能依据本设计重新生成 Implementation Plan。
+上述边界已确认，并已据此重新生成 Implementation Plan；实施期间不得突破本清单。
