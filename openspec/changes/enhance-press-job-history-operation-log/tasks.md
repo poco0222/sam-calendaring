@@ -1,5 +1,5 @@
 > Editor: PopoY
-> Edited: 2026-07-27 13:21:02
+> Edited: 2026-07-27 14:07:21
 
 ## 1. 最小日志表与端点
 
@@ -26,3 +26,7 @@
 - [x] 4.1 运行 SAM ERP 相关自动化测试、Java 8 Maven（构建工具）编译、Liquibase 和 Mapper 契约检查
 - [x] 4.2 运行 QT frontend（前端）定向测试、TypeScript（类型检查）和生产构建
 - [x] 4.3 核对请求/响应敏感信息边界、六个操作码、父作业共享时间线和旧数据不迁移；只使用 Mock（模拟）或安全测试数据，不向真实 PLC（可编程逻辑控制器）发送请求
+
+## 5. 归档规格修正
+
+- [x] 5.1 按 OpenSpec delta semantics（增量语义）补全所有 `MODIFIED` requirement 的既有场景，把全新父作业日志需求归入 `ADDED Requirements`，同步 Design Doc 并通过严格校验，不改变实现行为

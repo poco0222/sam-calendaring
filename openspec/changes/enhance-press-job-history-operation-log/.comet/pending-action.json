@@ -1,0 +1,6 @@
+{
+  "id": "classic-archive:enhance-press-job-history-operation-log",
+  "stepId": "full.archive.execute",
+  "type": "checkpoint",
+  "ref": "enhance-press-job-history-operation-log"
+}

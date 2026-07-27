@@ -12,7 +12,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 > @author PopoY
 > @created 2026-07-25 11:04:52
 > Editor: PopoY
-> Edited: 2026-07-27 13:21:02
+> Edited: 2026-07-27 14:07:21
 
 **Goal:** 参考 `sam-erp-fe` 既有 `logHandle`，在六个压机真实操作结果确定后 best-effort（尽力而为）写入 `modbus_handle_log`，并在历史详情按父作业展示班组、作业人员和整段时间线，同时完成指定筛选与抽屉 UI 调整。
 
@@ -409,9 +409,46 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
   git commit -m "feat: 完善压机历史操作时间线"
   ```
 
+### Task 5: 修正 OpenSpec 归档语义并重新验证
+
+**Files:**
+- Modify: `openspec/changes/enhance-press-job-history-operation-log/specs/press-job-history-query/spec.md`
+- Modify: `docs/superpowers/specs/2026-07-25-press-job-history-operation-log-design.md`
+
+**Interfaces:**
+- Consumes: 主规格 `openspec/specs/press-job-history-query/spec.md` 的既有 Requirement（需求）和 Scenario（场景）。
+- Produces: 可按 OpenSpec delta semantics（增量语义）安全归档的完整 `MODIFIED Requirements`，以及独立的 `ADDED Requirements`。
+
+- [x] **Task 5 / Step 1: 记录归档失败的 RED（红）证据**
+
+  使用只读检查确认当前 Delta Spec 缺少主规格既有场景“浅色和深色主题显示历史页面”，且新增需求“历史详情按父作业展示新操作日志”尚未位于 `ADDED Requirements`；命令必须以非零状态结束。归档失败输出 `current spec contains scenario(s) not present in the modified block` 作为同一根因证据。
+
+- [x] **Task 5 / Step 2: 最小修正 Delta Spec 与设计记录**
+
+  对每个 `MODIFIED` requirement 写出归档后的完整需求内容，保留主规格全部既有 Scenario 标题与仍有效约束，并合入本 change 的行为调整；把主规格不存在的“历史详情按父作业展示新操作日志”移动到 `ADDED Requirements`。不得修改主规格、实现代码、测试代码或业务行为。Design Doc 只追加一段归档语义校正说明，记录本次属于无行为变化的规格结构修复。
+
+- [x] **Task 5 / Step 3: 运行 GREEN（绿）规格校验**
+
+  重复 Step 1 的只读结构检查并确认通过，再运行：
+
+  ```bash
+  openspec validate enhance-press-job-history-operation-log --strict
+  git diff --check
+  ```
+
+  Expected: 结构检查、OpenSpec strict validation（严格校验）和 diff check（差异检查）全部通过；不访问真实 ERP、Driver Service、PLC 或数据库。
+
+- [x] **Task 5 / Step 4: 提交规格归档修正**
+
+  仅提交本 Task 的 Delta Spec、Design Doc、计划/任务勾选和 Comet 恢复元数据，提交信息使用：
+
+  ```bash
+  git commit -m "docs: 修正历史查询规格归档语义"
+  ```
+
 ## 完成判定
 
-- 四个 Task（任务）全部通过各自 RED/GREEN（红/绿）证据并按最小边界提交。
-- OpenSpec `tasks.md` 的 1.1–4.3 均可由上述 Task 1–4 的测试或人工安全核对直接对应。
+- 五个 Task（任务）全部通过各自 RED/GREEN（红/绿）证据并按最小边界提交。
+- OpenSpec `tasks.md` 的 1.1–5.1 均可由上述 Task 1–5 的测试、规格校验或人工安全核对直接对应。
 - 两个工作树只包含本计划文件和明确列出的生产/测试文件；不修改、恢复或删除用户其他内容。
 - 未执行 merge（合并）、push（推送）、数据库变更或真实 PLC/Driver 操作；这些仍需独立授权。
