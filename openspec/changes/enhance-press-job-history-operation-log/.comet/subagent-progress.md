@@ -2,7 +2,7 @@
 > @author PopoY
 > @created 2026-07-25 12:09:31
 > Editor: PopoY
-> Edited: 2026-07-27 11:10:36
+> Edited: 2026-07-27 11:18:53
 > @purpose 记录 Comet 子代理实施与审查恢复状态。
 
 # Subagent Progress（子代理进度）
@@ -14,11 +14,12 @@
   - `1.3 新增最薄 QT operation-log endpoint，只接受六字段请求、固定操作码和 Boolean 结果，复用 press-job-id-* 直连或现有 Qt START 会话映射且不要求作业仍进行中，无法关联时保存 device-only log`
   - `1.4 收紧 QT 未知字段异常和通用日志父作业关联两项信任边界`
   - `3.1 历史详情由 mouldJobId 取得父 pressJobInfoId，按认证设备与父作业查询新日志；无新日志时整组降级现有 Qt 生命周期记录`
-- Stage: `task-review`
+- Stage: `implementing`
 - Implementer: `/root/task2_endpoint`（dispatched 2026-07-27 10:08:14）
 - Review mode: `thorough`
-- Review-fix round: `1/2`
+- Review-fix round: `2/2`（最后允许轮次）
 - Fixer: `/root/task2_fix1`（dispatched 2026-07-27 11:00:54）
+- Fixer round 2: `/root/task2_fix2`（dispatched 2026-07-27 11:18:53）
 - Implementation status: `DONE_WITH_CONCERNS`
 - Implementation commit: `66a97a6a14d9d4edae8ed9fecc24ac8451e47060`
 - Fix commit: `fca99e8158b47cb97c1e8a381f29b1da38aee153`
@@ -34,7 +35,7 @@
 - Reviewer: `/root/task2_review`（dispatched 2026-07-27 10:35:03）
 - Re-reviewer: `/root/task2_rereview1`（dispatched 2026-07-27 11:10:36）
 - Unresolved feedback:
-  - Re-review required: 核验两个原 Important finding 是否已完整关闭，并检查修复是否引入新 Critical/Important
+  - Important: `ModbusHandleLogControllerTest` 在 Controller 返回后读取同一可变对象，无法证明 Service 调用前清空；也未断言其他字段保持不变，存在 false positive（假阳性）
 - Scope decision: 用户选择方案 1，已授权 Comet medium spec update（中等规格更新）和最小方案 A
 - Approved design boundary:
   - QT DTO 未知字段只记录内部 boolean 标记，Controller 在 Service 前返回固定中文业务错误
