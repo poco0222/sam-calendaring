@@ -2,6 +2,8 @@
  * @file erpClient.test.ts - 验证 ERP client（企业资源计划客户端）。
  * @author PopoY
  * @created 2026-06-25
+ * @editor PopoY
+ * @edited 2026-07-27 11:37:10
  * @brief 验证 ERP client（企业资源计划客户端）自动登录和租约流程。
  */
 
@@ -26,6 +28,7 @@ import {
   getJson,
   lockPressMold,
   loadBootstrapSession,
+  recordPressJobOperation,
   recordPressJobParameters,
   startPressJob,
   updatePressJobExpectedDuration,
@@ -444,6 +447,67 @@ describe("erpClient", () => {
     expect(JSON.stringify(postJson.mock.calls)).not.toContain("drop-ip");
     expect(JSON.stringify(postJson.mock.calls)).not.toContain("drop-config");
     expect(JSON.stringify(postJson.mock.calls)).not.toContain("registerAddress");
+  });
+
+  /**
+   * @brief 断言 operation log（操作日志）请求严格使用六字段白名单、认证头和关联请求头。
+   * @author PopoY
+   */
+  it("records a press job operation with exactly six whitelisted fields", async () => {
+    const postJson = vi.fn().mockResolvedValue({ code: 200 });
+    const request = {
+      correlationId: "press-operation-01",
+      localJobSessionId: "press-job-id-17",
+      operationCode: "LINE_OUT" as const,
+      result: false,
+      teamId: "team-1",
+      operatorId: "user-1",
+      deviceId: "drop-device",
+      ip: "drop-ip",
+      port: 502,
+      signalValues: { pressure: 135 },
+      error: "drop-error",
+      signature: "drop-signature",
+      signedLease: "drop-lease",
+      sessionToken: "drop-token",
+    };
+
+    await expect(
+      recordPressJobOperation(postJson, {
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        sessionToken: "erp-session-token",
+        request,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(postJson).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/api/qt/press-working/operation-logs",
+      {
+        correlationId: "press-operation-01",
+        localJobSessionId: "press-job-id-17",
+        operationCode: "LINE_OUT",
+        result: false,
+        teamId: "team-1",
+        operatorId: "user-1",
+      },
+      {
+        bearerToken: "erp-session-token",
+        headers: {
+          "X-Correlation-Id": "press-operation-01",
+        },
+      },
+    );
+    expect(Object.keys(postJson.mock.calls[0][1]).sort()).toEqual([
+      "correlationId",
+      "localJobSessionId",
+      "operationCode",
+      "operatorId",
+      "result",
+      "teamId",
+    ]);
+    expect(JSON.stringify(postJson.mock.calls[0][1])).not.toMatch(
+      /deviceId|ip|port|signalValues|error|signature|signedLease|sessionToken/,
+    );
   });
 
   /**

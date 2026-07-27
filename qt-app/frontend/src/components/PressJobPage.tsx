@@ -2,6 +2,8 @@
  * @file PressJobPage.tsx - 渲染 Press Working Page（压机作业页面）。
  * @author PopoY
  * @created 2026-06-30
+ * @editor PopoY
+ * @edited 2026-07-27 11:37:10
  * @brief 展示压机作业 lookup data（查询数据）和 SignalSnapshotTable（信号快照表）。
  */
 
@@ -33,7 +35,6 @@ import type { CSSProperties, RefObject } from "react";
 
 import type {
   PressDeviceActionButtonKey,
-  PressDeviceActionDiagnosticSummary,
   PressDeviceActionIdentity,
   PressJobCompleteRequest,
   PressJobCompleteResult,
@@ -41,6 +42,8 @@ import type {
   PressJobExpectedDurationUpdateRequest,
   PressJobLookupData,
   PressJobOperatorOption,
+  PressJobOperationCode,
+  PressJobOperationLogRequest,
   PressJobParameterRecordRequest,
   PressJobParameterRecordResult,
   PressJobParameterRecordType,
@@ -67,6 +70,7 @@ import type {
   PressDeviceCommandResponse,
 } from "../domain/driver";
 import type { ErpDictOption } from "../domain/lease";
+import type { LogRecord } from "../domain/logRecord";
 import type { BootstrapSessionStatus } from "../hooks/useBootstrapSession";
 import { NumericKeypad } from "./NumericKeypad";
 import {
@@ -184,6 +188,9 @@ export type PressJobPageProps = {
   recordPressJobParameters?: (
     input: PressJobParameterRecordRequest,
   ) => Promise<PressJobParameterRecordResult>;
+  recordPressJobOperation?: (
+    input: PressJobOperationLogRequest,
+  ) => Promise<void>;
   completePressJob?: (
     input: PressJobCompleteRequest,
   ) => Promise<PressJobCompleteResult>;
@@ -196,7 +203,7 @@ export type PressJobPageProps = {
   ) => Promise<PressMachineStatusUpdateResult>;
   refreshSignalSnapshot?: () => Promise<unknown>;
   recordPressDeviceActionDiagnostic?: (
-    summary: PressDeviceActionDiagnosticSummary,
+    summary: PressJobDiagnosticSummary,
   ) => void;
 };
 
@@ -344,8 +351,11 @@ export type PressDeviceActionFlowInput = {
   filters: PressJobFilterState;
   now?: () => number;
   recordPressDeviceActionDiagnostic?: (
-    summary: PressDeviceActionDiagnosticSummary,
+    summary: PressJobDiagnosticSummary,
   ) => void;
+  recordPressJobOperation?: (
+    request: PressJobOperationLogRequest,
+  ) => Promise<void>;
   refreshPressJobCurrentJobs?: () => Promise<PressJobCurrentJobRow[]>;
   refreshSignalSnapshot?: () => Promise<unknown>;
   updatePressMachineStatus?: (
@@ -357,9 +367,14 @@ type PressDeviceActionDiagnosticInput = {
   filters: PressJobFilterState;
   now?: () => number;
   recordPressDeviceActionDiagnostic?: (
-    summary: PressDeviceActionDiagnosticSummary,
+    summary: PressJobDiagnosticSummary,
   ) => void;
+  recordPressJobOperation?: (
+    request: PressJobOperationLogRequest,
+  ) => Promise<void>;
 };
+
+type PressJobDiagnosticSummary = Omit<LogRecord, "stationAccountId">;
 
 export type PressJobStartWorkflowInput = PressDeviceActionDiagnosticInput & {
   currentJobRows: PressJobCurrentJobRow[];
@@ -484,6 +499,7 @@ export function PressJobPage({
   recordPressDeviceActionDiagnostic,
   startPressJob,
   recordPressJobParameters,
+  recordPressJobOperation,
   completePressJob,
   getFinalSignalSnapshot,
   refreshPressJobCurrentJobs,
@@ -1652,6 +1668,7 @@ export function PressJobPage({
         filters,
         precheckPressDeviceCommand,
         recordPressDeviceActionDiagnostic,
+        recordPressJobOperation,
         refreshPressJobCurrentJobs,
         refreshSignalSnapshot: refreshSignalSnapshot ?? driverSession?.refreshSnapshot,
         updatePressMachineStatus,
@@ -2230,6 +2247,7 @@ export function PressJobPage({
         filters,
         precheckPressDeviceCommand,
         recordPressDeviceActionDiagnostic,
+        recordPressJobOperation,
         refreshPressJobCurrentJobs,
         refreshSignalSnapshot: refreshSignalSnapshot ?? driverSession?.refreshSnapshot,
         startPressJob,
@@ -2252,6 +2270,7 @@ export function PressJobPage({
         getFinalSignalSnapshot,
         precheckPressDeviceCommand,
         recordPressDeviceActionDiagnostic,
+        recordPressJobOperation,
         recordPressJobParameters,
         refreshPressJobCurrentJobs,
         refreshSignalSnapshot: refreshSignalSnapshot ?? driverSession?.refreshSnapshot,
@@ -2284,6 +2303,7 @@ export function PressJobPage({
         getFinalSignalSnapshot,
         precheckPressDeviceCommand,
         recordPressDeviceActionDiagnostic,
+        recordPressJobOperation,
         recordPressJobParameters,
         refreshPressJobCurrentJobs,
         refreshSignalSnapshot: refreshSignalSnapshot ?? driverSession?.refreshSnapshot,
@@ -2315,6 +2335,7 @@ export function PressJobPage({
         getFinalSignalSnapshot,
         precheckPressDeviceCommand,
         recordPressDeviceActionDiagnostic,
+        recordPressJobOperation,
         recordPressJobParameters,
         refreshPressJobCurrentJobs,
         refreshSignalSnapshot: refreshSignalSnapshot ?? driverSession?.refreshSnapshot,
@@ -3206,6 +3227,54 @@ export function buildPressJobParameterRequest(
 }
 
 /**
+ * @brief 发起不等待、不重试的 operation log（操作日志）请求，并把拒绝收口到现有脱敏诊断入口。
+ * @author PopoY
+ * @param input 严格六字段请求、日志客户端和现有诊断入口。
+ */
+export function reportPressJobOperationBestEffort(input: {
+  recordDiagnostic?: (summary: PressJobDiagnosticSummary) => void;
+  recordPressJobOperation?: (request: PressJobOperationLogRequest) => Promise<void>;
+  request: PressJobOperationLogRequest;
+}): void {
+  void input.recordPressJobOperation?.(input.request).catch(() => {
+    input.recordDiagnostic?.({
+      correlationId: input.request.correlationId,
+      commandName: input.request.operationCode,
+      durationMs: 0,
+      resultCode: "压机操作日志上报失败。",
+    });
+  });
+}
+
+/**
+ * @brief 使用动作开始时保留的 session/team/operator context（会话/班组/人员上下文）上报 workflow（流程）结果。
+ * @author PopoY
+ * @param input 当前 workflow（流程）的注入回调和筛选上下文。
+ * @param identity 动作开始时生成并保留的身份。
+ * @param operationCode 固定操作码。
+ * @param result 真实操作结果。
+ */
+function reportPressWorkflowOperation(
+  input: PressDeviceActionDiagnosticInput,
+  identity: PressDeviceActionIdentity,
+  operationCode: PressJobOperationCode,
+  result: boolean,
+): void {
+  reportPressJobOperationBestEffort({
+    recordDiagnostic: input.recordPressDeviceActionDiagnostic,
+    recordPressJobOperation: input.recordPressJobOperation,
+    request: {
+      correlationId: identity.correlationId,
+      localJobSessionId: identity.localJobSessionId,
+      operationCode,
+      result,
+      teamId: input.filters.teamId ?? "",
+      operatorId: input.filters.operatorId ?? "",
+    },
+  });
+}
+
+/**
  * @brief 执行开始加工 workflow（流程）。
  * @author PopoY
  * @param input 页面注入的 Driver/ERP 回调和当前业务状态。
@@ -3273,15 +3342,20 @@ export async function executePressJobStartWorkflow(
     );
   }
 
+  let erpStartSucceeded = false;
   try {
     const erpStartResult = await input.startPressJob(
       buildPressJobStartRequest(identity, input.filters, input.expectedDuration),
     );
 
-    if (!isPressErpActionSuccessful(erpStartResult.resultCode)) {
-      throw new Error(erpStartResult.resultCode);
-    }
+    erpStartSucceeded = isPressErpActionSuccessful(erpStartResult.resultCode);
   } catch {
+    erpStartSucceeded = false;
+  }
+
+  reportPressWorkflowOperation(input, identity, "START", erpStartSucceeded);
+
+  if (!erpStartSucceeded) {
     await tryRollbackStartSignal(input, identity);
     recordPressDeviceActionResult(input, identity, startedAt, {
       erpResultCode: "ERP_START_FAILED",
@@ -3396,15 +3470,27 @@ export async function runCompletePressJobWorkflow(
     );
   }
 
+  let parameterRecordSucceeded = false;
   try {
     const parameterResult = await input.recordPressJobParameters(
       buildPressJobParameterRequest(identity, "end", finalSignalSnapshot),
     );
 
-    if (!isPressErpActionSuccessful(parameterResult.resultCode)) {
-      throw new Error(parameterResult.resultCode);
-    }
+    parameterRecordSucceeded = isPressErpActionSuccessful(
+      parameterResult.resultCode,
+    );
   } catch {
+    parameterRecordSucceeded = false;
+  }
+
+  reportPressWorkflowOperation(
+    input,
+    identity,
+    "PARAMETER_END",
+    parameterRecordSucceeded,
+  );
+
+  if (!parameterRecordSucceeded) {
     recordPressDeviceActionResult(input, identity, startedAt, {
       erpResultCode: "PARAMETER_RECORD_FAILED",
       resultCode: "PARAMETER_RECORD_FAILED",
@@ -3418,15 +3504,20 @@ export async function runCompletePressJobWorkflow(
     );
   }
 
+  let completeSucceeded = false;
   try {
     const completeResult = await input.completePressJob(
       buildPressJobCompleteRequest(identity, input.filters),
     );
 
-    if (!isPressErpActionSuccessful(completeResult.resultCode)) {
-      throw new Error(completeResult.resultCode);
-    }
+    completeSucceeded = isPressErpActionSuccessful(completeResult.resultCode);
   } catch {
+    completeSucceeded = false;
+  }
+
+  reportPressWorkflowOperation(input, identity, "COMPLETE", completeSucceeded);
+
+  if (!completeSucceeded) {
     recordPressDeviceActionResult(input, identity, startedAt, {
       erpResultCode: "ERP_COMPLETE_FAILED",
       resultCode: "ERP_COMPLETE_FAILED",
@@ -3705,6 +3796,13 @@ async function executePressLineDeviceAction(
       : driverSucceeded || erpSucceeded
         ? "PARTIAL_OK"
         : "FAILED";
+
+  reportPressWorkflowOperation(
+    input,
+    identity,
+    input.buttonKey === "lineIn" ? "LINE_IN" : "LINE_OUT",
+    resultCode === "OK",
+  );
 
   recordPressDeviceActionResult(input, identity, startedAt, {
     driverResultCode,

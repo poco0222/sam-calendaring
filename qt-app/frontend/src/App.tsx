@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-06-25
  * @editor PopoY
- * @edited 2026-07-24 20:51:57
+ * @edited 2026-07-27 11:37:10
  * @brief 编排 bootstrap hooks（启动 hooks）并渲染 QT App（Qt 应用）四个一级页面的 app shell（应用外壳）。
  */
 
@@ -15,7 +15,10 @@ import { BootstrapDashboard } from "./components/BootstrapDashboard";
 import { DiagnosticLogsPage } from "./components/DiagnosticLogsPage";
 import { FirstRunConfigPage } from "./components/FirstRunConfigPage";
 import { PressJobHistoryPage } from "./components/PressJobHistoryPage";
-import { PressJobPage } from "./components/PressJobPage";
+import {
+  PressJobPage,
+  reportPressJobOperationBestEffort,
+} from "./components/PressJobPage";
 import type {
   PressJobFilterState,
   PressJobPageBootstrapSession,
@@ -32,7 +35,9 @@ import type {
   PressJobCompleteRequest,
   PressJobExpectedDurationUpdateRequest,
   PressJobHistoryQuery,
+  PressJobOperationLogRequest,
   PressJobParameterRecordRequest,
+  PressJobParameterRecordResult,
   PressJobStartRequest,
   PressMachineStatusUpdateRequest,
   PressMoldLockRequest,
@@ -59,6 +64,7 @@ import {
   getJson,
   completePressJob as submitCompletePressJob,
   lockPressMold as submitPressMoldLock,
+  recordPressJobOperation as submitPressJobOperation,
   recordPressJobParameters as submitPressJobParameters,
   startPressJob as submitStartPressJob,
   unlockPressMolds as submitPressMoldUnlock,
@@ -399,6 +405,20 @@ export default function App() {
     },
     [bootstrapSession.config, bootstrapSession.data],
   );
+  const recordPressJobOperation = useCallback(
+    async (request: PressJobOperationLogRequest) => {
+      if (!bootstrapSession.config || !bootstrapSession.data) {
+        throw new Error("压机操作日志上报前启动会话未就绪。");
+      }
+
+      return submitPressJobOperation(postErpJson, {
+        erpBaseUrl: bootstrapSession.config.erpBaseUrl,
+        sessionToken: bootstrapSession.data.sessionToken,
+        request,
+      });
+    },
+    [bootstrapSession.config, bootstrapSession.data],
+  );
   const completePressJob = useCallback(
     async (request: PressJobCompleteRequest) => {
       if (!bootstrapSession.config || !bootstrapSession.data) {
@@ -509,10 +529,14 @@ export default function App() {
         void handleDriverDeviceEvent({
           event,
           applySignalSnapshotEvent: driverSession.applySignalSnapshotEvent,
+          operatorId: pressJobFilters.operatorId,
           recordDiagnostic: (summary) => logDiagnostic(summary),
+          recordPressDeviceActionDiagnostic,
+          recordPressJobOperation,
           recordPressJobParameters,
           recordedStartParameterKeys: recordedStartParameterKeysRef.current,
           stationAccountId: diagnosticStationAccountId,
+          teamId: pressJobFilters.teamId,
         });
       },
       () => {
@@ -534,6 +558,10 @@ export default function App() {
     bootstrapSession.data,
     diagnosticStationAccountId,
     driverSession.applySignalSnapshotEvent,
+    pressJobFilters.operatorId,
+    pressJobFilters.teamId,
+    recordPressDeviceActionDiagnostic,
+    recordPressJobOperation,
     recordPressJobParameters,
   ]);
   const appShellDriverStatus = formatAppShellDriverStatus(
@@ -640,6 +668,7 @@ export default function App() {
             onFilterStateChange={setPressJobFilters}
             precheckPressDeviceCommand={precheckPressDeviceCommand}
             recordPressDeviceActionDiagnostic={recordPressDeviceActionDiagnostic}
+            recordPressJobOperation={recordPressJobOperation}
             recordPressJobParameters={recordPressJobParameters}
             recordPressMoldLockDiagnostic={recordPressMoldLockDiagnostic}
             recordPressMoldUnlockDiagnostic={recordPressMoldUnlockDiagnostic}
@@ -835,20 +864,32 @@ function isNativeBootstrapConfig(value: unknown): value is NativeBootstrapConfig
 export function handleDriverDeviceEvent(input: {
   event: PressDeviceEvent;
   applySignalSnapshotEvent: (event: PressDeviceEvent) => void;
+  operatorId?: string;
   recordDiagnostic: (summary: LogRecord) => void;
+  recordPressDeviceActionDiagnostic?: (
+    summary: Omit<LogRecord, "stationAccountId">,
+  ) => void;
+  recordPressJobOperation?: (
+    request: PressJobOperationLogRequest,
+  ) => Promise<void>;
   recordPressJobParameters: (
     request: PressJobParameterRecordRequest,
-  ) => Promise<unknown>;
+  ) => Promise<PressJobParameterRecordResult>;
   recordedStartParameterKeys: Set<string>;
   stationAccountId: string;
+  teamId?: string;
 }): Promise<void> {
   input.applySignalSnapshotEvent(input.event);
   return handlePressParameterThresholdReached({
     event: input.event,
+    operatorId: input.operatorId,
     recordDiagnostic: input.recordDiagnostic,
+    recordPressDeviceActionDiagnostic: input.recordPressDeviceActionDiagnostic,
+    recordPressJobOperation: input.recordPressJobOperation,
     recordPressJobParameters: input.recordPressJobParameters,
     recordedStartParameterKeys: input.recordedStartParameterKeys,
     stationAccountId: input.stationAccountId,
+    teamId: input.teamId,
   })
     .then(() => undefined)
     .catch(() => {
@@ -930,12 +971,20 @@ export type PressParameterThresholdResult =
  */
 export async function handlePressParameterThresholdReached(input: {
   event: PressDeviceEvent;
+  operatorId?: string;
   recordDiagnostic: (summary: LogRecord) => void;
+  recordPressDeviceActionDiagnostic?: (
+    summary: Omit<LogRecord, "stationAccountId">,
+  ) => void;
+  recordPressJobOperation?: (
+    request: PressJobOperationLogRequest,
+  ) => Promise<void>;
   recordPressJobParameters: (
     request: PressJobParameterRecordRequest,
-  ) => Promise<unknown>;
+  ) => Promise<PressJobParameterRecordResult>;
   recordedStartParameterKeys: Set<string>;
   stationAccountId: string;
+  teamId?: string;
 }): Promise<PressParameterThresholdResult> {
   if (
     input.event.eventName !== "pressDownCountThresholdReached" ||
@@ -961,7 +1010,7 @@ export async function handlePressParameterThresholdReached(input: {
   input.recordedStartParameterKeys.add(startParameterKey);
 
   try {
-    await input.recordPressJobParameters({
+    const parameterResult = await input.recordPressJobParameters({
       correlationId: input.event.correlationId,
       idempotencyKey: input.event.parameterIdempotencyKey,
       parameterIdempotencyKey: input.event.parameterIdempotencyKey,
@@ -969,7 +1018,34 @@ export async function handlePressParameterThresholdReached(input: {
       type: "start",
       signalValues: mapDeviceEventSnapshotValues(input.event.snapshotValues),
     });
+
+    reportPressJobOperationBestEffort({
+      recordDiagnostic: input.recordPressDeviceActionDiagnostic,
+      recordPressJobOperation: input.recordPressJobOperation,
+      request: {
+        correlationId: input.event.correlationId,
+        localJobSessionId: input.event.localJobSessionId,
+        operationCode: "PARAMETER_START",
+        result:
+          parameterResult.resultCode === "OK" ||
+          parameterResult.resultCode === "IDEMPOTENCY_REPLAY",
+        teamId: input.teamId ?? "",
+        operatorId: input.operatorId ?? "",
+      },
+    });
   } catch (error) {
+    reportPressJobOperationBestEffort({
+      recordDiagnostic: input.recordPressDeviceActionDiagnostic,
+      recordPressJobOperation: input.recordPressJobOperation,
+      request: {
+        correlationId: input.event.correlationId,
+        localJobSessionId: input.event.localJobSessionId,
+        operationCode: "PARAMETER_START",
+        result: false,
+        teamId: input.teamId ?? "",
+        operatorId: input.operatorId ?? "",
+      },
+    });
     input.recordedStartParameterKeys.delete(startParameterKey);
     input.recordDiagnostic({
       correlationId: input.event.correlationId,

@@ -2,6 +2,8 @@
  * @file erpClient.ts - 实现 ERP（企业资源计划系统）auto-login（自动登录）和租约引导客户端。
  * @author PopoY
  * @created 2026-06-25
+ * @editor PopoY
+ * @edited 2026-07-27 11:37:10
  * @brief 实现 ERP（企业资源计划系统）auto-login（自动登录）和租约引导客户端。
  */
 
@@ -35,6 +37,7 @@ import type {
   PressJobHistoryRow,
   PressJobLookupData,
   PressJobOperatorOption,
+  PressJobOperationLogRequest,
   PressJobParameterRecordRequest,
   PressJobParameterRecordResult,
   PressJobProcessOption,
@@ -71,6 +74,7 @@ const PRESS_MOLD_UNLOCKS_PATH = "/api/qt/press-working/mold-unlocks";
 const PRESS_JOB_STARTS_PATH = "/api/qt/press-working/press-job-starts";
 const PRESS_JOB_PARAMETERS_PATH = "/api/qt/press-working/press-job-parameters";
 const PRESS_JOB_COMPLETIONS_PATH = "/api/qt/press-working/press-job-completions";
+const PRESS_JOB_OPERATION_LOGS_PATH = "/api/qt/press-working/operation-logs";
 const PRESS_JOB_HISTORY_PATH = "/api/qt/press-working/history-jobs";
 const PRESS_MACHINE_STATUS_PATH = "/api/qt/press-working/machine-status";
 const PRESS_SIGNAL_VALUE_FORBIDDEN_KEYS = new Set([
@@ -295,6 +299,14 @@ export type RecordPressJobParametersInput = FetchPressJobLookupDataInput & {
  */
 export type CompletePressJobInput = FetchPressJobLookupDataInput & {
   request: PressJobCompleteRequest;
+};
+
+/**
+ * @brief Define recordPressJobOperation（记录压机操作结果）client input（输入）。
+ * @author PopoY
+ */
+export type RecordPressJobOperationInput = FetchPressJobLookupDataInput & {
+  request: PressJobOperationLogRequest;
 };
 
 /**
@@ -1018,6 +1030,26 @@ export async function completePressJob(
     PRESS_JOB_COMPLETIONS_PATH,
     narrowPressJobCompleteRequest(input.request),
     narrowPressJobBaseResult,
+  );
+}
+
+/**
+ * @brief Submit one best-effort press job operation log（压机操作结果日志）with the authenticated request helper（认证请求辅助函数）。
+ * @author PopoY
+ * @param sendJson JSON POST helper used by production and tests.
+ * @param input ERP base URL, session token（会话令牌）and strict operation log request（严格操作日志请求）。
+ * @returns Promise resolved after ERP accepts the log request.
+ */
+export async function recordPressJobOperation(
+  sendJson: PostJson,
+  input: RecordPressJobOperationInput,
+): Promise<void> {
+  return postPressWorkingRequest(
+    sendJson,
+    input,
+    PRESS_JOB_OPERATION_LOGS_PATH,
+    narrowPressJobOperationLogRequest(input.request),
+    () => undefined,
   );
 }
 
@@ -1884,6 +1916,25 @@ function narrowPressJobCompleteRequest(
     correlationId: request.correlationId,
     idempotencyKey: request.idempotencyKey,
     localJobSessionId: request.localJobSessionId,
+    operatorId: request.operatorId,
+  };
+}
+
+/**
+ * @brief 重建 operation log（操作日志）严格六字段请求体，丢弃运行时额外字段。
+ * @author PopoY
+ * @param request 页面传入的操作结果日志请求。
+ * @returns ERP Qt operation-log endpoint（操作日志端点）允许的六字段请求。
+ */
+function narrowPressJobOperationLogRequest(
+  request: PressJobOperationLogRequest,
+): PressJobOperationLogRequest {
+  return {
+    correlationId: request.correlationId,
+    localJobSessionId: request.localJobSessionId,
+    operationCode: request.operationCode,
+    result: request.result,
+    teamId: request.teamId,
     operatorId: request.operatorId,
   };
 }

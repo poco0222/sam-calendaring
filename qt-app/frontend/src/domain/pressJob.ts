@@ -2,6 +2,8 @@
  * @file pressJob.ts - 定义 Press Job（压机作业）前端 lookup data（查询数据）模型。
  * @author PopoY
  * @created 2026-06-30
+ * @editor PopoY
+ * @edited 2026-07-27 11:37:10
  * @brief 承载 sam-erp 班组、人员和预选工艺级联展示需要的最小字段。
  */
 
@@ -290,6 +292,31 @@ export type PressJobCompleteResult = {
   localJobSessionId: string;
   resultCode: string;
   message?: string;
+};
+
+/**
+ * @brief 定义 QT post-action（操作后）允许上报的六个压机操作码。
+ * @author PopoY
+ */
+export type PressJobOperationCode =
+  | "START"
+  | "PARAMETER_START"
+  | "PARAMETER_END"
+  | "LINE_IN"
+  | "LINE_OUT"
+  | "COMPLETE";
+
+/**
+ * @brief 定义压机操作结果日志的严格六字段请求。
+ * @author PopoY
+ */
+export type PressJobOperationLogRequest = {
+  correlationId: string;
+  localJobSessionId: string;
+  operationCode: PressJobOperationCode;
+  result: boolean;
+  teamId: string;
+  operatorId: string;
 };
 
 /**

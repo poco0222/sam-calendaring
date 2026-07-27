@@ -2,6 +2,8 @@
  * @file PressJobPage.test.tsx - 验证 Press Working Page（压机作业页面）。
  * @author PopoY
  * @created 2026-06-30
+ * @editor PopoY
+ * @edited 2026-07-27 11:37:10
  * @brief 锁定 frontend-only（仅前端）压机作业页的四行布局、空数据和安全边界。
  */
 
@@ -11,6 +13,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { AntdRootProvider } from "../app/AntdRootProvider";
+import { handlePressParameterThresholdReached } from "../App";
 import { fetchPressJobCurrentJobs } from "../services/erpClient";
 import {
   applyPlannedDurationSaveCompletion,
@@ -2897,6 +2900,136 @@ describe("PressJobPage", () => {
   });
 
   /**
+   * @brief 断言 LINE_IN/LINE_OUT（入线/出线）只按 Driver + ERP 整体结果上报。
+   * @author PopoY
+   */
+  it.each([
+    ["lineIn", "LINE_IN", "OK", "OK", "OK", true],
+    ["lineIn", "LINE_IN", "OK", "FAILED", "PARTIAL_OK", false],
+    ["lineIn", "LINE_IN", "FAILED", "FAILED", "FAILED", false],
+    ["lineOut", "LINE_OUT", "OK", "OK", "OK", true],
+    ["lineOut", "LINE_OUT", "OK", "FAILED", "PARTIAL_OK", false],
+    ["lineOut", "LINE_OUT", "FAILED", "FAILED", "FAILED", false],
+  ])(
+    "reports %s aggregate result %s",
+    async (
+      buttonKey,
+      operationCode,
+      driverResultCode,
+      erpResultCode,
+      workflowResultCode,
+      expectedResult,
+    ) => {
+      const recordPressJobOperation = vi.fn().mockResolvedValue(undefined);
+      const input = {
+        currentJobRows: [
+          { localJobSessionId: "job-line-01", moldNo: "MOLD-01", status: "0" },
+        ],
+        driverSession: createDriverSession("Connected"),
+        executePressDeviceCommand: vi.fn(async (request) => ({
+          ...request,
+          resultCode: driverResultCode,
+          completedSteps: [],
+          failedSteps: [],
+        })),
+        filters: { teamId: "team-1", operatorId: "user-1", processId: "PRESS-01" },
+        recordPressJobOperation,
+        updatePressMachineStatus: vi.fn(async (request) => ({
+          correlationId: request.correlationId,
+          localJobSessionId: request.localJobSessionId,
+          resultCode: erpResultCode,
+          status: request.status,
+        })),
+      };
+
+      const result =
+        buttonKey === "lineIn"
+          ? await executePressJobSimpleDeviceAction({ ...input, buttonKey })
+          : await executePressJobLineOutWorkflow(input);
+
+      expect(result.resultCode).toBe(workflowResultCode);
+      expect(recordPressJobOperation).toHaveBeenCalledWith({
+        correlationId: result.identity?.correlationId,
+        localJobSessionId: "job-line-01",
+        operationCode,
+        result: expectedResult,
+        teamId: "team-1",
+        operatorId: "user-1",
+      });
+    },
+  );
+
+  /**
+   * @brief 断言完成加工刷新清空 current job（当前作业）后，出线仍使用动作开始时保留的作业上下文。
+   * @author PopoY
+   */
+  it("keeps completed job context for best-effort LINE_OUT reporting", async () => {
+    const recordPressJobOperation = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("日志请求原始异常"));
+    const recordPressDeviceActionDiagnostic = vi.fn();
+    const refreshPressJobCurrentJobs = vi.fn().mockResolvedValue([]);
+
+    const result = await executePressJobLineOutWorkflow({
+      confirm: vi.fn().mockResolvedValue(true),
+      currentJobRows: [
+        { localJobSessionId: "job-complete-line-out-01", moldNo: "MOLD-01", status: "1" },
+      ],
+      driverSession: createDriverSession("Connected"),
+      executePressDeviceCommand: vi.fn(async (request) => ({
+        ...request,
+        resultCode: "OK" as const,
+        completedSteps: [],
+        failedSteps: [],
+      })),
+      filters: { teamId: "team-1", operatorId: "user-1", processId: "PRESS-01" },
+      getFinalSignalSnapshot: vi.fn().mockResolvedValue({ pressure: 135 }),
+      recordPressDeviceActionDiagnostic,
+      recordPressJobOperation,
+      recordPressJobParameters: vi.fn().mockResolvedValue({
+        correlationId: "parameter-end-01",
+        localJobSessionId: "job-complete-line-out-01",
+        resultCode: "OK",
+      }),
+      completePressJob: vi.fn().mockResolvedValue({
+        correlationId: "complete-01",
+        localJobSessionId: "job-complete-line-out-01",
+        resultCode: "OK",
+      }),
+      refreshPressJobCurrentJobs,
+      updatePressMachineStatus: vi.fn(async (request) => ({
+        correlationId: request.correlationId,
+        localJobSessionId: request.localJobSessionId,
+        resultCode: "OK",
+        status: request.status,
+      })),
+    });
+
+    expect(result).toMatchObject({ feedbackType: "success", resultCode: "OK" });
+    expect(refreshPressJobCurrentJobs).toHaveBeenCalled();
+    expect(recordPressJobOperation).toHaveBeenCalledWith({
+      correlationId: result.identity?.correlationId,
+      localJobSessionId: "job-complete-line-out-01",
+      operationCode: "LINE_OUT",
+      result: true,
+      teamId: "team-1",
+      operatorId: "user-1",
+    });
+    await Promise.resolve();
+    expect(recordPressDeviceActionDiagnostic).toHaveBeenCalledWith({
+      correlationId: result.identity?.correlationId,
+      commandName: "LINE_OUT",
+      durationMs: 0,
+      resultCode: "压机操作日志上报失败。",
+    });
+    expect(JSON.stringify(recordPressDeviceActionDiagnostic.mock.calls)).not.toContain(
+      "日志请求原始异常",
+    );
+  });
+
+  /**
    * @brief 断言 Task6（任务六）开始/完工前置校验 fail closed（失败关闭）。
    * @author PopoY
    */
@@ -3137,6 +3270,132 @@ describe("PressJobPage", () => {
   });
 
   /**
+   * @brief 断言 START（开始加工）按 ERP result code（结果码）或抛错上报，日志拒绝不改变主流程结果。
+   * @author PopoY
+   */
+  it.each([
+    ["OK", false, true, "OK"],
+    ["IDEMPOTENCY_REPLAY", false, true, "OK"],
+    ["FAILED", false, false, "ERP_START_FAILED"],
+    ["THROW", true, false, "ERP_START_FAILED"],
+  ])(
+    "reports START result for ERP code %s",
+    async (erpResultCode, shouldThrow, expectedResult, workflowResultCode) => {
+      const executePressDeviceCommand = vi.fn(async (request) => ({
+        ...request,
+        resultCode: "OK" as const,
+        completedSteps: [],
+        failedSteps: [],
+      }));
+      const startPressJob = shouldThrow
+        ? vi.fn().mockRejectedValue(new Error("开始落库原始异常"))
+        : vi.fn(async (request) => ({
+            correlationId: request.correlationId,
+            localJobSessionId: request.localJobSessionId,
+            resultCode: erpResultCode,
+          }));
+      const recordPressJobOperation = vi
+        .fn()
+        .mockRejectedValue(new Error("日志请求原始异常"));
+      const recordPressDeviceActionDiagnostic = vi.fn();
+
+      const result = await executePressJobStartWorkflow({
+        currentJobRows: [
+          { localJobSessionId: "job-start-01", moldNo: "MOLD-01", status: "0" },
+        ],
+        driverSession: createDriverSession("Connected"),
+        executePressDeviceCommand,
+        expectedDuration: "1",
+        filters: { teamId: "team-1", operatorId: "user-1", processId: "PRESS-01" },
+        recordPressDeviceActionDiagnostic,
+        recordPressJobOperation,
+        startPressJob,
+      });
+
+      expect(result.resultCode).toBe(workflowResultCode);
+      expect(recordPressJobOperation).toHaveBeenCalledWith({
+        correlationId: result.identity?.correlationId,
+        localJobSessionId: "job-start-01",
+        operationCode: "START",
+        result: expectedResult,
+        teamId: "team-1",
+        operatorId: "user-1",
+      });
+      await Promise.resolve();
+      expect(recordPressDeviceActionDiagnostic).toHaveBeenCalledWith({
+        correlationId: result.identity?.correlationId,
+        commandName: "START",
+        durationMs: 0,
+        resultCode: "压机操作日志上报失败。",
+      });
+      expect(JSON.stringify(recordPressDeviceActionDiagnostic.mock.calls)).not.toContain(
+        "日志请求原始异常",
+      );
+    },
+  );
+
+  /**
+   * @brief 断言 PARAMETER_START（开始参数记录）按 ERP 结果上报并保留事件处理原结果或异常。
+   * @author PopoY
+   */
+  it.each([
+    ["OK", false, true],
+    ["IDEMPOTENCY_REPLAY", false, true],
+    ["FAILED", false, false],
+    ["THROW", true, false],
+  ])(
+    "reports PARAMETER_START result for ERP code %s",
+    async (erpResultCode, shouldThrow, expectedResult) => {
+      const recordPressJobParameters = shouldThrow
+        ? vi.fn().mockRejectedValue(new Error("参数记录原始异常"))
+        : vi.fn().mockResolvedValue({
+            correlationId: "parameter-start-01",
+            localJobSessionId: "job-parameter-start-01",
+            resultCode: erpResultCode,
+          });
+      const recordPressJobOperation = vi.fn().mockResolvedValue(undefined);
+      const input = {
+        event: {
+          eventId: "event-parameter-start-01",
+          correlationId: "parameter-start-01",
+          localJobSessionId: "job-parameter-start-01",
+          eventName: "pressDownCountThresholdReached" as const,
+          commandName: "pressDownCountThresholdReached" as const,
+          resultCode: "OK" as const,
+          parameterIdempotencyKey: "parameter-start-key-01",
+          occurredAt: "2026-07-27T03:00:00Z",
+          snapshotValues: [{ signalCode: "pressDownCount", value: 5 }],
+        },
+        operatorId: "user-1",
+        recordDiagnostic: vi.fn(),
+        recordPressDeviceActionDiagnostic: vi.fn(),
+        recordPressJobOperation,
+        recordPressJobParameters,
+        recordedStartParameterKeys: new Set<string>(),
+        stationAccountId: "station-account-01",
+        teamId: "team-1",
+      };
+
+      if (shouldThrow) {
+        await expect(handlePressParameterThresholdReached(input)).rejects.toThrow(
+          "参数记录原始异常",
+        );
+      } else {
+        await expect(handlePressParameterThresholdReached(input)).resolves.toBe("RECORDED");
+      }
+
+      expect(recordPressJobOperation).toHaveBeenCalledWith({
+        correlationId: "parameter-start-01",
+        localJobSessionId: "job-parameter-start-01",
+        operationCode: "PARAMETER_START",
+        result: expectedResult,
+        teamId: "team-1",
+        operatorId: "user-1",
+      });
+    },
+  );
+
+  /**
    * @brief 断言开始加工 workflow（流程）在 Driver preflight（驱动前置校验）失败时不执行设备启动或 ERP start（开始落库）。
    * @author PopoY
    */
@@ -3276,6 +3535,116 @@ describe("PressJobPage", () => {
       resultCode: "CLEANUP_PENDING",
     });
   });
+
+  /**
+   * @brief 断言 PARAMETER_END（完工参数记录）按 ERP 结果上报，不改变原完工 gate（门禁）。
+   * @author PopoY
+   */
+  it.each([
+    ["OK", false, true, "OK"],
+    ["IDEMPOTENCY_REPLAY", false, true, "OK"],
+    ["FAILED", false, false, "PARAMETER_RECORD_FAILED"],
+    ["THROW", true, false, "PARAMETER_RECORD_FAILED"],
+  ])(
+    "reports PARAMETER_END result for ERP code %s",
+    async (erpResultCode, shouldThrow, expectedResult, workflowResultCode) => {
+      const recordPressJobParameters = shouldThrow
+        ? vi.fn().mockRejectedValue(new Error("完工参数原始异常"))
+        : vi.fn().mockResolvedValue({
+            correlationId: "parameter-end-01",
+            localJobSessionId: "job-complete-01",
+            resultCode: erpResultCode,
+          });
+      const recordPressJobOperation = vi.fn().mockResolvedValue(undefined);
+
+      const result = await runCompletePressJobWorkflow({
+        currentJobRows: [
+          { localJobSessionId: "job-complete-01", moldNo: "MOLD-01", status: "1" },
+        ],
+        driverSession: createDriverSession("Connected"),
+        executePressDeviceCommand: vi.fn(async (request) => ({
+          ...request,
+          resultCode: "OK" as const,
+          completedSteps: [],
+          failedSteps: [],
+        })),
+        filters: { teamId: "team-1", operatorId: "user-1" },
+        getFinalSignalSnapshot: vi.fn().mockResolvedValue({ pressure: 135 }),
+        recordPressJobOperation,
+        recordPressJobParameters,
+        completePressJob: vi.fn(async (request) => ({
+          correlationId: request.correlationId,
+          localJobSessionId: request.localJobSessionId,
+          resultCode: "OK",
+        })),
+      });
+
+      expect(result.resultCode).toBe(workflowResultCode);
+      expect(recordPressJobOperation).toHaveBeenCalledWith({
+        correlationId: result.identity?.correlationId,
+        localJobSessionId: "job-complete-01",
+        operationCode: "PARAMETER_END",
+        result: expectedResult,
+        teamId: "team-1",
+        operatorId: "user-1",
+      });
+    },
+  );
+
+  /**
+   * @brief 断言 COMPLETE（完成加工）按 ERP 结果上报，不以后续 Driver cleanup（驱动收尾）改写结果。
+   * @author PopoY
+   */
+  it.each([
+    ["OK", false, true, "OK"],
+    ["IDEMPOTENCY_REPLAY", false, true, "OK"],
+    ["FAILED", false, false, "ERP_COMPLETE_FAILED"],
+    ["THROW", true, false, "ERP_COMPLETE_FAILED"],
+  ])(
+    "reports COMPLETE result for ERP code %s",
+    async (erpResultCode, shouldThrow, expectedResult, workflowResultCode) => {
+      const completePressJob = shouldThrow
+        ? vi.fn().mockRejectedValue(new Error("完成加工原始异常"))
+        : vi.fn().mockResolvedValue({
+            correlationId: "complete-01",
+            localJobSessionId: "job-complete-01",
+            resultCode: erpResultCode,
+          });
+      const recordPressJobOperation = vi.fn().mockResolvedValue(undefined);
+
+      const result = await runCompletePressJobWorkflow({
+        currentJobRows: [
+          { localJobSessionId: "job-complete-01", moldNo: "MOLD-01", status: "1" },
+        ],
+        driverSession: createDriverSession("Connected"),
+        executePressDeviceCommand: vi.fn(async (request) => ({
+          ...request,
+          resultCode: "OK" as const,
+          completedSteps: [],
+          failedSteps: [],
+        })),
+        filters: { teamId: "team-1", operatorId: "user-1" },
+        getFinalSignalSnapshot: vi.fn().mockResolvedValue({ pressure: 135 }),
+        recordPressJobOperation,
+        recordPressJobParameters: vi.fn().mockResolvedValue({
+          correlationId: "parameter-end-01",
+          localJobSessionId: "job-complete-01",
+          resultCode: "OK",
+        }),
+        completePressJob,
+      });
+
+      expect(result.resultCode).toBe(workflowResultCode);
+      expect(recordPressJobOperation).toHaveBeenCalledWith({
+        correlationId: result.identity?.correlationId,
+        localJobSessionId: "job-complete-01",
+        operationCode: "COMPLETE",
+        result: expectedResult,
+        teamId: "team-1",
+        operatorId: "user-1",
+      });
+    },
+  );
 
   /**
    * @brief 断言完成加工 workflow（流程）在 cleanup preflight（收尾前置校验）失败时阻止快照、参数和 ERP 完工。
