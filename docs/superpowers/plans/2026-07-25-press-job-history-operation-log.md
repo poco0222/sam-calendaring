@@ -42,7 +42,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 
 | 工作树 | 文件 | 职责 |
 | --- | --- | --- |
-| 后端 | `yr-admin/src/main/resources/db/liquibase/changelog/smes/changelog-2026-07-27-qt-press-job-operation-log.xml`、`yr-admin/src/main/resources/db/liquibase/master.xml` | 两列一索引及唯一 include（引入） |
+| 后端 | `yr-admin/src/main/resources/db/liquibase/changelog/smes/changelog-2026-07-27-qt-press-job-operation-log.xml`、`yr-admin/src/main/resources/db/liquibase/master.xml` | 两列一索引；复用既有递归 `includeAll` 并防止显式重复引入 |
 | 后端 | `sam-erp/src/main/java/com/yr/smes2/smes/modbus/domain/ModbusHandleLog.java` | 复用既有日志领域对象，追加父作业、班组和查询展示名称 |
 | 后端 | `sam-erp/src/main/java/com/yr/smes2/smes/modbus/mapper/ModbusHandleLogMapper.java`、`sam-erp/src/main/resources/mapper/smes/modbus/ModbusHandleLogMapper.xml` | 写入新增 ID，并按设备与父作业稳定查询及关联主数据 |
 | 后端 | `sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/IPressJobInfoService.java`、`sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/impl/PressJobInfoServiceImpl.java` | 复用现有父作业解析并保存固定日志，不新增 Service/Writer |
@@ -65,7 +65,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 - Consumes: 既有 `insertModbusHandleLog(ModbusHandleLog log)` 与 `modbus_handle_log.handle_type/handle_content/handle_result/handle_by/handle_time/device_id`。
 - Produces: `List<ModbusHandleLog> selectHistoryByPressJobInfoId(Long deviceId, Long pressJobInfoId)`；结果按 `handle_time ASC, id ASC`，对象可读 `pressJobInfoId`、`teamId`、`teamName`、`operatorName`。
 
-- [ ] **Step 1: 写 Mapper/Liquibase 失败契约测试**
+- [x] **Step 1: 写 Mapper/Liquibase 失败契约测试**
 
   在 `ModbusHandleLogMapperContractTest` 用 classpath 读取 changelog 与 Mapper XML，精确断言只出现下列 schema/query 契约，并断言没有 `mould_job_id`、`correlation_id`、session/fingerprint 列：
 
@@ -80,7 +80,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
   assertFalse(mapper.contains("request_fingerprint"));
   ```
 
-- [ ] **Step 2: 运行测试并确认 RED（红）**
+- [x] **Step 2: 运行测试并确认 RED（红）**
 
   Run（后端工作树）：
 
@@ -90,9 +90,9 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 
   Expected: FAIL，原因是 changelog 和 `selectHistoryByPressJobInfoId` 尚不存在。
 
-- [ ] **Step 3: 实现两列一索引和最小 Mapper 扩展**
+- [x] **Step 3: 实现两列一索引和最小 Mapper 扩展**
 
-  changelog 只包含两个 `addColumn`、一个 `createIndex` 及对称 rollback；`master.xml` 只新增一次 include。Domain 追加 nullable ID 与查询展示字段；Mapper insert 只追加 `press_job_info_id/team_id`，查询签名固定为：
+  changelog 只包含两个 `addColumn`、一个 `createIndex` 及对称 rollback；目标文件由 `master.xml` 既有递归 `includeAll` 唯一装载，不再增加显式 include，并用根 changelog 契约测试防止重复装载。Domain 追加 nullable ID 与查询展示字段；Mapper insert 只追加 `press_job_info_id/team_id`，查询签名固定为：
 
   ```java
   List<ModbusHandleLog> selectHistoryByPressJobInfoId(
@@ -109,11 +109,11 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 
   使用 `LEFT JOIN` 保留主数据缺失日志，并以 `ORDER BY log.handle_time ASC, log.id ASC` 收尾。
 
-- [ ] **Step 4: 运行测试并确认 GREEN（绿）**
+- [x] **Step 4: 运行测试并确认 GREEN（绿）**
 
   重复 Step 2 命令。Expected: `ModbusHandleLogMapperContractTest` PASS，且 Maven `BUILD SUCCESS`。
 
-- [ ] **Step 5: 提交最小数据边界**
+- [x] **Step 5: 提交最小数据边界**
 
   ```bash
   git add yr-admin/src/main/resources/db/liquibase/master.xml yr-admin/src/main/resources/db/liquibase/changelog/smes/changelog-2026-07-27-qt-press-job-operation-log.xml sam-erp/src/main/java/com/yr/smes2/smes/modbus/domain/ModbusHandleLog.java sam-erp/src/main/java/com/yr/smes2/smes/modbus/mapper/ModbusHandleLogMapper.java sam-erp/src/main/resources/mapper/smes/modbus/ModbusHandleLogMapper.xml sam-erp/src/test/java/com/yr/smes2/smes/modbus/mapper/ModbusHandleLogMapperContractTest.java
