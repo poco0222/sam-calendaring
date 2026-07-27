@@ -1,17 +1,17 @@
 > Editor: PopoY
-> Edited: 2026-07-27 08:32:28
+> Edited: 2026-07-27 08:46:41
 
 ## 1. 最小日志表与端点
 
 - [ ] 1.1 为 `modbus_handle_log` 仅增加 nullable `press_job_info_id`、`team_id` 和 `(device_id, press_job_info_id, handle_time, id)` 索引，保留既有字段语义与旧入口兼容性
 - [ ] 1.2 扩展现有 Domain（领域模型）和 Mapper（映射器）读写，新增按认证设备与父作业时间正序查询，并在查询时关联现有班组、用户主数据
-- [ ] 1.3 新增最薄 QT operation-log endpoint（操作日志端点），只接受六字段请求、固定操作码和 Boolean 结果，复用现有 Qt `START` 关联，无法关联时保存 device-only log
+- [ ] 1.3 新增最薄 QT operation-log endpoint（操作日志端点），只接受六字段请求、固定操作码和 Boolean 结果，复用 `press-job-id-*` 直连或现有 Qt `START` 会话映射且不要求作业仍进行中，无法关联时保存 device-only log
 
 ## 2. QT post-action 上报
 
 - [ ] 2.1 为 `START`、`PARAMETER_START`、`PARAMETER_END`、`LINE_IN`、`LINE_OUT`、`COMPLETE` 增加最小请求类型和客户端调用
-- [ ] 2.2 在每个真实操作成功返回或抛错后 best-effort（尽力而为）异步上报，保持主结果不变；日志失败只写脱敏诊断，不增加队列、重试、补偿或回填
-- [ ] 2.3 增加定向测试，验证成功/失败 post-action（操作后）上报、敏感字段缺失和日志失败隔离
+- [ ] 2.2 在每个真实操作结果确定后 best-effort（尽力而为）异步上报；START/参数/COMPLETE 在各自 ERP 调用边界按结果码判断，入线/出线仅整体 `OK` 记成功，`PARTIAL_OK` / `FAILED` 记失败；保持主结果不变，日志失败只写脱敏诊断，不增加队列、重试、补偿或回填
+- [ ] 2.3 增加定向测试，覆盖刷新后的 `press-job-id-*`、完成后日志、完成后出线、ERP 错误结果正常返回、`PARTIAL_OK`、正常返回的 `FAILED`、敏感字段缺失和日志失败隔离
 
 ## 3. 历史投影与 UI
 

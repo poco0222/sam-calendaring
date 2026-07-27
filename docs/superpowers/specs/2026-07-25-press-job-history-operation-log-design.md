@@ -9,13 +9,13 @@ canonical_spec: openspec
 - Author: PopoY
 - Created: 2026-07-25 10:23:37
 - Editor: PopoY
-- Edited: 2026-07-27 08:32:28
+- Edited: 2026-07-27 08:46:41
 - Change: `enhance-press-job-history-operation-log`
 - Canonical requirements: `openspec/changes/enhance-press-job-history-operation-log/specs/`
 
 ## 1. 状态与结论
 
-本文件记录用户已批准的 simple approach（简单方案）：参考 `sam-erp-fe` 原有 `logHandle`，在每次真实操作成功返回或抛错后异步写一条 `modbus_handle_log`。日志失败不得影响主操作，不为日志建立第二套业务关系校验。
+本文件记录用户已批准的 simple approach（简单方案）：参考 `sam-erp-fe` 原有 `logHandle`，在每次真实操作结果确定后按业务结果异步写一条 `modbus_handle_log`。日志失败不得影响主操作，不为日志建立第二套业务关系校验。
 
 该方案仍处于书面规格复核阶段。旧 Implementation Plan（实施计划）已废弃；用户书面确认前，不生成新计划、不恢复旧任务、不开始开发。
 
@@ -23,8 +23,8 @@ canonical_spec: openspec
 
 | 组件 | 本次职责 |
 | --- | --- |
-| `modbus_handle_log` | 保存操作时间、固定中文操作名称/内容、成功/失败、班组 ID、作业人员 ID和父作业 ID |
-| Qt operation-log endpoint（操作日志端点） | 从认证上下文取得设备，复用现有 Qt `START` 关联，映射固定中文日志并写一条记录 |
+| `modbus_handle_log` | 保存操作时间、固定中文操作名称/内容、成功/失败、班组 ID、作业人员 ID 和父作业 ID |
+| Qt operation-log endpoint（操作日志端点） | 从认证上下文取得设备，复用 `press-job-id-*` 直连或现有 Qt `START` 会话映射，映射固定中文日志并写一条记录 |
 | QT App（Qt 应用） | 在真实操作结果确定后 best-effort（尽力而为）异步上报，不改变主结果 |
 | 历史详情 | 按认证设备和父作业读取新日志；没有新日志时整组降级现有 Qt 生命周期记录 |
 | 现有主数据 | 查询时解析班组和作业人员名称，不保存名称快照 |
@@ -82,7 +82,7 @@ index (device_id, press_job_info_id, handle_time, id)
 
 ### 4.2 服务端关联
 
-ERP 从认证上下文取得 `deviceId`，使用现有 Qt `START` 记录与 `localJobSessionId` 解析既有 `pressJobInfoId`。这是已有业务关联的只读复用，不增加会话归属、请求去重或人员班组关系验证。
+ERP 从认证上下文取得 `deviceId` 与 `granteeHostId`，再复用现有 `localJobSessionId` 的两条路径解析既有 `pressJobInfoId`：`press-job-id-*` 直接取得父作业 ID，其他值按认证设备下的 Qt `START` 记录查询。两条路径都只确认父作业属于认证设备与授权主机，不要求作业仍在进行中或仍存在于设备当前作业缓存，因此完成加工后的日志仍能关联父作业。这是已有业务关联的只读复用，不增加会话模型、请求去重或人员班组关系验证。
 
 解析成功时写入 `press_job_info_id`。解析失败或操作发生在可解析 `START` 之前时，仍可按认证设备写一条 `press_job_info_id = null` 的 device-only log（仅设备日志）。未关联日志不进入历史详情，后续不回填，也不按设备与时间窗口猜测。
 
@@ -101,17 +101,19 @@ ERP 从认证上下文取得 `deviceId`，使用现有 Qt `START` 记录与 `loc
 
 ## 5. QT post-action（操作后）上报
 
-每个允许操作沿用同一最小模式：
+每个允许操作沿用同一最小模式；入线/出线按整体状态判断，而不是按 Promise（异步结果）是否 fulfilled（已兑现）判断：
 
 ```text
 执行真实操作
-  ├─ 成功返回：保持原返回，并异步上报 result=true
-  └─ 抛出错误：保持原错误，并异步上报 result=false
+  ├─ START/PARAMETER/COMPLETE 的 ERP 返回 OK/IDEMPOTENCY_REPLAY：上报 true
+  ├─ START/PARAMETER/COMPLETE 的 ERP 返回其他码或抛错：上报 false
+  ├─ LINE_IN/LINE_OUT 两侧汇总为 OK：异步上报 result=true
+  └─ LINE_IN/LINE_OUT 返回 PARTIAL_OK/FAILED 或抛错：异步上报 result=false
                          ↓
                  日志失败只写脱敏诊断
 ```
 
-上报发生在真实操作结果已经确定之后。QT 不等待日志响应，不改变原成功结果或原异常；请求失败只记录 `correlationId`、操作码和固定中文摘要，不记录请求原文或异常正文。
+上报发生在真实操作结果已经确定之后。QT 不等待日志响应，不改变原成功结果、状态结果或异常；请求失败只记录 `correlationId`、操作码和固定中文摘要，不记录请求原文或异常正文。
 
 本方案不提供队列、重试、补偿或失败回填。best-effort 的已知边界是断网、超时或进程退出可能丢失日志；这是避免日志反向阻塞设备真实操作的明确取舍。
 
@@ -149,8 +151,9 @@ ERP 从认证上下文取得 `deviceId`，使用现有 Qt `START` 记录与 `loc
 
 - 数据库变更是否严格为两列一索引。
 - 请求是否严格为六字段，且操作码严格为六个。
-- 是否只复用认证设备与现有 Qt `START` 作业关联。
-- QT 是否只在真实操作返回或抛错后异步上报，且日志失败不影响主操作。
+- 是否只复用认证设备、`press-job-id-*` 直连与现有 Qt `START` 会话映射，并允许完成后的父作业关联。
+- START/参数/COMPLETE 是否在各自 ERP 调用边界判断，入线/出线是否在两侧汇总后把 `PARTIAL_OK` / `FAILED` 记为失败。
+- QT 是否只在真实操作结果确定后异步上报，且日志失败不影响主操作。
 - 历史详情是否按父作业共享时间线，并在完全没有新日志时整组降级。
 - UI 是否只做现有组件和样式内的指定调整。
 

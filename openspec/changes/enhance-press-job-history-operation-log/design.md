@@ -1,5 +1,5 @@
 > Editor: PopoY
-> Edited: 2026-07-27 08:32:28
+> Edited: 2026-07-27 08:46:41
 
 ## Context
 
@@ -11,7 +11,7 @@ SAM ERP 已有 `modbus_handle_log` 业务操作日志和 Qt `START` 记录到 `p
 
 **Goals:**
 
-- 每次真实操作成功返回或抛错后，QT 异步记录一条不影响主流程的操作日志。
+- 每次真实操作结果确定后，QT 按业务结果异步记录一条不影响主流程的操作日志。
 - 历史详情按认证设备和父作业展示新日志，并保留旧作业降级行为。
 - 展示时间、操作、结果、内容、班组和作业人员，同时遵守敏感信息边界。
 - 用最少字段、最薄端点和现有 UI（用户界面）体系完成需求。
@@ -44,13 +44,13 @@ Liquibase（数据库迁移）只增加：
 | 字段 | 约束 |
 | --- | --- |
 | `correlationId` | 只用于请求诊断串联，不写入业务日志表 |
-| `localJobSessionId` | 只用于复用现有 Qt `START` 关联 |
+| `localJobSessionId` | 只用于复用 `press-job-id-*` 直连或现有 Qt `START` 会话映射 |
 | `operationCode` | 仅允许六个固定值 |
 | `result` | 仅允许 JSON Boolean `true` / `false` |
 | `teamId` | 写入 `team_id` |
 | `operatorId` | 写入 `handle_by` |
 
-端点不得接收 `deviceId`、IP、port（端口）、原始参数、信号配置、异常正文、凭据、令牌、租约或签名。ERP 从认证上下文取得 `deviceId`，再按现有 Qt `START` 记录与 `localJobSessionId` 解析现有 `pressJobInfoId`。这只是复用现有关联，不新增会话归属、请求去重或人员班组关系校验。
+端点不得接收 `deviceId`、IP、port（端口）、原始参数、信号配置、异常正文、凭据、令牌、租约或签名。ERP 从认证上下文取得 `deviceId` 与 `granteeHostId`，再复用 `localJobSessionId` 的两条现有路径解析 `pressJobInfoId`：`press-job-id-*` 直接取得父作业 ID，其他值按认证设备下的 Qt `START` 记录查找。两条路径都只确认父作业属于认证设备和授权主机，不要求作业仍为进行中或仍存在于设备当前作业缓存，因此 `COMPLETE` 成功后的日志仍能关联已完成父作业。这只是复用现有关联，不新增会话模型、请求去重或人员班组关系校验。
 
 无法解析父作业，或操作发生在可解析的 `START` 之前时，记录仍可按认证设备保存，但 `press_job_info_id = null`。这类记录不进入历史详情，后续不回填，也不按设备与时间窗口猜测归属。
 
@@ -71,7 +71,7 @@ Liquibase（数据库迁移）只增加：
 
 ### 4. QT 在主操作之后 best-effort 异步上报
 
-QT 在上述六类真实操作返回后上报 `result=true`，在该操作抛错后上报 `result=false`。上报在主操作结果已经确定后异步执行，不等待日志响应，不改变原成功返回或原异常。
+QT 在上述六类真实操作结果确定后异步上报。`START`、`PARAMETER_START`、`PARAMETER_END`、`COMPLETE` 在各自 ERP 调用边界判断，`OK` / `IDEMPOTENCY_REPLAY` 上报 `result=true`，其他返回码或抛错上报 `result=false`；`LINE_IN`、`LINE_OUT` 在 Driver 与 ERP 两侧汇总后判断，只有整体 `OK` 上报 `true`，`PARTIAL_OK` / `FAILED` 即使以正常返回值结束也上报 `false`。日志上报不等待响应，不改变原成功返回、状态结果或异常。
 
 日志请求失败时只通过现有脱敏诊断能力记录 `correlationId`、操作码和固定中文摘要；不得记录请求原文或异常正文。不给日志上报增加队列、重试、补偿或失败回填。
 
