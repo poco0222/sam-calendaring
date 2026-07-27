@@ -2,7 +2,7 @@
 > @author PopoY
 > @created 2026-07-25 12:09:31
 > Editor: PopoY
-> Edited: 2026-07-27 11:09:22
+> Edited: 2026-07-27 11:10:36
 > @purpose 记录 Comet 子代理实施与审查恢复状态。
 
 # Subagent Progress（子代理进度）
@@ -32,6 +32,7 @@
 - Debug evidence: Jackson Boolean coercion 经三轮假设排除；最终用唯一 `JsonNode result` 严格校验 token；业务拒绝沿用 HTTP 200 + `AjaxResult.code=500`
 - Review status: `Spec ❌ / Task quality Needs fixes`
 - Reviewer: `/root/task2_review`（dispatched 2026-07-27 10:35:03）
+- Re-reviewer: `/root/task2_rereview1`（dispatched 2026-07-27 11:10:36）
 - Unresolved feedback:
   - Re-review required: 核验两个原 Important finding 是否已完整关闭，并检查修复是否引入新 Critical/Important
 - Scope decision: 用户选择方案 1，已授权 Comet medium spec update（中等规格更新）和最小方案 A
