@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-06-25
  * @editor PopoY
- * @edited 2026-07-27 11:37:10
+ * @edited 2026-07-27 12:38:48
  * @brief 验证 ERP client（企业资源计划客户端）自动登录和租约流程。
  */
 
@@ -1288,10 +1288,21 @@ describe("erpClient", () => {
           {
             operationTime: "2026-07-24 09:00:00",
             operationName: "完成加工",
-            result: "成功",
+            result: "失败",
+            content: "完成加工失败",
+            teamName: "甲班",
+            operatorName: "张三",
             ...forbiddenPayload,
           },
-          { operationName: { raw: true }, result: "drop-invalid-operation" },
+          {
+            operationTime: "2026-07-24 08:00:00",
+            operationName: null,
+            result: "成功",
+            content: null,
+            teamName: null,
+            operatorName: null,
+          },
+          "drop-non-object-operation",
         ],
         ...forbiddenPayload,
       },
@@ -1336,7 +1347,18 @@ describe("erpClient", () => {
         {
           operationTime: "2026-07-24 09:00:00",
           operationName: "完成加工",
+          result: "失败",
+          content: "完成加工失败",
+          teamName: "甲班",
+          operatorName: "张三",
+        },
+        {
+          operationTime: "2026-07-24 08:00:00",
+          operationName: undefined,
           result: "成功",
+          content: undefined,
+          teamName: undefined,
+          operatorName: undefined,
         },
       ],
     });

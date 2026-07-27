@@ -2,6 +2,8 @@
  * @file PressJobHistoryPage.css - 定义 Press Job History Page（压机历史作业页面）样式。
  * @author PopoY
  * @created 2026-07-24 19:52:32
+ * @editor PopoY
+ * @edited 2026-07-27 12:40:07
  * @brief 复用现有 Design Token（设计变量）约束 1280x720 触控布局和详情局部滚动。
  */
 
@@ -16,6 +18,7 @@
 
 .press-job-history-page__filters {
   display: flex;
+  flex-wrap: nowrap;
   align-items: end;
   gap: 12px;
   min-height: 62px;
@@ -62,6 +65,7 @@
 
 .press-job-history-page__query {
   flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .press-job-history-page__table,
@@ -210,7 +214,7 @@
 
 .press-job-history-detail__operation-list {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -218,16 +222,55 @@
 
 .press-job-history-detail__operation-list li {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 4px 8px;
-  min-height: 44px;
-  padding: 8px 0;
+  grid-template-columns: 12px 96px minmax(0, 1fr);
+  gap: 8px;
+  min-height: 48px;
+  padding: 6px;
   border-bottom: 1px solid var(--qt-app-control-blue-line);
 }
 
-.press-job-history-detail__operation-list time {
-  grid-column: 1 / -1;
+.press-job-history-detail__operation-marker {
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border: 2px solid var(--qt-app-control-blue);
+  border-radius: 50%;
+  background: var(--ant-color-bg-container, transparent);
+}
+
+.press-job-history-detail__operation-time {
+  color: var(--ant-color-text-secondary, currentColor);
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.press-job-history-detail__operation-content {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  color: var(--ant-color-text-secondary, currentColor);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.press-job-history-detail__operation-main {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+}
+
+.press-job-history-detail__operation-name {
+  overflow: hidden;
+  color: var(--ant-color-text, currentColor);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.press-job-history-detail__operation-list .ant-tag {
+  margin-inline-end: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

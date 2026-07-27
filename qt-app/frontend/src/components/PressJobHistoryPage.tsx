@@ -3,10 +3,11 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-24 20:33:14
+ * @edited 2026-07-27 12:40:07
  * @brief 提供本地自然日筛选、服务端分页和脱敏历史作业详情。
  */
 
+import { SearchOutlined } from "@ant-design/icons";
 import {
   Alert,
   Button,
@@ -86,6 +87,24 @@ export function createInitialHistoryFilters(now: Dayjs): HistoryDraftFilters & {
 } {
   const today = now.startOf("day");
   return { dateRange: [today, today], mouldCode: "" };
+}
+
+/**
+ * @brief 基于当前本地自然日生成历史查询 preset（快捷选项）。
+ * @author PopoY
+ * @param today 本地当天；默认值在每次页面渲染时重新计算。
+ * @returns 最近 1/3/7/30 个自然日的闭区间。
+ */
+export function createHistoryRangePresets(
+  today = dayjs().startOf("day"),
+): Array<{ label: string; value: [Dayjs, Dayjs] }> {
+  const localToday = today.startOf("day");
+  return [1, 3, 7, 30].map((days) => ({
+    label: `最近${
+      days === 1 ? "一天" : days === 3 ? "三天" : days === 7 ? "一周" : "一月"
+    }`,
+    value: [localToday.subtract(days - 1, "day"), localToday],
+  }));
 }
 
 /**
@@ -611,6 +630,7 @@ export function PressJobHistoryPage({
           <RangePicker
             allowClear={false}
             format="YYYY-MM-DD"
+            presets={createHistoryRangePresets()}
             value={draftFilters.dateRange}
             onChange={handleDraftDateRangeChange}
           />
@@ -653,6 +673,7 @@ export function PressJobHistoryPage({
         <Button
           className="press-job-history-page__query"
           disabled={dateValidationMessage !== null}
+          icon={<SearchOutlined aria-hidden="true" />}
           onClick={handleQuery}
           type="primary"
         >
@@ -702,7 +723,7 @@ export function PressJobHistoryPage({
         onClose={handleCloseDetail}
         open={selectedMoldJobId !== undefined}
         rootStyle={drawerRootStyle}
-        size="70%"
+        size="80%"
         title={`作业详情 · ${selectedRow?.moldNo ?? "未记录"}`}
       >
         {detailLoading || detailStatus === "loading" ? (
@@ -827,9 +848,36 @@ function HistoryDetailContent({
             <ol className="press-job-history-detail__operation-list">
               {detail.operationRecords.map((operation, index) => (
                 <li key={`${operation.operationTime ?? "未记录"}-${index}`}>
-                  <time>{formatHistoryCell(operation.operationTime)}</time>
-                  <span>{operation.operationName}</span>
-                  <Tag color="success">成功</Tag>
+                  <span
+                    aria-hidden="true"
+                    className="press-job-history-detail__operation-marker"
+                  />
+                  <time className="press-job-history-detail__operation-time">
+                    {formatHistoryCell(operation.operationTime)}
+                  </time>
+                  <span className="press-job-history-detail__operation-content">
+                    <span className="press-job-history-detail__operation-main">
+                      <span className="press-job-history-detail__operation-name">
+                        {formatHistoryCell(operation.operationName)}
+                      </span>
+                      <Tag
+                        color={
+                          operation.result === "成功"
+                            ? "success"
+                            : operation.result === "失败"
+                              ? "error"
+                              : "default"
+                        }
+                      >
+                        {formatHistoryCell(operation.result)}
+                      </Tag>
+                    </span>
+                    <span>内容：{formatHistoryCell(operation.content)}</span>
+                    <span>班组：{formatHistoryCell(operation.teamName)}</span>
+                    <span>
+                      作业人员：{formatHistoryCell(operation.operatorName)}
+                    </span>
+                  </span>
                 </li>
               ))}
             </ol>
@@ -844,12 +892,17 @@ function HistoryDetailContent({
  * @brief 将参数值转换为固定安全文本。
  * @author PopoY
  */
-function formatHistoryParameterValue(
+export function formatHistoryParameterValue(
   parameter: PressJobHistoryParameter | undefined,
 ): string {
-  return parameter?.status === "recorded" && parameter.value !== undefined
-    ? String(parameter.value)
-    : "未记录";
+  if (parameter?.status !== "recorded" || parameter.value === undefined) {
+    return "未记录";
+  }
+  return typeof parameter.value === "boolean"
+    ? parameter.value
+      ? "是"
+      : "否"
+    : String(parameter.value);
 }
 
 /**

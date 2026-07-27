@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-06-25
  * @editor PopoY
- * @edited 2026-07-27 11:37:10
+ * @edited 2026-07-27 12:40:07
  * @brief 实现 ERP（企业资源计划系统）auto-login（自动登录）和租约引导客户端。
  */
 
@@ -1557,10 +1557,10 @@ function narrowPressJobHistoryParameters(
 }
 
 /**
- * @brief 收窄历史成功操作，只保留三个展示字段。
+ * @brief 收窄历史操作，只保留固定六个展示字段。
  * @author PopoY
  * @param value 历史操作原始数组。
- * @returns 名称和结果完整的安全操作行。
+ * @returns 缺失文本保持 undefined（未定义）的安全操作行。
  */
 function narrowPressJobHistoryOperations(
   value: unknown,
@@ -1574,16 +1574,16 @@ function narrowPressJobHistoryOperations(
     if (!record || Array.isArray(item)) {
       return [];
     }
-    const operationName = readHistoryString(record.operationName);
-    const result = readHistoryString(record.result);
-    if (!operationName || !result) {
-      return [];
-    }
-
-    const operation: PressJobHistoryOperation = { operationName, result };
-    const operationTime = readHistoryString(record.operationTime);
-    if (operationTime) operation.operationTime = operationTime;
-    return [operation];
+    return [
+      {
+        operationTime: readHistoryString(record.operationTime),
+        operationName: readHistoryString(record.operationName),
+        result: readHistoryString(record.result),
+        content: readHistoryString(record.content),
+        teamName: readHistoryString(record.teamName),
+        operatorName: readHistoryString(record.operatorName),
+      },
+    ];
   });
 }
 

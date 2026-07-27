@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-06-30
  * @editor PopoY
- * @edited 2026-07-27 11:37:10
+ * @edited 2026-07-27 12:40:07
  * @brief 承载 sam-erp 班组、人员和预选工艺级联展示需要的最小字段。
  */
 
@@ -398,13 +398,16 @@ export type PressJobHistoryParameter = {
 };
 
 /**
- * @brief 定义历史作业的成功操作记录展示字段。
+ * @brief 定义历史作业操作记录的固定六个安全展示字段。
  * @author PopoY
  */
 export type PressJobHistoryOperation = {
-  operationTime?: string;
-  operationName: string;
-  result: string;
+  operationTime: string | undefined;
+  operationName: string | undefined;
+  result: string | undefined;
+  content: string | undefined;
+  teamName: string | undefined;
+  operatorName: string | undefined;
 };
 
 /**

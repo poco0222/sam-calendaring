@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-24 20:33:14
+ * @edited 2026-07-27 12:38:48
  * @brief 锁定日期快照、请求竞态、表格、详情和现有 Design Token（设计变量）契约。
  */
 
@@ -18,7 +18,9 @@ import { AntdRootProvider } from "../app/AntdRootProvider";
 import {
   alignHistoryParameters,
   buildHistoryQuery,
+  createHistoryRangePresets,
   createInitialHistoryFilters,
+  formatHistoryParameterValue,
   formatHistoryStatus,
   PressJobHistoryPage,
   shouldApplyHistoryDetailResponse,
@@ -81,6 +83,38 @@ describe("PressJobHistoryPage", () => {
       "日期范围最多选择 31 个自然日。",
     );
     expect(validateHistoryDateRange(null)).toBe("请选择日期范围。");
+  });
+
+  /**
+   * @brief 锁定 1/3/7/30 个本地自然日 preset（快捷选项）的标签和闭区间。
+   * @author PopoY
+   */
+  it("creates fresh local natural-day presets for 1, 3, 7, and 30 days", () => {
+    const today = dayjs("2026-07-27T15:30:00").utcOffset(480, true);
+
+    expect(
+      createHistoryRangePresets(today).map(({ label, value }) => ({
+        label,
+        value: value.map((date) => date.format("YYYY-MM-DD HH:mm:ssZ")),
+      })),
+    ).toEqual([
+      {
+        label: "最近一天",
+        value: ["2026-07-27 00:00:00+08:00", "2026-07-27 00:00:00+08:00"],
+      },
+      {
+        label: "最近三天",
+        value: ["2026-07-25 00:00:00+08:00", "2026-07-27 00:00:00+08:00"],
+      },
+      {
+        label: "最近一周",
+        value: ["2026-07-21 00:00:00+08:00", "2026-07-27 00:00:00+08:00"],
+      },
+      {
+        label: "最近一月",
+        value: ["2026-06-28 00:00:00+08:00", "2026-07-27 00:00:00+08:00"],
+      },
+    ]);
   });
 
   it("builds a fixed ten-row half-open query without losing local offset", () => {
@@ -249,8 +283,8 @@ describe("PressJobHistoryPage", () => {
 
   it("keeps the row, local state, drawer and retry source contracts", () => {
     expect(pageSource).toContain("allowClear={false}");
-    expect(pageSource).toContain('size="70%"');
-    expect(pageSource).not.toContain('width="70%"');
+    expect(pageSource).toContain('size="80%"');
+    expect(pageSource).not.toContain('width="80%"');
     expect(pageSource).toContain("destroyOnHidden={false}");
     expect(pageSource).toContain("tabIndex: 0");
     expect(pageSource).toContain('event.key === "Enter"');
@@ -323,6 +357,67 @@ describe("PressJobHistoryPage", () => {
         unit: "℃",
       },
     ]);
+  });
+
+  /**
+   * @brief 只有后端原始 Boolean（布尔值）翻译为“是/否”，其他标量保持原样。
+   * @author PopoY
+   */
+  it("translates only original boolean parameter values", () => {
+    expect(
+      formatHistoryParameterValue({
+        parameterName: "自动模式",
+        status: "recorded",
+        value: true,
+      }),
+    ).toBe("是");
+    expect(
+      formatHistoryParameterValue({
+        parameterName: "自动模式文本",
+        status: "recorded",
+        value: "true",
+      }),
+    ).toBe("true");
+    expect(
+      formatHistoryParameterValue({
+        parameterName: "自动模式数字",
+        status: "recorded",
+        value: 1,
+      }),
+    ).toBe("1");
+    expect(
+      formatHistoryParameterValue({
+        parameterName: "手动模式",
+        status: "recorded",
+        value: false,
+      }),
+    ).toBe("否");
+  });
+
+  /**
+   * @brief 锁定查询按钮、单行筛选和六字段 operation timeline（操作时间线）契约。
+   * @author PopoY
+   */
+  it("keeps search affordance, one-line filters, and six-field timeline contracts", () => {
+    const html = renderPage();
+
+    expect(html.replace(/\s/g, "")).toContain("查询");
+    expect(pageSource).toContain("SearchOutlined");
+    expect(pageSource).toContain('<SearchOutlined aria-hidden="true" />');
+    expect(pageSource).toContain("presets={createHistoryRangePresets()}");
+    expect(pageCss).toContain("flex-wrap: nowrap");
+    expect(pageCss).toMatch(/press-job-history-page__query[\s\S]*white-space: nowrap/);
+    expect(pageSource).toContain("operation.operationTime");
+    expect(pageSource).toContain("operation.operationName");
+    expect(pageSource).toContain("operation.result");
+    expect(pageSource).toContain("内容：{formatHistoryCell(operation.content)}");
+    expect(pageSource).toContain("班组：{formatHistoryCell(operation.teamName)}");
+    expect(pageSource).toContain(
+      "作业人员：{formatHistoryCell(operation.operatorName)}",
+    );
+    expect(pageCss).toContain("grid-template-columns: 12px 96px minmax(0, 1fr)");
+    expect(pageCss).toContain("width: 8px");
+    expect(pageCss).toContain("height: 8px");
   });
 
   it("uses only existing tokens for the bounded touch layout", () => {
