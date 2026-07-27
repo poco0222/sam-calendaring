@@ -2,7 +2,7 @@
 > @author PopoY
 > @created 2026-07-25 12:09:31
 > Editor: PopoY
-> Edited: 2026-07-27 14:42:21
+> Edited: 2026-07-27 14:48:57
 > @purpose 记录 Comet 子代理实施与审查恢复状态。
 
 # Subagent Progress（子代理进度）
@@ -11,7 +11,7 @@
 - Previous task: `Task 4` complete（frontend `a553b8b..424ab6a`; final review clean after fix rounds 2/2; frontend 226/226、TypeScript/build、backend 91/91/compile/XML PASS）
 - Current task: `Task 5: 修正 OpenSpec 归档语义并重新验证`
 - Mapped OpenSpec task: `5.1 按 OpenSpec delta semantics 补全 MODIFIED 场景并归类 ADDED requirement`
-- Stage: `final-fix`
+- Stage: `final-fix-review`
 - Implementer: `/root/task5_archive_spec_repair`（dispatched 2026-07-27 13:55:36）
 - Reviewer: `/root/task5_archive_spec_review`（dispatched 2026-07-27 14:01:51）
 - Review mode: `thorough`
@@ -39,3 +39,7 @@
 - Final fix review 1: `/root/task5_final_fix1_review`；`Needs fixes`，Critical 0，Important 1，Minor 0
 - Final fix review 1 finding: 真实未认证请求由 Spring Security 在 Controller 前交给 `AuthenticationEntryPointImpl`；当前仅 history 路径产生四阶段日志，`/operation-logs` 仍走通用分支并漏失关联生命周期。
 - Final fix 2 scope: 复用 `AuthenticationEntryPointImpl` 既有精确路径、安全 401 与四阶段日志模式，只修改该入口及其既有测试；不得重写 Controller 第 1 轮修正或扩大到 Security 配置。
+- Final fix 2 implementer: `/root/task5_final_fix2`；commit `07a4957ece77afe9c74de4b382ccf27b534e2c9b`
+- Final fix 2 changed files: Backend `AuthenticationEntryPointImpl.java`、`AuthenticationEntryPointImplTest.java`
+- Final fix 2 TDD: RED 3 tests / 1 failure（expected 401, was 200）；GREEN 3/3，13/13 Reactor SUCCESS，`git diff --check` PASS
+- Final fix 2 review: pending fresh reviewer
