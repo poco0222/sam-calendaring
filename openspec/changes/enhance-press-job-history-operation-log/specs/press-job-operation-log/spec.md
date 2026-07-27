@@ -1,5 +1,5 @@
 > Editor: PopoY
-> Edited: 2026-07-27 08:46:41
+> Edited: 2026-07-27 10:49:02
 
 ## ADDED Requirements
 
@@ -31,8 +31,22 @@ ERP MUST 提供最薄的 QT operation-log endpoint（操作日志端点），请
 
 #### Scenario: 请求包含敏感或自由文本字段
 - **WHEN** 请求尝试提交 `deviceId`、IP、port（端口）、原始参数、信号配置、异常正文、凭据、令牌、租约、签名、操作名称或操作内容
-- **THEN** 端点不得使用这些值写入业务日志
+- **THEN** 端点在调用认证解析和 Service（服务）前以固定中文业务错误拒绝请求，且不得使用这些值写入业务日志
+- **AND** DTO（数据传输对象）只记录不含字段名和值的内部未知字段标记，不得在 JSON 反序列化阶段抛出包含 DTO、字段或第三方异常栈的错误
 - **AND** 服务端不得为了日志新增会话、请求去重或人员班组关系校验
+
+### Requirement: 父作业关联只能由可信服务端路径建立
+系统 MUST 只允许 QT 专用 Service（服务）在校验认证 `deviceId`、`granteeHostId` 和现有 `localJobSessionId` 关联后写入 `press_job_info_id`。既有通用 `POST /modbus/handleLog` MUST 忽略客户端提交的 `pressJobInfoId`，并 MUST 保持普通 device-only log（仅设备日志）写入能力。
+
+#### Scenario: 通用日志入口提交父作业 ID
+- **WHEN** 已认证客户端向 `POST /modbus/handleLog` 提交非空 `pressJobInfoId`
+- **THEN** Controller（控制器）在调用既有 Service 前把该字段清空，最终日志不得建立父作业关联
+- **AND** 系统不得为此新增来源列、权限体系、Writer（写入器）或修改 Domain、Mapper 和通用 Service 的 Java contract（Java 契约）
+
+#### Scenario: QT 专用服务建立父作业关联
+- **WHEN** QT 操作日志端点通过认证设备、授权主机和现有会话映射解析出父作业
+- **THEN** QT 专用 Service 可继续直接构造并写入非空 `press_job_info_id`
+- **AND** 通用 HTTP 入口的字段清理不得影响该可信写入路径
 
 ### Requirement: 操作码和中文内容由服务端固定映射
 系统 MUST 只接受 `START`、`PARAMETER_START`、`PARAMETER_END`、`LINE_IN`、`LINE_OUT`、`COMPLETE`，并 MUST 由服务端按结果映射固定中文名称和内容，不得接受客户端自由文本。

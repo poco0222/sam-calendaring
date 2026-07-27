@@ -1,5 +1,5 @@
 > Editor: PopoY
-> Edited: 2026-07-27 08:32:28
+> Edited: 2026-07-27 10:49:02
 
 ## MODIFIED Requirements
 
@@ -34,7 +34,7 @@ QT App MUST 保持现有“历史作业”一级入口、App Shell（应用外�
 - **AND** 关闭后保持列表、页码和筛选状态，焦点返回原触发行
 
 ### Requirement: 历史详情按父作业展示新操作日志
-系统 MUST 先以认证 `deviceId + mouldJobId` 取得目标历史行及其父 `pressJobInfoId`，再按 `deviceId + pressJobInfoId` 查询 `modbus_handle_log`，并 MUST 按 `handle_time ASC, id ASC` 返回时间、操作、结果、内容、班组和作业人员。
+系统 MUST 先以认证 `deviceId + mouldJobId` 取得目标历史行及其父 `pressJobInfoId`，再按 `deviceId + pressJobInfoId` 查询 `modbus_handle_log`，并 MUST 按 `handle_time ASC, id ASC` 返回时间、操作、结果、内容、班组和作业人员。父作业关联 MUST 只能由认证 QT 专用服务端路径建立。
 
 #### Scenario: 父作业存在新日志
 - **WHEN** 目标父作业至少存在一条 `press_job_info_id` 已关联的新日志
@@ -45,6 +45,11 @@ QT App MUST 保持现有“历史作业”一级入口、App Shell（应用外�
 - **WHEN** 目标父作业完全没有 `press_job_info_id` 已关联的新日志
 - **THEN** 系统整组降级展示现有 `qt_press_job_operation` 生命周期投影
 - **AND** 系统不得按设备与时间窗口猜测或混入 `press_job_info_id = null` 的日志
+
+#### Scenario: 通用日志入口尝试伪造父作业关联
+- **WHEN** 客户端向通用 `POST /modbus/handleLog` 提交目标父作业的 `pressJobInfoId`
+- **THEN** 通用入口忽略该字段，所写日志不得进入父作业时间线
+- **AND** 若目标父作业没有其他可信新日志，详情仍整组降级到现有 Qt 生命周期投影
 
 #### Scenario: 查询班组和作业人员名称
 - **WHEN** 服务端投影新日志

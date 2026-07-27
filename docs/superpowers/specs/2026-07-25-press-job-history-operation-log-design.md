@@ -9,7 +9,7 @@ canonical_spec: openspec
 - Author: PopoY
 - Created: 2026-07-25 10:23:37
 - Editor: PopoY
-- Edited: 2026-07-27 09:17:15
+- Edited: 2026-07-27 10:49:02
 - Change: `enhance-press-job-history-operation-log`
 - Canonical requirements: `openspec/changes/enhance-press-job-history-operation-log/specs/`
 
@@ -17,7 +17,7 @@ canonical_spec: openspec
 
 本文件记录用户已批准的 simple approach（简单方案）：参考 `sam-erp-fe` 原有 `logHandle`，在每次真实操作结果确定后按业务结果异步写一条 `modbus_handle_log`。日志失败不得影响主操作，不为日志建立第二套业务关系校验。
 
-书面规格已完成复核并经用户确认。旧 Implementation Plan（实施计划）继续保持废弃；新的最小实施计划已按本设计重新生成，执行配置确认前不开始生产代码开发。
+原书面规格和最小 Implementation Plan（实施计划）已确认并执行到 Task 2。Task 2 审查发现两个 Trust Boundary（信任边界）问题；用户已批准方案 A 的最小范围扩展。本增量设计复核确认前，暂停 Task 2 生产代码修复。
 
 ## 2. 最小职责
 
@@ -25,6 +25,7 @@ canonical_spec: openspec
 | --- | --- |
 | `modbus_handle_log` | 保存操作时间、固定中文操作名称/内容、成功/失败、班组 ID、作业人员 ID 和父作业 ID |
 | Qt operation-log endpoint（操作日志端点） | 从认证上下文取得设备，复用 `press-job-id-*` 直连或现有 Qt `START` 会话映射，映射固定中文日志并写一条记录 |
+| 通用 `/modbus/handleLog` | 继续保存普通设备日志，但忽略客户端提交的 `pressJobInfoId`，不得建立父作业关联 |
 | QT App（Qt 应用） | 在真实操作结果确定后 best-effort（尽力而为）异步上报，不改变主结果 |
 | 历史详情 | 按认证设备和父作业读取新日志；没有新日志时整组降级现有 Qt 生命周期记录 |
 | 现有主数据 | 查询时解析班组和作业人员名称，不保存名称快照 |
@@ -79,12 +80,17 @@ index (device_id, press_job_info_id, handle_time, id)
 - `correlationId` 只用于现有技术诊断串联，不新增日志表列。
 - `teamId` 写入 `team_id`；`operatorId` 写入 `handle_by`。
 - 请求不得包含 `deviceId`、IP、port（端口）、原始参数、信号配置、异常正文、credential（凭据）、token（令牌）、lease（租约）或 signature（签名）。
+- 未知字段由 DTO（数据传输对象）只记录一个不含名称和值的内部标记；Controller（控制器）在认证解析和 Service（服务）调用前返回固定中文业务错误，不在 Jackson（JSON 反序列化）阶段抛出异常。
 
 ### 4.2 服务端关联
 
 ERP 从认证上下文取得 `deviceId` 与 `granteeHostId`，再复用现有 `localJobSessionId` 的两条路径解析既有 `pressJobInfoId`：`press-job-id-*` 直接取得父作业 ID，其他值按认证设备下的 Qt `START` 记录查询。两条路径都只确认父作业属于认证设备与授权主机，不要求作业仍在进行中或仍存在于设备当前作业缓存，因此完成加工后的日志仍能关联父作业。这是已有业务关联的只读复用，不增加会话模型、请求去重或人员班组关系验证。
 
 解析成功时写入 `press_job_info_id`。解析失败或操作发生在可解析 `START` 之前时，仍可按认证设备写一条 `press_job_info_id = null` 的 device-only log（仅设备日志）。未关联日志不进入历史详情，后续不回填，也不按设备与时间窗口猜测。
+
+只有上述 QT 专用服务端路径可以建立父作业关联。既有通用 `POST /modbus/handleLog` 直接接收 Domain JSON（领域对象 JSON），因此其 Controller 必须在调用现有 Service 前单行清空客户端提交的 `pressJobInfoId`。QT 专用服务通过认证上下文解析并直接调用 Mapper（映射器），不经过通用入口，现有可信写入不受影响。
+
+防护只放在该 HTTP Trust Boundary（HTTP 信任边界）。不在通用 Service 清空字段，避免扩大 Java 调用契约；不新增 provenance（来源）列、权限模型、Writer（写入器）或 helper（辅助抽象）。
 
 ### 4.3 固定操作映射
 
@@ -122,8 +128,9 @@ ERP 从认证上下文取得 `deviceId` 与 `granteeHostId`，再复用现有 `l
 1. 现有详情入口按认证 `deviceId + mouldJobId` 取得目标模具历史行。
 2. 从该行取得父 `pressJobInfoId`。
 3. 按认证 `deviceId + pressJobInfoId` 查询 `modbus_handle_log`，使用新增索引并按 `handle_time ASC, id ASC` 排序。
-4. 查询到任一新日志时，只返回这组新日志。
-5. 完全没有新日志时，整组降级到现有 `qt_press_job_operation` 生命周期投影。
+4. 查询到任一由可信 QT 服务端路径建立父作业关联的新日志时，只返回这组新日志。
+5. 通用日志入口提交的 `pressJobInfoId` 被忽略，不能制造新时间线或阻断降级。
+6. 完全没有可信新日志时，整组降级到现有 `qt_press_job_operation` 生命周期投影。
 
 同一父作业下兄弟模具共享父作业时间线，保持当前历史语义。`press_job_info_id = null` 的设备级日志不会进入详情。
 
@@ -146,15 +153,18 @@ ERP 从认证上下文取得 `deviceId` 与 `granteeHostId`，再复用现有 `l
 - 不保存班组或人员名称快照，不增加 `mould_job_id` 或日志表 `correlation_id` 列。
 - 不迁移旧数据，不按设备与时间窗口猜测，不改变现有 Qt 生命周期幂等记录。
 - 不增加 actor-team（人员班组）第二套关系校验、队列、重试、补偿、锁、依赖或新主题。
+- 不新增来源字段、权限体系或通用 Writer；不修改 Domain、Mapper 或通用 Service 的 Java contract。
 
 ## 9. 实施前复核清单
 
 - 数据库变更是否严格为两列一索引。
 - 请求是否严格为六字段，且操作码严格为六个。
+- 未知字段是否只触发 Controller 固定中文业务错误，且不会记录字段名、字段值或 Jackson/Spring 异常栈。
+- 通用 `/modbus/handleLog` 是否在 Controller 边界清空 `pressJobInfoId`，同时不影响 QT 专用服务端关联。
 - 是否只复用认证设备、`press-job-id-*` 直连与现有 Qt `START` 会话映射，并允许完成后的父作业关联。
 - START/参数/COMPLETE 是否在各自 ERP 调用边界判断，入线/出线是否在两侧汇总后把 `PARTIAL_OK` / `FAILED` 记为失败。
 - QT 是否只在真实操作结果确定后异步上报，且日志失败不影响主操作。
 - 历史详情是否按父作业共享时间线，并在完全没有新日志时整组降级。
 - UI 是否只做现有组件和样式内的指定调整。
 
-上述边界已确认，并已据此重新生成 Implementation Plan；实施期间不得突破本清单。
+原边界已确认并据此生成 Implementation Plan；本次增量边界经书面复核后，只补充 Task 2 的文件范围与测试步骤，实施期间不得突破本清单。
