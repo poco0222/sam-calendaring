@@ -2,7 +2,7 @@
 > @author PopoY
 > @created 2026-07-25 12:09:31
 > Editor: PopoY
-> Edited: 2026-07-27 13:08:09
+> Edited: 2026-07-27 13:10:27
 > @purpose 记录 Comet 子代理实施与审查恢复状态。
 
 # Subagent Progress（子代理进度）
@@ -15,11 +15,12 @@
   - `3.3 完成筛选、日期 preset、80% Drawer、Boolean 翻译和 Timeline CSS 复用`
   - `3.4 增加历史投影和前端定向测试`
   - `4.1–4.3 执行前后端联合验证与敏感边界人工核对`
-- Stage: `ready-for-fix`
+- Stage: `implementing`
 - Implementer: `/root/task4_history_ui`（dispatched 2026-07-27 12:36:41）
 - Reviewer: `/root/task4_review`（dispatched 2026-07-27 12:47:16）
 - Fixer: `/root/task4_fix1`（dispatched 2026-07-27 12:58:13）
 - Rereviewer: `/root/task4_rereview1`（dispatched 2026-07-27 13:03:25）
+- Fixer 2: `/root/task4_fix2`（dispatched 2026-07-27 13:10:27）
 - Review mode: `thorough`
 - Review-fix round: `2/2`
 - Allowed files: Task 4 brief 指定的 6 个 QT frontend 文件；`DiagnosticLogsPage.css` 只读参考
