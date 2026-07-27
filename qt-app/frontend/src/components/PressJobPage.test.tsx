@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-06-30
  * @editor PopoY
- * @edited 2026-07-27 11:37:10
+ * @edited 2026-07-27 12:25:02
  * @brief 锁定 frontend-only（仅前端）压机作业页的四行布局、空数据和安全边界。
  */
 
@@ -3360,7 +3360,7 @@ describe("PressJobPage", () => {
           correlationId: "parameter-start-01",
           localJobSessionId: "job-parameter-start-01",
           eventName: "pressDownCountThresholdReached" as const,
-          commandName: "pressDownCountThresholdReached" as const,
+          commandName: "startPressDownCountMonitor" as const,
           resultCode: "OK" as const,
           parameterIdempotencyKey: "parameter-start-key-01",
           occurredAt: "2026-07-27T03:00:00Z",
