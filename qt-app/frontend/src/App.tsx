@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-06-25
  * @editor PopoY
- * @edited 2026-07-27 11:37:10
+ * @edited 2026-07-27 12:09:21
  * @brief 编排 bootstrap hooks（启动 hooks）并渲染 QT App（Qt 应用）四个一级页面的 app shell（应用外壳）。
  */
 
@@ -118,6 +118,11 @@ export default function App() {
   const pressJobCurrentRowsRefreshVersionRef = useRef(0);
   // @author PopoY: 将压机筛选状态放在 App Shell（应用外壳），避免页面切换卸载后丢失。
   const [pressJobFilters, setPressJobFilters] = useState<PressJobFilterState>({});
+  // @author PopoY: 设备事件订阅读取最新筛选身份，避免筛选变化重建设备事件流。
+  const pressJobTeamIdRef = useRef(pressJobFilters.teamId);
+  const pressJobOperatorIdRef = useRef(pressJobFilters.operatorId);
+  pressJobTeamIdRef.current = pressJobFilters.teamId;
+  pressJobOperatorIdRef.current = pressJobFilters.operatorId;
   const { themeMode, setThemeMode } = useQtAppThemeMode();
   const bootstrapSession = useBootstrapSession();
   const driverInput = useMemo(() => {
@@ -529,14 +534,14 @@ export default function App() {
         void handleDriverDeviceEvent({
           event,
           applySignalSnapshotEvent: driverSession.applySignalSnapshotEvent,
-          operatorId: pressJobFilters.operatorId,
+          operatorId: pressJobOperatorIdRef.current,
           recordDiagnostic: (summary) => logDiagnostic(summary),
           recordPressDeviceActionDiagnostic,
           recordPressJobOperation,
           recordPressJobParameters,
           recordedStartParameterKeys: recordedStartParameterKeysRef.current,
           stationAccountId: diagnosticStationAccountId,
-          teamId: pressJobFilters.teamId,
+          teamId: pressJobTeamIdRef.current,
         });
       },
       () => {
@@ -558,8 +563,6 @@ export default function App() {
     bootstrapSession.data,
     diagnosticStationAccountId,
     driverSession.applySignalSnapshotEvent,
-    pressJobFilters.operatorId,
-    pressJobFilters.teamId,
     recordPressDeviceActionDiagnostic,
     recordPressJobOperation,
     recordPressJobParameters,

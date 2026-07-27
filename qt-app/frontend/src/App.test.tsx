@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-06-27
  * @editor PopoY
- * @edited 2026-07-24 20:51:17
+ * @edited 2026-07-27 12:13:37
  * @brief 锁定 App Shell（应用外壳）顶部导航、主题切换和页面容器契约。
  */
 
@@ -54,6 +54,15 @@ const bootstrapSessionMock = vi.hoisted(() => ({
   } as UseBootstrapSessionResult,
 }));
 
+const deviceEventSubscriptionMock = vi.hoisted(() => ({
+  subscribe: vi.fn(),
+}));
+
+const erpLifecycleMock = vi.hoisted(() => ({
+  recordPressJobOperation: vi.fn(),
+  recordPressJobParameters: vi.fn(),
+}));
+
 vi.mock("./hooks/useBootstrapSession", () => ({
   useBootstrapSession: () => bootstrapSessionMock.current,
 }));
@@ -61,20 +70,34 @@ vi.mock("./hooks/useBootstrapSession", () => ({
 vi.mock("./hooks/useDriverSession", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("./hooks/useDriverSession")>();
+  const driverSession: UseDriverSessionResult = {
+    status: "idle",
+    data: null,
+    error: null,
+    retry: async () => {},
+    refreshSnapshot: async () => {},
+    applySignalSnapshotEvent: vi.fn(),
+  };
 
   return {
     ...actual,
     canRefreshSignalSnapshot: () => false,
-    useDriverSession: () => ({
-      status: "idle",
-      data: null,
-      error: null,
-      retry: async () => {},
-      refreshSnapshot: async () => {},
-      applySignalSnapshotEvent: vi.fn(),
-    }),
+    useDriverSession: () => driverSession,
   };
 });
+
+vi.mock("./services/driverDeviceEventsClient", async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import("./services/driverDeviceEventsClient")
+  >()),
+  subscribeDriverDeviceEvents: deviceEventSubscriptionMock.subscribe,
+}));
+
+vi.mock("./services/erpClient", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./services/erpClient")>()),
+  recordPressJobOperation: erpLifecycleMock.recordPressJobOperation,
+  recordPressJobParameters: erpLifecycleMock.recordPressJobParameters,
+}));
 
 /**
  * @brief 渲染 App Shell（应用外壳）为 static HTML（静态超文本标记语言）。
@@ -221,6 +244,9 @@ beforeEach(() => {
     error: null,
     retry: async () => {},
   };
+  deviceEventSubscriptionMock.subscribe.mockReset();
+  erpLifecycleMock.recordPressJobOperation.mockReset();
+  erpLifecycleMock.recordPressJobParameters.mockReset();
 });
 
 describe("App Shell", () => {
@@ -928,5 +954,193 @@ describe("App Shell", () => {
         resultCode: "DUPLICATE_START_PARAMETER_EVENT",
       }),
     );
+  });
+
+  /**
+   * @brief 修改班组或人员筛选时保持同一设备事件订阅，并让后续阈值事件读取最新身份。
+   * @author PopoY
+   */
+  it("keeps one device event subscription while filters change", async () => {
+    const subscriptions: Array<{
+      close: ReturnType<typeof vi.fn>;
+      onEvent: (event: PressDeviceEvent) => void;
+    }> = [];
+    deviceEventSubscriptionMock.subscribe.mockImplementation(
+      (_driverBaseUrl, onEvent) => {
+        const subscription = { close: vi.fn(), onEvent };
+        subscriptions.push(subscription);
+        return subscription;
+      },
+    );
+    erpLifecycleMock.recordPressJobParameters.mockResolvedValue({
+      correlationId: "event-cid-latest",
+      localJobSessionId: "job-latest",
+      resultCode: "OK",
+    });
+    erpLifecycleMock.recordPressJobOperation.mockResolvedValue(undefined);
+    bootstrapSessionMock.current = createSharedBootstrapSession(vi.fn());
+
+    const jsxDevRuntime = await vi.importActual<
+      typeof import("react/jsx-dev-runtime")
+    >("react/jsx-dev-runtime");
+    vi.resetModules();
+    vi.doMock("react/jsx-dev-runtime", () => ({
+      ...jsxDevRuntime,
+      jsxDEV: (
+        type: Parameters<typeof jsxDevRuntime.jsxDEV>[0],
+        props: { children?: unknown },
+        key: string | undefined,
+        isStaticChildren: boolean,
+        source: Parameters<typeof jsxDevRuntime.jsxDEV>[4],
+        self: Parameters<typeof jsxDevRuntime.jsxDEV>[5],
+      ) =>
+        jsxDevRuntime.jsxDEV(
+          typeof type === "string" ? jsxDevRuntime.Fragment : type,
+          typeof type === "string" ? { children: props.children } : props,
+          key,
+          isStaticChildren,
+          source,
+          self,
+        ),
+    }));
+    vi.doMock("antd", async () => {
+      const React = await import("react");
+      return {
+        Segmented: ({
+          onChange,
+          options,
+        }: {
+          onChange: (value: string) => void;
+          options: Array<{ value: string }>;
+        }) => {
+          const target = options.some((option) => option.value === "pressJob")
+            ? "pressJob"
+            : undefined;
+          React.useEffect(() => {
+            if (target) {
+              onChange(target);
+            }
+          }, [onChange, target]);
+          return null;
+        },
+        Space: ({ children }: { children?: unknown }) => children,
+        Tag: () => null,
+        Typography: { Text: () => null },
+      };
+    });
+    vi.doMock("./app/AntdRootProvider", () => ({
+      useQtAppThemeMode: () => ({ themeMode: "light", setThemeMode: vi.fn() }),
+    }));
+    vi.doMock("./components/BootstrapDashboard", () => ({
+      BootstrapDashboard: () => null,
+    }));
+    vi.doMock("./components/PressJobHistoryPage", () => ({
+      PressJobHistoryPage: () => null,
+    }));
+    vi.doMock("./components/PressJobPage", async (importOriginal) => {
+      const React = await import("react");
+      const actual = await importOriginal<typeof import("./components/PressJobPage")>();
+      return {
+        ...actual,
+        PressJobPage: ({
+          onFilterStateChange,
+        }: {
+          onFilterStateChange: (filters: {
+            teamId: string;
+            operatorId: string;
+          }) => void;
+        }) => {
+          React.useEffect(() => {
+            onFilterStateChange({
+              teamId: "team-latest",
+              operatorId: "operator-latest",
+            });
+          }, [onFilterStateChange]);
+          return null;
+        },
+      };
+    });
+
+    const ownerDocument = {
+      nodeType: 9,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      activeElement: null,
+      body: null,
+    };
+    const testWindow = {
+      document: ownerDocument,
+      event: undefined,
+      HTMLIFrameElement: class {},
+    } as unknown as Window;
+    Object.assign(ownerDocument, { defaultView: testWindow });
+    vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+    vi.stubGlobal("window", testWindow);
+    const container = {
+      nodeType: 1,
+      nodeName: "DIV",
+      tagName: "DIV",
+      namespaceURI: "http://www.w3.org/1999/xhtml",
+      ownerDocument,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as Element;
+    const React = await import("react");
+    const { createRoot } = await import("react-dom/client");
+    const { default: LifecycleApp } = await import("./App");
+    const root = createRoot(container);
+
+    try {
+      await React.act(async () => {
+        root.render(React.createElement(LifecycleApp));
+      });
+
+      expect(deviceEventSubscriptionMock.subscribe).toHaveBeenCalledTimes(1);
+      expect(subscriptions[0]?.close).not.toHaveBeenCalled();
+
+      await React.act(async () => {
+        subscriptions[0]?.onEvent({
+          eventId: "event-latest",
+          correlationId: "event-cid-latest",
+          localJobSessionId: "job-latest",
+          eventName: "pressDownCountThresholdReached",
+          commandName: "startPressDownCountMonitor",
+          resultCode: "OK",
+          parameterIdempotencyKey: "parameter-latest",
+          occurredAt: "2026-07-27T04:00:00Z",
+          snapshotValues: [{ signalCode: "pressure", value: 135 }],
+        });
+        await Promise.resolve();
+      });
+
+      expect(erpLifecycleMock.recordPressJobParameters).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({
+          request: expect.objectContaining({
+            correlationId: "event-cid-latest",
+            localJobSessionId: "job-latest",
+            type: "start",
+          }),
+        }),
+      );
+      expect(erpLifecycleMock.recordPressJobOperation).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({
+          request: {
+            correlationId: "event-cid-latest",
+            localJobSessionId: "job-latest",
+            operationCode: "PARAMETER_START",
+            result: true,
+            teamId: "team-latest",
+            operatorId: "operator-latest",
+          },
+        }),
+      );
+    } finally {
+      await React.act(async () => {
+        root.unmount();
+      });
+      vi.unstubAllGlobals();
+    }
   });
 });
