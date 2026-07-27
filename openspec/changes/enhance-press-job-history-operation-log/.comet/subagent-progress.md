@@ -2,7 +2,7 @@
 > @author PopoY
 > @created 2026-07-25 12:09:31
 > Editor: PopoY
-> Edited: 2026-07-27 14:09:01
+> Edited: 2026-07-27 14:24:42
 > @purpose 记录 Comet 子代理实施与审查恢复状态。
 
 # Subagent Progress（子代理进度）
@@ -11,11 +11,11 @@
 - Previous task: `Task 4` complete（frontend `a553b8b..424ab6a`; final review clean after fix rounds 2/2; frontend 226/226、TypeScript/build、backend 91/91/compile/XML PASS）
 - Current task: `Task 5: 修正 OpenSpec 归档语义并重新验证`
 - Mapped OpenSpec task: `5.1 按 OpenSpec delta semantics 补全 MODIFIED 场景并归类 ADDED requirement`
-- Stage: `done`
+- Stage: `final-fix`
 - Implementer: `/root/task5_archive_spec_repair`（dispatched 2026-07-27 13:55:36）
 - Reviewer: `/root/task5_archive_spec_review`（dispatched 2026-07-27 14:01:51）
 - Review mode: `thorough`
-- Review-fix round: `0/2`
+- Review-fix round: `1/2`
 - Allowed files: `press-job-history-query` Delta Spec 与对应 Design Doc；主规格、代码、测试、plan、tasks 和其他 `.comet` 文件禁止修改
 - Implementation status: `DONE`；commit `2b78e3b25e20e41eb719d02cb14c9bcdee5a9a08`
 - Changed files: `press-job-history-query` Delta Spec、对应 Design Doc
@@ -26,3 +26,10 @@
 - Accepted Minor: RED 结构检查使用连续 `&&`，只能证明至少一项缺陷存在，不能分别证明两项；实际失败输出、修复 diff、GREEN 三条件、逐 Scenario 对照和独立 range `git diff --check` 已提供充分证据，不影响规格正确性。后续同类 RED 应拆分断言。
 - Unresolved feedback: 无
 - Task status: `Task 5 complete`（commit `2b78e3b`；task review approved；计划 4/4 与 OpenSpec 5.1 targeted checkoff PASS）
+- Final review round: `1/2`
+- Final reviewer: `/root/task5_final_whole_branch_review`（dispatched 2026-07-27 14:09:49）
+- Final review packages: frontend/coordinator `ad358ef4..0575582`；backend `160a1e70..2fffa750`
+- Final review status: `Needs fixes`；Critical 0，Important 2，Minor 0
+- Final review finding 1: 新增 `/operation-logs` 缺少 `RequestReceived -> ActionStarted/Completed -> ResponseSent` 四阶段关联日志，Service/Mapper `RuntimeException` 也缺少固定中文、脱敏且不输出异常原文的端点级收口。
+- Final review finding 2: Verify 报告仍记录 Task 5 前的 `14/14 tasks`、`26/26 scenarios` 和旧 Frontend HEAD；应在重新进入 Verify 阶段后更新为当前任务、需求、场景和提交范围。
+- Final fix scope: 先以 TDD 最小修改 Backend `QtPressWorkingController` 及其既有测试关闭 finding 1；finding 2 属于 Verify 阶段报告更新，不在 build 修正中提前改写。
