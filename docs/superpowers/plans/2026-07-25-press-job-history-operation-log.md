@@ -12,7 +12,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 > @author PopoY
 > @created 2026-07-25 11:04:52
 > Editor: PopoY
-> Edited: 2026-07-27 12:04:08
+> Edited: 2026-07-27 12:23:05
 
 **Goal:** 参考 `sam-erp-fe` 既有 `logHandle`，在六个压机真实操作结果确定后 best-effort（尽力而为）写入 `modbus_handle_log`，并在历史详情按父作业展示班组、作业人员和整段时间线，同时完成指定筛选与抽屉 UI 调整。
 
@@ -327,7 +327,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 
 - [ ] **Task 3 / Step 4: 运行测试并确认 GREEN（绿）**
 
-  重复 Step 2 命令。Expected: 两个定向测试文件 PASS；日志拒绝不影响主流程断言 PASS。
+  重复 Step 2 命令，并运行 `./node_modules/.bin/tsc --noEmit`。Expected: 三个定向测试文件 PASS；日志拒绝不影响主流程断言 PASS；TypeScript（类型检查）无错误。
 
 - [ ] **Task 3 / Step 5: 提交 QT 上报边界**
 
@@ -386,6 +386,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 
   ```bash
   npm test -- --run src/services/erpClient.test.ts src/components/PressJobPage.test.tsx src/components/PressJobHistoryPage.test.tsx src/App.test.tsx
+  ./node_modules/.bin/tsc --noEmit
   npm run build
   ```
 
