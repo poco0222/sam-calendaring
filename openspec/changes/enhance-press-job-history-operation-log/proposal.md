@@ -1,32 +1,32 @@
+> Editor: PopoY
+> Edited: 2026-07-27 08:32:28
+
 ## Why
 
-当前 QT App（Qt 应用）的历史作业详情把 `qt_press_job_operation` 幂等记录当作业务操作日志，未复用 SAM ERP 已有的 `modbus_handle_log`，导致锁模、解锁、失败结果、操作内容、班组和作业人员等追溯信息缺失。历史作业页面同时存在筛选纵向占高、日期缺少快捷入口、详情空间不足和 Boolean（布尔值）直出英文等现场使用问题，需要在同一用户旅程内统一修正。
+当前 QT App（Qt 应用）历史详情只能从 `qt_press_job_operation` 投影部分成功生命周期，不能完整呈现真实操作的成功或失败、班组和作业人员。SAM ERP 已有 `modbus_handle_log` 和旧 Vue `logHandle` 链路，本变更只补齐最小关联、上报和展示能力，不再建立新的作业会话、幂等或日志模型。
 
 ## What Changes
 
-- 复用并补强 SAM ERP 现有 `modbus_handle_log`，由 ERP 服务端基于认证工位和已校验的作业上下文记录压机业务操作，不再让 QT App 复制旧 Vue `logHandle` 或上传裸设备网络字段。
-- 为压机业务日志增加可靠的作业/会话关联、`correlationId（关联 ID）`、班组与作业人员历史快照；新记录可按历史作业身份查询，既有无法可靠归属的日志不得按设备和时间窗口猜测。
-- 保留 `qt_press_job_operation` 作为 Idempotency（幂等）与 Replay（重放）记录；历史详情优先展示业务操作日志，旧 Qt 作业在缺少业务日志时才使用现有成功生命周期记录降级展示。
-- 覆盖锁模、建立通信、开始加工、开始/完工参数、移入/移出、入线/出线、完成加工和解锁等业务动作；ERP 原子生命周期动作在可信业务边界写入，需要 Driver（驱动）真实结果的动作通过 QT 安全适配端点写入同一张日志表。操作结果、内容、班组、人员和时间通过白名单契约返回，Driver Service（驱动服务）的 `audit_log` / `diagnostic_log` 继续只承担技术审计与诊断职责。
-- 将历史作业筛选控件和标签改为单行平铺，查询按钮使用语义化搜索图标。
-- 日期范围增加“最近一天、最近三天、最近一周、最近一月”四个快捷选项，仍遵守最多 31 个自然日和已提交查询快照边界。
-- 将历史详情 Drawer（抽屉）宽度从视口 70% 调整为 80%，Boolean 参数统一显示“是/否”。
-- 将操作记录改为整段日志式 Timeline（时间线），逐条展示操作时间、操作名称、结果、班组和作业人员。
+- 复用 `modbus_handle_log`，仅新增 nullable（可空）的 `press_job_info_id`、`team_id`，以及 `(device_id, press_job_info_id, handle_time, id)` 查询索引；继续复用 `handle_type`、`handle_content`、`handle_result`、`handle_by`、`handle_time`。
+- 新增最薄的 QT operation-log endpoint（操作日志端点）。QT 在真实操作成功返回或抛错后，异步上报固定操作码与成功/失败结果；日志失败不得改变主操作结果。
+- ERP 从认证上下文取得 `deviceId`，使用现有 Qt `START` 记录和 `localJobSessionId` 解析现有 `pressJobInfoId`；无法解析时只保存 device-only log（仅设备日志），不按设备与时间窗口猜测。
+- 操作码只覆盖 `START`、`PARAMETER_START`、`PARAMETER_END`、`LINE_IN`、`LINE_OUT`、`COMPLETE`。服务端映射固定中文名称和内容，不接受自由文本。
+- 历史详情按认证设备与父作业 ID 查询新日志；存在新日志时展示新日志，完全没有新日志的旧作业继续降级展示 `qt_press_job_operation`。
+- 调整历史页面：筛选单行平铺、查询按钮显示 `SearchOutlined` 与“查询”、日期提供最近 1/3/7/30 个本地自然日、Drawer（抽屉）宽度改为 80%、仅把 JSON Boolean（布尔值）`true` / `false` 翻译为“是/否”，并复用诊断日志 Timeline（时间线）样式。
 
 ## Capabilities
 
 ### New Capabilities
 
-- `press-job-operation-log`: 定义压机业务操作日志的服务端写入、可靠作业关联、人员/班组历史快照、兼容降级和敏感信息边界。
+- `press-job-operation-log`：定义最小数据扩展、固定操作码上报、作业关联、失败隔离和敏感信息边界。
 
 ### Modified Capabilities
 
-- `press-job-history-query`: 调整历史作业筛选、日期快捷项、80% 详情抽屉、Boolean 翻译和业务操作时间线的查询及展示要求。
+- `press-job-history-query`：定义父作业操作时间线、旧数据降级和历史页面展示调整。
 
 ## Impact
 
-- QT App：`PressJobPage` 操作请求契约、`erpClient`、历史作业页面、领域类型、样式和测试。
-- SAM ERP 后端：`modbus_handle_log` Liquibase（数据库迁移）、Domain（领域模型）、Mapper（映射器）、Service（服务）、`QtPressWorkingController` 压机动作端点、历史详情投影和测试。
-- 数据兼容：迁移只增加 nullable（可空）关联/快照字段和索引，不删除或改写既有日志；既有 `handle_by`、日志查询页面和压机时间线保持可用。
-- 安全边界：不记录参数 JSON、信号配置原文、令牌、租约、IP、端口或第三方异常正文；不得通过当前组织关系伪造历史班组。
-- 非目标：不新增第三张业务日志表，不合并或移除 Driver Service 技术日志，不改变历史列表分页大小、31 日上限或设备隔离规则。
+- SAM ERP：`modbus_handle_log` Liquibase（数据库迁移）、最薄日志端点、历史详情投影和自动化测试。
+- QT App：六类真实操作完成后的 best-effort（尽力而为）异步上报，以及历史详情和筛选界面。
+- 数据兼容：不迁移、不回填、不猜测旧日志；班组和人员名称在查询时关联现有主数据，缺失时显示“未记录”。
+- 安全：请求不得包含设备网络信息、原始参数、信号配置、异常正文或安全材料。
