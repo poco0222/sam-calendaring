@@ -1,5 +1,5 @@
 > Editor: PopoY
-> Edited: 2026-07-27 11:29:30
+> Edited: 2026-07-27 12:34:15
 
 ## 1. 最小日志表与端点
 
@@ -10,9 +10,9 @@
 
 ## 2. QT post-action 上报
 
-- [ ] 2.1 为 `START`、`PARAMETER_START`、`PARAMETER_END`、`LINE_IN`、`LINE_OUT`、`COMPLETE` 增加最小请求类型和客户端调用
-- [ ] 2.2 在每个真实操作结果确定后 best-effort（尽力而为）异步上报；START/参数/COMPLETE 在各自 ERP 调用边界按结果码判断，入线/出线仅整体 `OK` 记成功，`PARTIAL_OK` / `FAILED` 记失败；保持主结果不变，日志失败只写脱敏诊断，不增加队列、重试、补偿或回填
-- [ ] 2.3 增加定向测试，覆盖刷新后的 `press-job-id-*`、完成后日志、完成后出线、ERP 错误结果正常返回、`PARTIAL_OK`、正常返回的 `FAILED`、敏感字段缺失和日志失败隔离
+- [x] 2.1 为 `START`、`PARAMETER_START`、`PARAMETER_END`、`LINE_IN`、`LINE_OUT`、`COMPLETE` 增加最小请求类型和客户端调用
+- [x] 2.2 在每个真实操作结果确定后 best-effort（尽力而为）异步上报；START/参数/COMPLETE 在各自 ERP 调用边界按结果码判断，入线/出线仅整体 `OK` 记成功，`PARTIAL_OK` / `FAILED` 记失败；保持主结果不变，日志失败只写脱敏诊断，不增加队列、重试、补偿或回填
+- [x] 2.3 增加定向测试，覆盖刷新后的 `press-job-id-*`、完成后日志、完成后出线、ERP 错误结果正常返回、`PARTIAL_OK`、正常返回的 `FAILED`、敏感字段缺失和日志失败隔离
 
 ## 3. 历史投影与 UI
 

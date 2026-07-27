@@ -12,7 +12,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 > @author PopoY
 > @created 2026-07-25 11:04:52
 > Editor: PopoY
-> Edited: 2026-07-27 12:23:05
+> Edited: 2026-07-27 12:34:15
 
 **Goal:** 参考 `sam-erp-fe` 既有 `logHandle`，在六个压机真实操作结果确定后 best-effort（尽力而为）写入 `modbus_handle_log`，并在历史详情按父作业展示班组、作业人员和整段时间线，同时完成指定筛选与抽屉 UI 调整。
 
@@ -288,7 +288,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 - Consumes: Task 2 的 `POST /api/qt/press-working/operation-logs`。
 - Produces: `PressJobOperationCode` 六值 union、`PressJobOperationLogRequest` 六字段类型、`recordPressJobOperation(request): Promise<void>`；`PressJobPageProps.recordPressJobOperation?` 注入点。
 
-- [ ] **Task 3 / Step 1: 写客户端白名单和 workflow 失败测试**
+- [x] **Task 3 / Step 1: 写客户端白名单和 workflow 失败测试**
 
   `erpClient.test.ts` 精确断言 URL、`X-Correlation-Id` 和 JSON body 六个键，且 body 不含 `deviceId/ip/port/signalValues/error/signature/signedLease/sessionToken`。`PressJobPage.test.tsx` 覆盖 START、参数开始、参数结束、完成、入线、出线；断言 ERP `OK/IDEMPOTENCY_REPLAY=true`，其他 code/throw=false，入线/出线只有整体 `OK=true`，`PARTIAL_OK/FAILED=false`，日志 Promise reject 不改变 workflow 原结果，并专门覆盖完成加工清除 current job 后，出线仍使用保留的 `localJobSessionId/teamId/operatorId` 上报。`App.test.tsx` 还需锁定修改班组或作业人员筛选不关闭或重建设备 SSE（服务器发送事件）订阅，后续阈值事件仍使用最新筛选身份记录参数与 `PARAMETER_START` 日志。
 
@@ -299,7 +299,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
   });
   ```
 
-- [ ] **Task 3 / Step 2: 运行测试并确认 RED（红）**
+- [x] **Task 3 / Step 2: 运行测试并确认 RED（红）**
 
   Run（前端工作树 `qt-app/frontend`）：
 
@@ -309,7 +309,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 
   Expected: FAIL，原因是日志请求类型、client（客户端）、post-action 调用或稳定设备事件订阅契约尚不存在。
 
-- [ ] **Task 3 / Step 3: 实现一个最小上报函数并接入六个结果边界**
+- [x] **Task 3 / Step 3: 实现一个最小上报函数并接入六个结果边界**
 
   `pressJob.ts` 只新增：
 
@@ -325,11 +325,11 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 
   START、PARAMETER_START、PARAMETER_END、COMPLETE 分别紧贴各自 ERP 调用结果/异常分支上报；LINE_IN/LINE_OUT 只在现有 Driver+ERP 聚合结果形成后上报。完成加工后保留父作业会话与班组/人员上下文供 LINE_OUT 上报，不再从已清除的 current job 推导。不得记录 connect、disconnect、moveIn、moveOut、lock、unlock；不得 await、retry 或改变返回值。
 
-- [ ] **Task 3 / Step 4: 运行测试并确认 GREEN（绿）**
+- [x] **Task 3 / Step 4: 运行测试并确认 GREEN（绿）**
 
   重复 Step 2 命令，并运行 `./node_modules/.bin/tsc --noEmit`。Expected: 三个定向测试文件 PASS；日志拒绝不影响主流程断言 PASS；TypeScript（类型检查）无错误。
 
-- [ ] **Task 3 / Step 5: 提交 QT 上报边界**
+- [x] **Task 3 / Step 5: 提交 QT 上报边界**
 
   ```bash
   git add qt-app/frontend/src/domain/pressJob.ts qt-app/frontend/src/services/erpClient.ts qt-app/frontend/src/services/erpClient.test.ts qt-app/frontend/src/App.tsx qt-app/frontend/src/App.test.tsx qt-app/frontend/src/components/PressJobPage.tsx qt-app/frontend/src/components/PressJobPage.test.tsx
