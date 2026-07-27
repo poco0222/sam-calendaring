@@ -3,7 +3,7 @@ language: zh-CN
 phase: build
 context_compression: off
 build_mode: subagent-driven-development
-build_pause: null
+build_pause: plan-ready
 subagent_dispatch: confirmed
 tdd_mode: tdd
 review_mode: thorough
