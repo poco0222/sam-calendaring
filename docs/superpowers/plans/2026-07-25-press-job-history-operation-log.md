@@ -12,7 +12,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 > @author PopoY
 > @created 2026-07-25 11:04:52
 > Editor: PopoY
-> Edited: 2026-07-27 12:56:52
+> Edited: 2026-07-27 13:08:09
 
 **Goal:** 参考 `sam-erp-fe` 既有 `logHandle`，在六个压机真实操作结果确定后 best-effort（尽力而为）写入 `modbus_handle_log`，并在历史详情按父作业展示班组、作业人员和整段时间线，同时完成指定筛选与抽屉 UI 调整。
 
@@ -353,7 +353,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 
 - [ ] **Task 4 / Step 1: 写 UI 与解析失败测试**
 
-  测试覆盖：快捷值分别生成 `[today-(n-1), today]`，提交仍为本地零点到下一日零点排他上界且最多 31 日；筛选容器不换行；查询按钮含 `SearchOutlined` 与“查询”可访问文字；Drawer 为 `80%`；参数只有原始 Boolean 转“是/否”；字符串 `"true"`、数字 `1` 原样显示；用真实 `HistoryDetailContent` static markup（静态标记）断言操作记录逐条显示时间、操作、成功/失败、内容、班组、作业人员，全缺失记录逐项显示“未记录”，空数组显示空态；完整日期时间在固定时间轨道内允许日期与时间换行，不与右侧内容重叠。
+  测试覆盖：快捷值分别生成 `[today-(n-1), today]`，提交仍为本地零点到下一日零点排他上界且最多 31 日；筛选容器不换行；查询按钮含 `SearchOutlined` 与“查询”可访问文字，并用限定在 `.press-job-history-page__query { ... }` 声明块内的 CSS 断言锁定按钮不换行；Drawer 为 `80%`；参数只有原始 Boolean 转“是/否”；字符串 `"true"`、数字 `1` 原样显示；用真实 `HistoryDetailContent` static markup（静态标记）断言操作记录逐条显示时间、操作、成功/失败、内容、班组、作业人员，全缺失记录逐项显示“未记录”，空数组显示空态；完整日期时间在固定时间轨道内允许日期与时间换行，不与右侧内容重叠。
 
   ```ts
   expect(formatHistoryParameterValue({ status: "recorded", value: true })).toBe("是");
