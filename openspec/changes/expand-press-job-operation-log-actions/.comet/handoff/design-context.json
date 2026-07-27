@@ -1,0 +1,14 @@
+{
+  "change": "expand-press-job-operation-log-actions",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "6be2bc392b12bc93b84058f0c53087285e82aff13c71d4a5b4142fbb0043e1a0",
+  "files": [
+    { "path": "openspec/changes/expand-press-job-operation-log-actions/proposal.md", "sha256": "d8689f3975a4d1427930c1b027e27ae5d5313f208cabc6399d6c550629969d22" },
+    { "path": "openspec/changes/expand-press-job-operation-log-actions/design.md", "sha256": "321c3cff71da28618829cc3124717bd1d906b65b3c3ca3e7cc448d85dfe8ecc6" },
+    { "path": "openspec/changes/expand-press-job-operation-log-actions/tasks.md", "sha256": "40bf6751ff2e8a1b62599af5b78d78fd1c4bdd2e05cdaa05770b084036e90c0e" },
+    { "path": "openspec/changes/expand-press-job-operation-log-actions/specs/press-job-operation-log/spec.md", "sha256": "97f73c49e2de24932e2f36098cc870177fe8ef610e373bbad8565dc0802192f5" }
+  ]
+}
