@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-27 12:38:48
+ * @edited 2026-07-27 13:00:42
  * @brief 锁定日期快照、请求竞态、表格、详情和现有 Design Token（设计变量）契约。
  */
 
@@ -15,6 +15,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { AntdRootProvider } from "../app/AntdRootProvider";
+import type { PressJobHistoryDetail } from "../domain/pressJob";
 import {
   alignHistoryParameters,
   buildHistoryQuery,
@@ -22,6 +23,7 @@ import {
   createInitialHistoryFilters,
   formatHistoryParameterValue,
   formatHistoryStatus,
+  HistoryDetailContent,
   PressJobHistoryPage,
   shouldApplyHistoryDetailResponse,
   shouldApplyHistoryListResponse,
@@ -56,6 +58,43 @@ function renderPage(): string {
           total: 0,
         })}
         operatorOptions={[]}
+      />
+    </AntdRootProvider>,
+  );
+}
+
+/**
+ * @brief 使用真实 HistoryDetailContent（历史详情内容）渲染操作记录。
+ * @author PopoY
+ * @param operationRecords 固定六字段的操作记录。
+ * @returns server-rendered HTML（服务端渲染 HTML）。
+ */
+function renderHistoryDetail(
+  operationRecords: PressJobHistoryDetail["operationRecords"],
+): string {
+  const detail: PressJobHistoryDetail = {
+    moldJobId: "job-1",
+    moldNo: "M-01",
+    pressName: "一号压机",
+    operatorId: "operator-1",
+    craftCode: "craft-1",
+    startedAt: "2026-07-27 11:00:00",
+    completedAt: "2026-07-27 12:34:56",
+    actualDurationHours: "1.5",
+    status: "3",
+    startParameterState: "missing",
+    endParameterState: "missing",
+    startParameters: [],
+    endParameters: [],
+    operationRecords,
+  };
+
+  return renderToStaticMarkup(
+    <AntdRootProvider>
+      <HistoryDetailContent
+        craftLabelByValue={new Map([["craft-1", "冲压工艺"]])}
+        detail={detail}
+        operatorLabelByValue={new Map([["operator-1", "张三"]])}
       />
     </AntdRootProvider>,
   );
@@ -291,7 +330,6 @@ describe("PressJobHistoryPage", () => {
     expect(pageSource).toContain('event.key === " "');
     expect(pageSource).toContain("历史作业加载失败，请重试。");
     expect(pageSource).toContain("作业详情加载失败，请重试。");
-    expect(pageSource).toContain("该作业没有可查看的操作记录");
     expect(pageSource).toContain("detailRequestVersionRef.current += 1");
     expect(pageSource).toContain("triggerRowRef.current?.focus()");
     expect(pageSource).toContain("shouldApplyHistoryListResponse");
@@ -394,11 +432,48 @@ describe("PressJobHistoryPage", () => {
     ).toBe("否");
   });
 
+  it("renders complete, missing and failed operation fields in the real detail UI", () => {
+    const html = renderHistoryDetail([
+      {
+        operationTime: "2026-07-27 12:34:56",
+        operationName: "完工参数记录",
+        result: "失败",
+        content: "参数记录失败",
+        teamName: "夜班",
+        operatorName: "张三",
+      },
+      {
+        operationTime: undefined,
+        operationName: undefined,
+        result: undefined,
+        content: undefined,
+        teamName: undefined,
+        operatorName: undefined,
+      },
+    ]);
+    const operationHtml = html.slice(html.indexOf('aria-label="操作记录"'));
+
+    expect(operationHtml).toContain("2026-07-27 12:34:56");
+    expect(operationHtml).toContain("完工参数记录");
+    expect(operationHtml).toContain("失败");
+    expect(operationHtml).toContain("内容：参数记录失败");
+    expect(operationHtml).toContain("班组：夜班");
+    expect(operationHtml).toContain("作业人员：张三");
+    expect(operationHtml).toContain("内容：未记录");
+    expect(operationHtml).toContain("班组：未记录");
+    expect(operationHtml).toContain("作业人员：未记录");
+    expect(operationHtml.match(/未记录/g)).toHaveLength(6);
+  });
+
+  it("renders the operation empty state in the real detail UI", () => {
+    expect(renderHistoryDetail([])).toContain("该作业没有可查看的操作记录");
+  });
+
   /**
-   * @brief 锁定查询按钮、单行筛选和六字段 operation timeline（操作时间线）契约。
+   * @brief 锁定查询按钮、单行筛选和 operation timeline（操作时间线）布局契约。
    * @author PopoY
    */
-  it("keeps search affordance, one-line filters, and six-field timeline contracts", () => {
+  it("keeps search affordance, one-line filters, and timeline layout contracts", () => {
     const html = renderPage();
 
     expect(html.replace(/\s/g, "")).toContain("查询");
@@ -407,15 +482,10 @@ describe("PressJobHistoryPage", () => {
     expect(pageSource).toContain("presets={createHistoryRangePresets()}");
     expect(pageCss).toContain("flex-wrap: nowrap");
     expect(pageCss).toMatch(/press-job-history-page__query[\s\S]*white-space: nowrap/);
-    expect(pageSource).toContain("operation.operationTime");
-    expect(pageSource).toContain("operation.operationName");
-    expect(pageSource).toContain("operation.result");
-    expect(pageSource).toContain("内容：{formatHistoryCell(operation.content)}");
-    expect(pageSource).toContain("班组：{formatHistoryCell(operation.teamName)}");
-    expect(pageSource).toContain(
-      "作业人员：{formatHistoryCell(operation.operatorName)}",
-    );
     expect(pageCss).toContain("grid-template-columns: 12px 96px minmax(0, 1fr)");
+    expect(pageCss).toMatch(
+      /\.press-job-history-detail__operation-time\s*\{[^}]*white-space: normal;[^}]*\}/,
+    );
     expect(pageCss).toContain("width: 8px");
     expect(pageCss).toContain("height: 8px");
   });

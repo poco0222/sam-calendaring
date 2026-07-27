@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-27 12:40:07
+ * @edited 2026-07-27 13:00:14
  * @brief 提供本地自然日筛选、服务端分页和脱敏历史作业详情。
  */
 
@@ -751,7 +751,7 @@ export function PressJobHistoryPage({
  * @brief 渲染历史详情概要、参数对照和操作记录。
  * @author PopoY
  */
-function HistoryDetailContent({
+export function HistoryDetailContent({
   detail,
   operatorLabelByValue,
   craftLabelByValue,
