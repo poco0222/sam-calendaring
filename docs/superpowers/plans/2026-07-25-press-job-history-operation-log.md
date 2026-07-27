@@ -12,7 +12,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 > @author PopoY
 > @created 2026-07-25 11:04:52
 > Editor: PopoY
-> Edited: 2026-07-27 11:59:29
+> Edited: 2026-07-27 12:04:08
 
 **Goal:** 参考 `sam-erp-fe` 既有 `logHandle`，在六个压机真实操作结果确定后 best-effort（尽力而为）写入 `modbus_handle_log`，并在历史详情按父作业展示班组、作业人员和整段时间线，同时完成指定筛选与抽屉 UI 调整。
 
@@ -385,7 +385,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 - [ ] **Task 4 / Step 4: 运行前后端最终验证**
 
   ```bash
-  npm test -- --run src/services/erpClient.test.ts src/components/PressJobPage.test.tsx src/components/PressJobHistoryPage.test.tsx
+  npm test -- --run src/services/erpClient.test.ts src/components/PressJobPage.test.tsx src/components/PressJobHistoryPage.test.tsx src/App.test.tsx
   npm run build
   ```
 
@@ -394,12 +394,12 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
   在后端工作树运行：
 
   ```bash
-  JAVA_HOME=/Users/popoy/WorkSpace/DevTools/Java/zulu-8.0.492.jdk/Contents/Home /Users/popoy/WorkSpace/DevTools/Maven/bin/mvn -pl yr-admin -am -Dtest=ModbusHandleLogMapperContractTest,PressJobInfoServiceImplQtTest,QtPressWorkingControllerTest -Dsurefire.failIfNoSpecifiedTests=false test
+  JAVA_HOME=/Users/popoy/WorkSpace/DevTools/Java/zulu-8.0.492.jdk/Contents/Home /Users/popoy/WorkSpace/DevTools/Maven/bin/mvn -pl yr-admin -am -Dtest=ModbusHandleLogMapperContractTest,ModbusHandleLogControllerTest,PressJobInfoServiceImplQtTest,QtPressWorkingControllerTest -Dsurefire.failIfNoSpecifiedTests=false test
   JAVA_HOME=/Users/popoy/WorkSpace/DevTools/Java/zulu-8.0.492.jdk/Contents/Home /Users/popoy/WorkSpace/DevTools/Maven/bin/mvn -pl yr-admin -am -DskipTests compile
   /usr/bin/xmllint --noout yr-admin/src/main/resources/db/liquibase/master.xml yr-admin/src/main/resources/db/liquibase/changelog/smes/changelog-2026-07-27-qt-press-job-operation-log.xml
   ```
 
-  Expected: 三个定向测试类 PASS，Java 8 compile（编译）`BUILD SUCCESS`，Liquibase XML 可解析。最后用 `git diff --check` 检查两个工作树，并人工核对网络请求仅六字段、无敏感正文、无真实设备请求、无旧 session/fingerprint/writer/锁解锁改动。
+  Expected: 四个定向测试类 PASS，Java 8 compile（编译）`BUILD SUCCESS`，Liquibase XML 可解析。最后用 `git diff --check` 检查两个工作树，并人工核对网络请求仅六字段、无敏感正文、无真实设备请求、无旧 session/fingerprint/writer/锁解锁改动。
 
 - [ ] **Task 4 / Step 5: 提交历史 UI 边界**
 
