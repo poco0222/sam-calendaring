@@ -2,7 +2,7 @@
 > @author PopoY
 > @created 2026-07-25 12:09:31
 > Editor: PopoY
-> Edited: 2026-07-27 13:10:27
+> Edited: 2026-07-27 13:12:46
 > @purpose 记录 Comet 子代理实施与审查恢复状态。
 
 # Subagent Progress（子代理进度）
@@ -15,7 +15,7 @@
   - `3.3 完成筛选、日期 preset、80% Drawer、Boolean 翻译和 Timeline CSS 复用`
   - `3.4 增加历史投影和前端定向测试`
   - `4.1–4.3 执行前后端联合验证与敏感边界人工核对`
-- Stage: `implementing`
+- Stage: `task-review`
 - Implementer: `/root/task4_history_ui`（dispatched 2026-07-27 12:36:41）
 - Reviewer: `/root/task4_review`（dispatched 2026-07-27 12:47:16）
 - Fixer: `/root/task4_fix1`（dispatched 2026-07-27 12:58:13）
@@ -33,4 +33,6 @@
 - Fix scope: 只允许持久修改 `PressJobHistoryPage.test.tsx`；生产 CSS 保持不变，并用临时 mutation 证明收窄后的断言会 RED。
 - Fix status: `DONE`；commit `c495ceb3fd536350733a26e65a7e4b57c22dd324`
 - Fix RED/GREEN: focused RED `16/19`；focused `19/19`、targeted `68/68`、full frontend `226/226`、TypeScript、build、diff check 全 PASS
+- Fix 2 status: `DONE`；commit `424ab6a0e50a2534dba55be7aa5e556c15a8c3f6`
+- Fix 2 RED/GREEN: mutation RED `18/19`；focused `19/19`、targeted `68/68`、full frontend `226/226`、TypeScript、diff check 全 PASS；生产 CSS 恢复且无持久差异
 - Historical note: 旧 Task 1–3 及旧方案已完整回退，不得从旧账本恢复。
