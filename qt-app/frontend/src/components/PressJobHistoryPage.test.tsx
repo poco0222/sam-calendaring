@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-27 13:00:42
+ * @edited 2026-07-27 13:09:51
  * @brief 锁定日期快照、请求竞态、表格、详情和现有 Design Token（设计变量）契约。
  */
 
@@ -481,7 +481,9 @@ describe("PressJobHistoryPage", () => {
     expect(pageSource).toContain('<SearchOutlined aria-hidden="true" />');
     expect(pageSource).toContain("presets={createHistoryRangePresets()}");
     expect(pageCss).toContain("flex-wrap: nowrap");
-    expect(pageCss).toMatch(/press-job-history-page__query[\s\S]*white-space: nowrap/);
+    expect(pageCss).toMatch(
+      /\.press-job-history-page__query\s*\{[^}]*white-space: nowrap;[^}]*\}/,
+    );
     expect(pageCss).toContain("grid-template-columns: 12px 96px minmax(0, 1fr)");
     expect(pageCss).toMatch(
       /\.press-job-history-detail__operation-time\s*\{[^}]*white-space: normal;[^}]*\}/,
