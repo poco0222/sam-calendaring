@@ -12,7 +12,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 > @author PopoY
 > @created 2026-07-25 11:04:52
 > Editor: PopoY
-> Edited: 2026-07-27 11:29:30
+> Edited: 2026-07-27 11:59:29
 
 **Goal:** 参考 `sam-erp-fe` 既有 `logHandle`，在六个压机真实操作结果确定后 best-effort（尽力而为）写入 `modbus_handle_log`，并在历史详情按父作业展示班组、作业人员和整段时间线，同时完成指定筛选与抽屉 UI 调整。
 
@@ -280,6 +280,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 - Modify: `qt-app/frontend/src/services/erpClient.ts`
 - Modify: `qt-app/frontend/src/services/erpClient.test.ts`
 - Modify: `qt-app/frontend/src/App.tsx`
+- Modify: `qt-app/frontend/src/App.test.tsx`
 - Modify: `qt-app/frontend/src/components/PressJobPage.tsx`
 - Modify: `qt-app/frontend/src/components/PressJobPage.test.tsx`
 
@@ -289,7 +290,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 
 - [ ] **Task 3 / Step 1: 写客户端白名单和 workflow 失败测试**
 
-  `erpClient.test.ts` 精确断言 URL、`X-Correlation-Id` 和 JSON body 六个键，且 body 不含 `deviceId/ip/port/signalValues/error/signature/signedLease/sessionToken`。`PressJobPage.test.tsx` 覆盖 START、参数开始、参数结束、完成、入线、出线；断言 ERP `OK/IDEMPOTENCY_REPLAY=true`，其他 code/throw=false，入线/出线只有整体 `OK=true`，`PARTIAL_OK/FAILED=false`，日志 Promise reject 不改变 workflow 原结果，并专门覆盖完成加工清除 current job 后，出线仍使用保留的 `localJobSessionId/teamId/operatorId` 上报。
+  `erpClient.test.ts` 精确断言 URL、`X-Correlation-Id` 和 JSON body 六个键，且 body 不含 `deviceId/ip/port/signalValues/error/signature/signedLease/sessionToken`。`PressJobPage.test.tsx` 覆盖 START、参数开始、参数结束、完成、入线、出线；断言 ERP `OK/IDEMPOTENCY_REPLAY=true`，其他 code/throw=false，入线/出线只有整体 `OK=true`，`PARTIAL_OK/FAILED=false`，日志 Promise reject 不改变 workflow 原结果，并专门覆盖完成加工清除 current job 后，出线仍使用保留的 `localJobSessionId/teamId/operatorId` 上报。`App.test.tsx` 还需锁定修改班组或作业人员筛选不关闭或重建设备 SSE（服务器发送事件）订阅，后续阈值事件仍使用最新筛选身份记录参数与 `PARAMETER_START` 日志。
 
   ```ts
   expect(recordPressJobOperation).toHaveBeenCalledWith({
@@ -303,10 +304,10 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
   Run（前端工作树 `qt-app/frontend`）：
 
   ```bash
-  npm test -- --run src/services/erpClient.test.ts src/components/PressJobPage.test.tsx
+  npm test -- --run src/services/erpClient.test.ts src/components/PressJobPage.test.tsx src/App.test.tsx
   ```
 
-  Expected: FAIL，原因是日志请求类型、client（客户端）和 post-action 调用尚不存在。
+  Expected: FAIL，原因是日志请求类型、client（客户端）、post-action 调用或稳定设备事件订阅契约尚不存在。
 
 - [ ] **Task 3 / Step 3: 实现一个最小上报函数并接入六个结果边界**
 
@@ -320,7 +321,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
   };
   ```
 
-  `erpClient.ts` 复用现有认证 request helper POST 原对象；`App.tsx` 只把方法注入 `PressJobPage`。在 `PressJobPage.tsx` 内保留一个局部 helper：调用 `void recordPressJobOperation?.(request).catch(...)`，catch 仅向现有诊断入口传 `correlationId`、operationCode 和固定中文摘要，不传 request/error 原文。
+  `erpClient.ts` 复用现有认证 request helper POST 原对象；`App.tsx` 只把方法注入 `PressJobPage`。设备事件订阅使用 `ref` 读取最新 `teamId/operatorId`，筛选变化不得进入订阅 effect（副作用）依赖或触发 EventSource（事件源）重建。在 `PressJobPage.tsx` 内保留一个局部 helper：调用 `void recordPressJobOperation?.(request).catch(...)`，catch 仅向现有诊断入口传 `correlationId`、operationCode 和固定中文摘要，不传 request/error 原文。
 
   START、PARAMETER_START、PARAMETER_END、COMPLETE 分别紧贴各自 ERP 调用结果/异常分支上报；LINE_IN/LINE_OUT 只在现有 Driver+ERP 聚合结果形成后上报。完成加工后保留父作业会话与班组/人员上下文供 LINE_OUT 上报，不再从已清除的 current job 推导。不得记录 connect、disconnect、moveIn、moveOut、lock、unlock；不得 await、retry 或改变返回值。
 
@@ -331,7 +332,7 @@ base-ref: ad358ef4d2bd5f947bb688d4e4feab59e8164a03
 - [ ] **Task 3 / Step 5: 提交 QT 上报边界**
 
   ```bash
-  git add qt-app/frontend/src/domain/pressJob.ts qt-app/frontend/src/services/erpClient.ts qt-app/frontend/src/services/erpClient.test.ts qt-app/frontend/src/App.tsx qt-app/frontend/src/components/PressJobPage.tsx qt-app/frontend/src/components/PressJobPage.test.tsx
+  git add qt-app/frontend/src/domain/pressJob.ts qt-app/frontend/src/services/erpClient.ts qt-app/frontend/src/services/erpClient.test.ts qt-app/frontend/src/App.tsx qt-app/frontend/src/App.test.tsx qt-app/frontend/src/components/PressJobPage.tsx qt-app/frontend/src/components/PressJobPage.test.tsx
   git commit -m "feat: 上报压机操作结果日志"
   ```
 
