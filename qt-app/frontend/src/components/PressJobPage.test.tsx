@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-06-30
  * @editor PopoY
- * @edited 2026-07-27 12:25:02
+ * @edited 2026-07-28 11:13:38
  * @brief 锁定 frontend-only（仅前端）压机作业页的四行布局、空数据和安全边界。
  */
 
@@ -2824,6 +2824,250 @@ describe("PressJobPage", () => {
       expect.objectContaining({ commandName: "connectMes", timeoutMs: 5000 }),
     );
     expect(refreshSignalSnapshot).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * @brief 断言 CONNECT/MOVE_IN/MOVE_OUT（建立通信/移入/移出）只按真实 Driver 结果各上报一次。
+   * @author PopoY
+   */
+  it.each([
+    ["connect", "CONNECT", "PARTIAL_OK", false, true, "PARTIAL_OK"],
+    ["connect", "CONNECT", "FAILED", false, false, "FAILED"],
+    ["connect", "CONNECT", "THROW", true, false, "FAILED"],
+    ["moveIn", "MOVE_IN", "IDEMPOTENCY_REPLAY", false, true, "IDEMPOTENCY_REPLAY"],
+    ["moveIn", "MOVE_IN", "FAILED", false, false, "FAILED"],
+    ["moveIn", "MOVE_IN", "THROW", true, false, "FAILED"],
+    ["moveOut", "MOVE_OUT", "MONITOR_ALREADY_RUNNING", false, true, "MONITOR_ALREADY_RUNNING"],
+    ["moveOut", "MOVE_OUT", "FAILED", false, false, "FAILED"],
+    ["moveOut", "MOVE_OUT", "THROW", true, false, "FAILED"],
+  ])(
+    "reports %s as %s for Driver code %s",
+    async (
+      buttonKey,
+      operationCode,
+      driverResultCode,
+      shouldThrow,
+      expectedResult,
+      expectedFlowResultCode,
+    ) => {
+      const executePressDeviceCommand = shouldThrow
+        ? vi.fn().mockRejectedValue(new Error("Driver 原始异常"))
+        : vi.fn(async (request) => ({
+            ...request,
+            resultCode: driverResultCode,
+            completedSteps: [],
+            failedSteps: [],
+          }));
+      const recordPressJobOperation = vi.fn().mockResolvedValue(undefined);
+
+      const result = await executePressJobSimpleDeviceAction({
+        buttonKey,
+        currentJobRows: [{ localJobSessionId: "job-driver-only-01", status: "0" }],
+        driverSession: createDriverSession("Connected"),
+        executePressDeviceCommand,
+        filters: { teamId: "team-1", operatorId: "user-1", processId: "PRESS-01" },
+        recordPressJobOperation,
+        refreshSignalSnapshot: vi.fn().mockResolvedValue(undefined),
+      });
+
+      expect(result.resultCode).toBe(expectedFlowResultCode);
+      expect(executePressDeviceCommand).toHaveBeenCalledTimes(1);
+      expect(recordPressJobOperation).toHaveBeenCalledTimes(1);
+      expect(recordPressJobOperation).toHaveBeenCalledWith({
+        correlationId: result.identity?.correlationId,
+        localJobSessionId: "job-driver-only-01",
+        operationCode,
+        result: expectedResult,
+        teamId: "team-1",
+        operatorId: "user-1",
+      });
+    },
+  );
+
+  /**
+   * @brief 断言本地 preflight（前置校验）、Driver precheck（驱动预检）和用户取消都不产生 Driver 调用或操作日志。
+   * @author PopoY
+   */
+  it("does not report a Driver operation when preflight blocks the command", async () => {
+    const executePressDeviceCommand = vi.fn();
+    const recordPressJobOperation = vi.fn().mockResolvedValue(undefined);
+
+    await executePressJobSimpleDeviceAction({
+      buttonKey: "moveIn",
+      currentJobRows: [{ localJobSessionId: "job-blocked-01", status: "0" }],
+      driverSession: createDriverSession("Connected"),
+      executePressDeviceCommand,
+      filters: { teamId: "team-1", operatorId: "user-1" },
+      recordPressJobOperation,
+    });
+
+    await executePressJobSimpleDeviceAction({
+      buttonKey: "moveIn",
+      currentJobRows: [{ localJobSessionId: "job-blocked-01", status: "0" }],
+      driverSession: createDriverSession("Connected"),
+      executePressDeviceCommand,
+      filters: { teamId: "team-1", operatorId: "user-1", processId: "PRESS-01" },
+      precheckPressDeviceCommand: vi.fn(async (request) => ({
+        ...request,
+        resultCode: "SIGNAL_NOT_WRITABLE",
+        completedSteps: [],
+        failedSteps: ["允许移入"],
+      })),
+      recordPressJobOperation,
+    });
+
+    await executePressJobMoveOutWorkflow({
+      changeMold: true,
+      confirm: vi.fn().mockResolvedValue(false),
+      currentJobRows: [
+        { localJobSessionId: "job-blocked-01", moldNo: "MOLD-01", status: "1" },
+      ],
+      driverSession: createDriverSession("Connected"),
+      executePressDeviceCommand,
+      filters: { teamId: "team-1", operatorId: "user-1", processId: "PRESS-01" },
+      recordPressJobOperation,
+    });
+
+    expect(executePressDeviceCommand).not.toHaveBeenCalled();
+    expect(recordPressJobOperation).not.toHaveBeenCalled();
+  });
+
+  /**
+   * @brief 断言 Driver 成功后立即上报 true，后续 snapshot refresh（快照刷新）失败不得降级或追加日志。
+   * @author PopoY
+   */
+  it("does not downgrade a successful Driver log when refresh fails", async () => {
+    const recordPressJobOperation = vi.fn().mockResolvedValue(undefined);
+
+    const result = await executePressJobSimpleDeviceAction({
+      buttonKey: "moveIn",
+      currentJobRows: [{ localJobSessionId: "job-refresh-01", status: "0" }],
+      driverSession: createDriverSession("Connected"),
+      executePressDeviceCommand: vi.fn(async (request) => ({
+        ...request,
+        resultCode: "OK",
+        completedSteps: [],
+        failedSteps: [],
+      })),
+      filters: { teamId: "team-1", operatorId: "user-1", processId: "PRESS-01" },
+      recordPressJobOperation,
+      refreshSignalSnapshot: vi.fn().mockRejectedValue(new Error("刷新失败")),
+    });
+
+    expect(result.resultCode).toBe("FAILED");
+    expect(recordPressJobOperation).toHaveBeenCalledTimes(1);
+    expect(recordPressJobOperation).toHaveBeenCalledWith(
+      expect.objectContaining({ operationCode: "MOVE_IN", result: true }),
+    );
+  });
+
+  /**
+   * @brief 断言加工中 move-out（移出）只复用同一 Driver helper，并按真实结果保留三条操作日志。
+   * @author PopoY
+   */
+  it("keeps PARAMETER_END, COMPLETE and MOVE_OUT as three logs for running move-out", async () => {
+    const recordPressJobOperation = vi.fn().mockResolvedValue(undefined);
+    const executePressDeviceCommand = vi.fn(async (request) => ({
+      ...request,
+      resultCode: request.commandName === "moveOut" ? "FAILED" : "OK",
+      completedSteps: [],
+      failedSteps: [],
+    }));
+
+    const result = await executePressJobMoveOutWorkflow({
+      changeMold: true,
+      confirm: vi.fn().mockResolvedValue(true),
+      currentJobRows: [
+        { localJobSessionId: "job-running-move-out-01", moldNo: "MOLD-01", status: "1" },
+      ],
+      driverSession: createDriverSession("Connected"),
+      executePressDeviceCommand,
+      filters: { teamId: "team-1", operatorId: "user-1", processId: "PRESS-01" },
+      getFinalSignalSnapshot: vi.fn().mockResolvedValue({ pressure: 135 }),
+      recordPressJobOperation,
+      recordPressJobParameters: vi.fn().mockResolvedValue({
+        correlationId: "parameter-end-01",
+        localJobSessionId: "job-running-move-out-01",
+        resultCode: "OK",
+      }),
+      completePressJob: vi.fn().mockResolvedValue({
+        correlationId: "complete-01",
+        localJobSessionId: "job-running-move-out-01",
+        resultCode: "OK",
+      }),
+    });
+
+    expect(result.resultCode).toBe("FAILED");
+    expect(executePressDeviceCommand.mock.calls.map(([request]) => request.commandName)).toEqual([
+      "cleanupDeviceSession",
+      "moveOut",
+    ]);
+    expect(
+      recordPressJobOperation.mock.calls.map(([request]) => [
+        request.operationCode,
+        request.result,
+      ]),
+    ).toEqual([
+      ["PARAMETER_END", true],
+      ["COMPLETE", true],
+      ["MOVE_OUT", false],
+    ]);
+  });
+
+  /**
+   * @brief 断言 operation log（操作日志）拒绝不改变 Driver 结果，失败诊断保持固定脱敏字段。
+   * @author PopoY
+   */
+  it("keeps the Driver result when CONNECT operation logging rejects", async () => {
+    const recordPressDeviceActionDiagnostic = vi.fn();
+    const recordPressJobOperation = vi.fn().mockRejectedValue(
+      new Error(
+        "signedLease signature payload signalConfig privateKey credential sessionToken ip port deviceId",
+      ),
+    );
+
+    const result = await executePressJobSimpleDeviceAction({
+      buttonKey: "connect",
+      currentJobRows: [{ localJobSessionId: "job-connect-log-01", status: "0" }],
+      driverSession: createDriverSession("Connected"),
+      executePressDeviceCommand: vi.fn(async (request) => ({
+        ...request,
+        resultCode: "PARTIAL_OK",
+        completedSteps: ["MES通信状态"],
+        failedSteps: ["附属步骤"],
+      })),
+      filters: { teamId: "team-1", operatorId: "user-1", processId: "PRESS-01" },
+      recordPressDeviceActionDiagnostic,
+      recordPressJobOperation,
+      refreshSignalSnapshot: vi.fn().mockResolvedValue(undefined),
+    });
+    await Promise.resolve();
+
+    expect(result.resultCode).toBe("PARTIAL_OK");
+    expect(recordPressJobOperation).toHaveBeenCalledTimes(1);
+    expect(recordPressJobOperation).toHaveBeenCalledWith({
+      correlationId: result.identity?.correlationId,
+      localJobSessionId: "job-connect-log-01",
+      operationCode: "CONNECT",
+      result: true,
+      teamId: "team-1",
+      operatorId: "user-1",
+    });
+    expect(
+      recordPressDeviceActionDiagnostic.mock.calls
+        .map(([summary]) => summary)
+        .filter((summary) => summary.commandName === "CONNECT"),
+    ).toEqual([
+      {
+        correlationId: result.identity?.correlationId,
+        commandName: "CONNECT",
+        durationMs: 0,
+        resultCode: "压机操作日志上报失败。",
+      },
+    ]);
+    expect(JSON.stringify(recordPressDeviceActionDiagnostic.mock.calls)).not.toMatch(
+      /signedLease|signature|payload|signalConfig|privateKey|credential|sessionToken|ip|port|deviceId/,
+    );
   });
 
   /**

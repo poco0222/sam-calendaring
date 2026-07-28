@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-06-30
  * @editor PopoY
- * @edited 2026-07-27 11:37:10
+ * @edited 2026-07-28 11:13:38
  * @brief 展示压机作业 lookup data（查询数据）和 SignalSnapshotTable（信号快照表）。
  */
 
@@ -3714,6 +3714,16 @@ async function executePressDriverOnlyDeviceAction(
     };
   }
 
+  const operationCode =
+    input.buttonKey === "connect"
+      ? "CONNECT"
+      : input.buttonKey === "moveIn"
+        ? "MOVE_IN"
+        : input.buttonKey === "moveOut"
+          ? "MOVE_OUT"
+          : undefined;
+  let operationReported = false;
+
   try {
     const driverResult = await input.executePressDeviceCommand(
       createPressDeviceCommandRequest(identity),
@@ -3721,6 +3731,11 @@ async function executePressDriverOnlyDeviceAction(
     const resultCode = driverResult.resultCode;
     const isSuccess = isPressDriverCommandSuccessful(resultCode);
     const flowResult = resolveDriverOnlyActionFeedback(input.buttonKey, resultCode);
+
+    if (operationCode) {
+      reportPressWorkflowOperation(input, identity, operationCode, isSuccess);
+      operationReported = true;
+    }
 
     recordPressDeviceActionResult(input, identity, startedAt, {
       driverResultCode: resultCode,
@@ -3736,6 +3751,10 @@ async function executePressDriverOnlyDeviceAction(
       identity,
     };
   } catch {
+    if (operationCode && !operationReported) {
+      reportPressWorkflowOperation(input, identity, operationCode, false);
+    }
+
     recordPressDeviceActionResult(input, identity, startedAt, {
       driverResultCode: "DRIVER_COMMAND_FAILED",
       resultCode: "FAILED",
