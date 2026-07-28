@@ -492,7 +492,7 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 - Consumes: ERP 可选 `valueKind` 与继续存在的兼容 `operationRecords[].content`。
 - Produces: `PressJobHistoryParameter.valueKind?: "state" | "scalar"`；`PressJobHistoryOperation` 固定五字段，不再包含 `content`。
 
-- [ ] **Step 1：更新历史详情收窄测试并确认新契约会失败**
+- [x] **Step 1：更新历史详情收窄测试并确认新契约会失败**
 
   在 `fetches a narrowed press job history detail without nested parameter payloads` 的原始载荷中加入合法和非法分类：
 
@@ -524,7 +524,7 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
   expect(JSON.stringify(result.operationRecords)).not.toContain("完成加工失败");
   ```
 
-- [ ] **Step 2：运行服务测试并确认 RED**
+- [x] **Step 2：运行服务测试并确认 RED**
 
   ```bash
   cd /Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/qt-app/frontend
@@ -533,7 +533,7 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 
   Expected: FAIL；合法 `valueKind` 尚被丢弃，`content` 仍进入 View Model。
 
-- [ ] **Step 3：最小修改 Domain 类型和收窄函数**
+- [x] **Step 3：最小修改 Domain 类型和收窄函数**
 
   `pressJob.ts` 只做两处类型变化：
 
@@ -583,13 +583,13 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 
   不把 `signalId`、`signalCode`、嵌套结构或未知分类加入类型。
 
-- [ ] **Step 4：运行服务测试并确认 GREEN**
+- [x] **Step 4：运行服务测试并确认 GREEN**
 
   Run: 使用 Step 2 的同一 Vitest 命令。
 
   Expected: `erpClient.test.ts` PASS；仅 `state/scalar` 被保留，未知分类和后端 `content` 被白名单剔除，其他标量安全规则不变。
 
-- [ ] **Step 5：提交 QT 响应契约改动**
+- [x] **Step 5：提交 QT 响应契约改动**
 
   ```bash
   cd /Users/popoy/WorkSpace/Projects/SAM/sam-calendaring

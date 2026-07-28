@@ -6,7 +6,7 @@
 
 ## 2. QT App 响应收窄与统一格式化
 
-- [ ] 2.1 在 `erpClient.test.ts` 增加失败测试，再让历史参数只接受可选的 `state` / `scalar`，丢弃未知 `valueKind`，并停止把操作记录 `content` 收窄到前端 View Model（视图模型）
+- [x] 2.1 在 `erpClient.test.ts` 增加失败测试，再让历史参数只接受可选的 `state` / `scalar`，丢弃未知 `valueKind`，并停止把操作记录 `content` 收窄到前端 View Model（视图模型）
 - [ ] 2.2 在 `PressJobHistoryPage.test.tsx` 增加失败测试，覆盖开始/完工两列统一显示“否/是”、非状态 `0/1` 保持原值、删除参数缺失提示，以及保留格式异常提示
 - [ ] 2.3 复用一个历史参数格式化入口处理两列，仅对 `valueKind === "state"` 的 `0/1/false/true` 转换“否/是”
 

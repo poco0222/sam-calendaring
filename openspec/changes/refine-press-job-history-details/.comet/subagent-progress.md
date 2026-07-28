@@ -3,30 +3,29 @@
 @author PopoY
 @created 2026-07-28 17:01:01
 @editor PopoY
-@edited 2026-07-28 17:32:42
+@edited 2026-07-28 17:42:28
 @purpose 记录 Comet Build 子代理执行、审查和恢复所需的最小持久状态。
 -->
 
 # Subagent Progress（子代理进度）
 
-- Current plan task: `Task 2：ERP 历史详情安全回退并只投影脱敏分类`
-- Mapped OpenSpec tasks:
-  - `1.2 在 QtPressWorkingControllerTest 增加失败测试，覆盖新旧记录分类、回退边界和脱敏`
-  - `1.3 用一次当前设备全部信号定义查询完成旧记录回退`（与已完成 Task 1 共同覆盖）
+- Current plan task: `Task 3：QT View Model 精确收窄分类并删除重复内容字段`
+- Mapped OpenSpec task: `2.1 在 erpClient.test.ts 增加失败测试，只接受 state/scalar 并删除前端 content`
 - Stage: `done`
-- Dispatch: `/root/task2_erp_history_fallback`
-- ERP base: `66070646e68814247f7755d8e81083ecfafc8670`
-- Implementation commit: `591251cc63977a9455b20e18ec5a5a4bfaf69c83`
+- Dispatch: `/root/task3_qt_narrowing`
+- QT base: `8fa6bd360f02e108f3d35612fa58b9064cb92e83`
+- Implementation commit: `08310be65966554a0f8998e88d50689c7b5bb9c2`
 - Expected changed files:
-  - `yr-admin/src/main/java/com/yr/web/controller/system/QtPressWorkingController.java`
-  - `yr-admin/src/test/java/com/yr/web/controller/system/QtPressWorkingControllerTest.java`
-- RED evidence: `yr-admin:testCompile` 的 8 个预期构造器签名错误
-- GREEN evidence: `QtPressWorkingControllerTest` 41/41，13 个 reactor module 全部成功，`BUILD SUCCESS`
+  - `qt-app/frontend/src/domain/pressJob.ts`
+  - `qt-app/frontend/src/services/erpClient.ts`
+  - `qt-app/frontend/src/services/erpClient.test.ts`
+- RED evidence: 1 target contract failure, 368 tests passed
+- GREEN evidence: 21/21 test files, 369/369 tests passed
 - Review mode: `thorough`
-- Review dispatch: `/root/task2_review`
+- Review dispatch: `/root/task3_review`
 - Review stages passed: spec compliance, code quality, TDD evidence
 - Unresolved feedback: none
 - Review-fix round: `0/2`
-- Risk signals: security, API, single-task diff over 200 lines
-- Review package: `/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be/.worktrees/refine-press-job-history-details/.superpowers/sdd/review-66070646..591251cc.diff`
-- Updated: `2026-07-28 17:32:42 +0800`
+- Risk signals: API/View Model contract; Task 4 downstream source reference remains
+- Review package: `/Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/.worktrees/refine-press-job-history-details/.superpowers/sdd/review-8fa6bd3..08310be.diff`
+- Updated: `2026-07-28 17:42:28 +0800`
