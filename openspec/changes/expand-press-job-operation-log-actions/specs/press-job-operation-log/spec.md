@@ -41,6 +41,8 @@ ERP MUST 在首次锁模业务事务中使用既有 `press_job_info` 和 `press_
 - **WHEN** 设备当前可信 JSON 包含 `id=null,status=0` 的父作业或子作业，且发生下一次锁模或 `START`
 - **THEN** ERP MUST 在当前业务事务内将该父作业和仍锁定的子作业懒持久化一次，再继续本次操作
 - **AND** 系统不得批量迁移、按时间猜测或重复插入已经拥有真实 ID 的记录
+- **AND** 父 ID 为空但部分子作业已有 ID 时，ERP MUST 在 `START` 事务内按 ID 锁定并验证已有子作业的数据库身份，只用可信数据库实体绑定新父 ID 并替换设备 JSON 中的缓存实体
+- **AND** 已有子作业存在冲突父 ID、跨设备、跨授权主机、非 `status=0`、重复 ID 或重复模具号时，ERP MUST 在父、子和设备 JSON 写入前拒绝操作
 
 ### Requirement: START 和待开始解锁复用既有作业记录
 `START` MUST 将当前持久化待开始父、子作业从 `status=0` 更新为 `status=1`，MUST NOT 再次插入父、子作业或替换父 ID。待开始解锁 MUST 使用既有 `status=4` 收口不再参与本次加工的记录。
@@ -65,6 +67,12 @@ ERP MUST 在首次锁模业务事务中使用既有 `press_job_info` 和 `press_
 - **WHEN** 当前父作业为 `status=1`
 - **THEN** ERP 沿用现有加工中解锁限制和子作业收口状态
 - **AND** 本变更不得允许解锁现有规则禁止的最后一套或全部模具
+
+#### Scenario: 解锁模具号列表规范化
+- **WHEN** QT 解锁请求的 `moldNos` 包含首尾空格、空项或重复模具号
+- **THEN** ERP Controller MUST 按原顺序 trim、丢弃空项并去重，再把规范化后的非空集合交给解锁 Service
+- **AND** 规范化后为空的请求 MUST 在主业务调用前拒绝，且不得记录一次已执行的 `UNLOCK_MOLD`
+- **AND** ERP MUST NOT 丢弃或忽略规范化集合中的 stale/partial 模具号；任一模具号未命中当前锁定集合时，主业务 MUST 失败并记录真实失败结果
 
 ### Requirement: QT 操作日志端点保持最薄可信边界
 ERP MUST 保持既有 QT operation-log endpoint（操作日志端点），请求 MUST 只包含 `correlationId`、`localJobSessionId`、`operationCode`、`result`、`teamId`、`operatorId`。ERP MUST 从认证上下文取得 `deviceId` 与 `granteeHostId`。该端点 MUST 只接受 QT 实际执行的 `CONNECT`、`MOVE_IN`、`MOVE_OUT`、`START`、`PARAMETER_START`、`PARAMETER_END`、`LINE_IN`、`LINE_OUT`、`COMPLETE` 九类操作；`LOCK_MOLD` 和 `UNLOCK_MOLD` MUST 只由 ERP 对应业务端点内部记录。

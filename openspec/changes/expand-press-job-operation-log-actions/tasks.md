@@ -4,6 +4,7 @@
 - [x] 1.2 调整锁模 Service（服务），复用现有 Domain（领域对象）和 Mapper（映射器）在同一事务持久化待开始父、子记录，修正以对象非空误判加工中的逻辑
 - [x] 1.3 调整 `START`，将同一父作业和当前 `status=0` 子记录更新为 `status=1`，不得再次插入或改变父 ID
 - [x] 1.4 调整待开始解锁：部分解锁把选中子记录更新为 `status=4`；全部解锁把剩余子记录和父作业更新为 `status=4` 并清理设备 JSON
+- [ ] 1.5 补充 mixed legacy `START` 状态矩阵：父 ID 为空且部分子作业已有 ID 时，行锁验证可信子作业、绑定同一新父 ID、替换设备 JSON，并在冲突身份下写前失败
 
 ## 2. ERP 十一类操作日志契约
 
@@ -11,6 +12,7 @@
 - [x] 2.2 复用现有日志 Service 的最小私有映射，扩展 `CONNECT` / `MOVE_IN` / `MOVE_OUT`，保持 QT operation-log endpoint（操作日志端点）严格六字段请求
 - [x] 2.3 让锁模/解锁 Service 返回可信父 ID，并由 ERP Controller（控制器）在主事务结束后尽力记录 `LOCK_MOLD` / `UNLOCK_MOLD`；成功必须关联，失败无稳定 ID 时允许设备级
 - [x] 2.4 保持通用 `/modbus/handleLog` 无法提交父作业关联，并覆盖跨设备、跨授权主机、未知字段和日志异常不覆盖主业务响应的回归测试
+- [x] 2.5 固化解锁 `moldNos` 的既有集合语义：按原顺序 trim、去空、去重；规范化集合仍由 Service 对 stale/partial 模具号精确失败关闭
 
 ## 3. QT App 新增 Driver 动作上报
 

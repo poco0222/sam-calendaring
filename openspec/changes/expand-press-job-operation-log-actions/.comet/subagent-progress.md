@@ -2,46 +2,63 @@
 
 - Change: `expand-press-job-operation-log-actions`
 - Review mode: `thorough`
-- Current plan task: `Task 6：在真实 Driver 结果边界上报建立通信、移入、移出`
+- Current plan task: `Task 7：两仓集成验证、规格核对与收口`
 - Mapped OpenSpec tasks:
-  - `3.2 为建立通信、移入和移出的真实 Driver result 接入现有 best-effort 上报，有父作业时关联、无父作业时允许设备级日志`
-  - `3.3 保持锁模/解锁不从 QT 重复调用日志端点，并证明前置校验和刷新不会产生错误日志`
-  - `3.4 覆盖移出自动完成加工组合流程，分别保留 PARAMETER_END、COMPLETE、MOVE_OUT，并保持原六类日志行为不回归`
-- Stage: `task-complete`
-- Dependency: Task 1-5 complete；Task 6 implementation HEAD `c50d817`。
-- Implementer dispatch: `/root/task6_qt_driver_results`（已派发）
-- Allowed files:
-  - `qt-app/frontend/src/components/PressJobPage.tsx`
-  - `qt-app/frontend/src/components/PressJobPage.test.tsx`
+  - `1.5 补充 mixed legacy START 状态矩阵并可信懒持久化`
+  - `4.1 运行 QT App 聚焦测试、TypeScript 检查和 production build`
+  - `4.2 使用 Java 8/Maven 运行 ERP 聚焦测试、相关模块编译及 diff 检查`
+  - `4.3 运行 OpenSpec strict validate，核对 requirements、non-goals 与规定代码审查`
+- Stage: `implementing`
+- Dependency: Task 1-6 complete；calendaring HEAD `90ed108`；ERP HEAD `33b97ff`。
+- Verification dispatch: `/root/task7_integration_verification`（已派发）
+- Allowed tracked files: none during verification；证据通过后由 coordinator 更新 Plan/OpenSpec/checkpoint。
 - Real-device boundary: 只运行 tests/mocks，禁止真实 Driver/PLC 请求或设备探测。
 - TDD mode: `tdd`
-- Review-fix round: `1/2`
+- Review-fix round: `2/2`
 - Risk task review: `required`（review_mode=`thorough`）
-- Implementer brief: `.superpowers/sdd/task-6-brief.md`
-- Implementation commit: `c50d81702362cb0780bfec29606d2e6c1c7356d5`
-- RED evidence: `PressJobPage.test.tsx 154 tests / 12 failures / 142 passes`；阻断场景已通过。
-- GREEN evidence: `154/154`；`git diff --check` 通过。
-- Changed files: 两个允许文件；除 coordinator checkpoint 外 worktree 无其他未提交变更。
-- Risk signals: Driver result 与日志结果顺序；组合工作流与共享 helper；日志失败/刷新失败隔离。
-- Implementer report: `.superpowers/sdd/task-6-report.md`
-- Review package: `/Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/.worktrees/expand-press-job-operation-log-actions/.superpowers/sdd/review-ff21319..c50d817.diff`
-- Reviewer dispatch: `/root/task6_qt_review`（已派发）
-- Review verdict: `Needs fixes`；2 个 Important、1 个 Minor。
-- Review report: `.superpowers/sdd/task-6-review.md`
-- Review-fix implementer: `/root/task6_qt_review_fix`
-- Review-fix commit: `7e8f3d2ebfc772cc8a787c05d854ba23a33ab0b1`
-- Review-fix RED: `157 tests / 2 failures / 155 passes`。
-- Review-fix GREEN: `157/157`；fresh verification `157/157`；`git diff --check` 通过。
-- Review-fix report: `.superpowers/sdd/task-6-review-fix-1-report.md`
-- Claimed resolved feedback:
-  - 共享 best-effort helper 隔离同步 throw、异步 reject 和诊断 callback 异常。
-  - 每个真实 Driver 动作最多尝试一条日志，原 Driver 结果不被日志失败覆盖。
-  - 仅 CONNECT 在 `currentJobRows=[]` 时允许 device-only 上报。
-  - 无 Driver executor 时 `SERVICE_NOT_READY` 且零日志已有回归测试。
-- Rereview range: `ff21319..7e8f3d2`；重点核对 `c50d817..7e8f3d2`。
-- Fresh rereviewer: `/root/task6_qt_rereview`
-- Rereview verdict: `Approved`；旧 2 个 Important 与 1 个 Minor 全部关闭，无新 finding。
-- Plan checkoff: Task 6 `[x]`。
-- OpenSpec checkoff: `3.2`、`3.4` `[x]`；`3.3` 沿用 Task 5 已通过证据。
-- Deferred verification: noEmit/build 留给 Task 7；未触发真实 Driver/PLC。
-- Latest status: Task 6 实现、修复、聚焦验证与 thorough rereview 全部完成。
+- Verification brief: `.superpowers/sdd/task-7-brief.md`
+- Verification commands: ERP focused tests + compile；QT focused tests + `tsc --noEmit` + build；两仓 diff/schema/Driver/sensitive boundary；OpenSpec strict validate。
+- Verification report: `.superpowers/sdd/task-7-verification-report.md`
+- Verification result:
+  - ERP Service `102/102`、Controller `38/38`、compile、diff check 通过。
+  - QT Vitest `210/210`、build、diff check 通过。
+  - QT `tsc --noEmit` exit `2`：`PressJobPage.test.tsx:2926` 的 table inference 将 `buttonKey` 拓宽为 `string`。
+  - OpenSpec strict validate、schema/Driver/non-goal boundary 通过。
+- Task status: 命令证据已通过，但 thorough semantic review（完整语义审查）未通过；`4.1`–`4.3` 均暂不勾选。
+- Type-fix brief: `.superpowers/sdd/task-7-type-fix-brief.md`
+- Type-fix dispatch: `/root/task7_typescript_fix`（已派发）
+- Type-fix commit: `90ed108583c21a3bbb07ddf26e0d86e0b1146ecf`
+- Type-fix result: RED `tsc` exit `2`；GREEN `tsc` exit `0`；两文件 Vitest `210/210`；diff check 通过。
+- Type-fix report: `.superpowers/sdd/task-7-type-fix-report.md`
+- Consolidated task status: `4.1`、`4.2`、`4.3` PASS evidence ready，等待 thorough review。
+- Reviewer dispatch: `/root/task7_integration_review`（已派发）
+- Review verdict: `Needs fixes`；2 个 Important、无 Critical/Minor。
+- Review report: `.superpowers/sdd/task-7-review.md`
+- Unresolved feedback:
+  - stale/部分命中解锁请求会误报业务成功与 `UNLOCK_MOLD=true`。
+  - legacy lazy-persist 未校验父子状态/设备/主机/父 ID，可写出不一致 JSON 或复用终止/跨归属作业。
+- ERP review-fix round: `1/2`
+- ERP review-fix dispatch: `/root/task7_erp_integrity_fix`（已派发）
+- ERP review-fix commit: `ef15288d45a33c2015e4690699be3185ef499fd1`
+- ERP review-fix result: Service `114/114`、Controller `39/39`、`yr-admin` compile、diff check 通过；仅修改 Service 与两份聚焦测试。
+- ERP review-fix report: `.superpowers/sdd/task-7-erp-integrity-fix-report.md`
+- Re-review verdict: `Needs fixes`；旧 finding 1 Closed，旧 finding 2 仍有 1 个 Important。
+- Remaining feedback: mixed legacy 身份查询后仍用不可信缓存实体宽更新数据库，且父关联绑定缺少原子条件。
+- ERP review-fix round 2: `2/2`
+- ERP review-fix round 2 dispatch: `/root/task7_erp_trusted_binding_fix`（已派发）
+- ERP review-fix round 2 scope: child `FOR UPDATE` 查询、可信 DB 实体绑定/JSON 替换及两类回归测试；最多 Service/Test/Mapper interface/XML 四文件。
+- ERP review-fix round 2 commit: `33b97ff85a776b125462f2271e5d09d806e1822a`
+- ERP review-fix round 2 result: RED 116 中 2 项失败；GREEN Service `116/116`、Controller `39/39`、`yr-admin` compile、diff check 通过。
+- ERP review-fix round 2 report: `.superpowers/sdd/task-7-erp-trusted-binding-fix-report.md`
+- Final task re-review verdict: `Needs fixes`；无 Critical/Minor，2 个 Important。
+- Review budget history: thorough task-level review-fix `2/2` 已耗尽并曾标记 BLOCKED；用户于 2026-07-28 明确确认设计口径后，授权一次 post-blocked targeted correction（阻断后定向修正）及独立复审，原轮次历史不重置。
+- User-resolved review feedback:
+  - Controller `toUniqueMoldNos` 的 trim、去空、去重是既有集合语义，不作为代码缺陷；已补入 delta spec、design、tasks 和 Plan，stale/partial 仍由 Service 精确失败关闭。
+  - mixed legacy 的“再次锁模”路径已可信修复；本次唯一生产修正是直接 `START` 对父 ID 为空、已有子 ID 的状态执行可信懒持久化。
+- Post-blocked correction budget: `1 implementation + 1 task re-review`（用户已授权）
+- Spec increment validation: `openspec validate expand-press-job-operation-log-actions --strict` PASS；OpenSpec `2.5` 精确 task-checkoff PASS。
+- Post-blocked implementation status: 待提交规格增量并派发 fresh implementer，TDD 必须先证明 mixed legacy 直接 `START` 当前失败。
+- Closed feedback: stale/partial 精确集合匹配、last-mold 规则、锁模路径 DB child `FOR UPDATE`、可信实体更新/JSON 替换及缓存宽覆盖/TOCTOU 已关闭。
+- Risk signals: 跨仓构建、类型检查、schema/Driver 非目标、敏感字段与真实设备边界。
+- Deferred mutation: 未经证据不得勾选 `4.1`–`4.3` 或 Plan Task 7。
+- Latest status: 用户已确认规范化语义并授权定向修正；OpenSpec/Design/Plan 增量已通过严格校验，等待提交后派发 mixed legacy `START` implementer。
