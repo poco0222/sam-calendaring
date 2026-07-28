@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-06-30
  * @editor PopoY
- * @edited 2026-07-28 11:13:38
+ * @edited 2026-07-28 11:27:19
  * @brief 锁定 frontend-only（仅前端）压机作业页的四行布局、空数据和安全边界。
  */
 
@@ -2827,6 +2827,68 @@ describe("PressJobPage", () => {
   });
 
   /**
+   * @brief 断言无当前作业时 CONNECT（建立通信）仍执行 Driver 并使用生成的设备级会话上报。
+   * @author PopoY
+   */
+  it("reports CONNECT with a generated local session when no current job exists", async () => {
+    const executePressDeviceCommand = vi.fn(async (request) => ({
+      ...request,
+      resultCode: "PARTIAL_OK",
+      completedSteps: ["MES通信状态"],
+      failedSteps: ["附属步骤"],
+    }));
+    const recordPressJobOperation = vi.fn().mockResolvedValue(undefined);
+
+    const result = await executePressJobSimpleDeviceAction({
+      buttonKey: "connect",
+      currentJobRows: [],
+      driverSession: createDriverSession("Connected"),
+      executePressDeviceCommand,
+      filters: { teamId: "team-1", operatorId: "user-1", processId: "PRESS-01" },
+      recordPressJobOperation,
+      refreshSignalSnapshot: vi.fn().mockResolvedValue(undefined),
+    });
+
+    expect(result.resultCode).toBe("PARTIAL_OK");
+    expect(result.identity?.localJobSessionId).toMatch(
+      /^press-device-action-press-device-connect-/,
+    );
+    expect(executePressDeviceCommand).toHaveBeenCalledTimes(1);
+    expect(recordPressJobOperation).toHaveBeenCalledTimes(1);
+    expect(recordPressJobOperation).toHaveBeenCalledWith({
+      correlationId: result.identity?.correlationId,
+      localJobSessionId: result.identity?.localJobSessionId,
+      operationCode: "CONNECT",
+      result: true,
+      teamId: "team-1",
+      operatorId: "user-1",
+    });
+  });
+
+  /**
+   * @brief 断言缺少 Driver command callback（驱动命令回调）时返回 SERVICE_NOT_READY 且不写操作日志。
+   * @author PopoY
+   */
+  it("returns SERVICE_NOT_READY without logging when the Driver callback is missing", async () => {
+    const recordPressJobOperation = vi.fn().mockResolvedValue(undefined);
+
+    await expect(
+      executePressJobSimpleDeviceAction({
+        buttonKey: "moveIn",
+        currentJobRows: [{ localJobSessionId: "job-service-missing-01", status: "0" }],
+        driverSession: createDriverSession("Connected"),
+        filters: { teamId: "team-1", operatorId: "user-1", processId: "PRESS-01" },
+        recordPressJobOperation,
+      }),
+    ).resolves.toMatchObject({
+      feedbackType: "error",
+      resultCode: "SERVICE_NOT_READY",
+    });
+
+    expect(recordPressJobOperation).not.toHaveBeenCalled();
+  });
+
+  /**
    * @brief 断言 CONNECT/MOVE_IN/MOVE_OUT（建立通信/移入/移出）只按真实 Driver 结果各上报一次。
    * @author PopoY
    */
@@ -3065,6 +3127,52 @@ describe("PressJobPage", () => {
         resultCode: "压机操作日志上报失败。",
       },
     ]);
+    expect(JSON.stringify(recordPressDeviceActionDiagnostic.mock.calls)).not.toMatch(
+      /signedLease|signature|payload|signalConfig|privateKey|credential|sessionToken|ip|port|deviceId/,
+    );
+  });
+
+  /**
+   * @brief 断言同步 operation log（操作日志）异常及诊断回调异常都不覆盖真实 Driver 结果。
+   * @author PopoY
+   */
+  it("isolates synchronous operation log and diagnostic callback throws", async () => {
+    const recordPressDeviceActionDiagnostic = vi.fn((summary) => {
+      if (summary.commandName === "CONNECT") {
+        throw new Error("诊断 callback 原始异常");
+      }
+    });
+    const recordPressJobOperation = vi.fn(() => {
+      throw new Error(
+        "signedLease signature payload signalConfig privateKey credential sessionToken ip port deviceId",
+      );
+    });
+
+    const result = await executePressJobSimpleDeviceAction({
+      buttonKey: "connect",
+      currentJobRows: [{ localJobSessionId: "job-connect-sync-log-01", status: "0" }],
+      driverSession: createDriverSession("Connected"),
+      executePressDeviceCommand: vi.fn(async (request) => ({
+        ...request,
+        resultCode: "PARTIAL_OK",
+        completedSteps: ["MES通信状态"],
+        failedSteps: ["附属步骤"],
+      })),
+      filters: { teamId: "team-1", operatorId: "user-1", processId: "PRESS-01" },
+      recordPressDeviceActionDiagnostic,
+      recordPressJobOperation,
+      refreshSignalSnapshot: vi.fn().mockResolvedValue(undefined),
+    });
+
+    expect(result.resultCode).toBe("PARTIAL_OK");
+    expect(recordPressJobOperation).toHaveBeenCalledTimes(1);
+    expect(recordPressDeviceActionDiagnostic).toHaveBeenCalledTimes(2);
+    expect(recordPressDeviceActionDiagnostic).toHaveBeenCalledWith({
+      correlationId: result.identity?.correlationId,
+      commandName: "CONNECT",
+      durationMs: 0,
+      resultCode: "压机操作日志上报失败。",
+    });
     expect(JSON.stringify(recordPressDeviceActionDiagnostic.mock.calls)).not.toMatch(
       /signedLease|signature|payload|signalConfig|privateKey|credential|sessionToken|ip|port|deviceId/,
     );

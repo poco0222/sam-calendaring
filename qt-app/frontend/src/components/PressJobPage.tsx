@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-06-30
  * @editor PopoY
- * @edited 2026-07-28 11:13:38
+ * @edited 2026-07-28 11:28:19
  * @brief 展示压机作业 lookup data（查询数据）和 SignalSnapshotTable（信号快照表）。
  */
 
@@ -2909,7 +2909,10 @@ export function validateSharedPressDeviceActionPreflight(
     return "请先选择预选工艺。";
   }
 
-  if (!isCurrentJobStateKnown(currentJobRows)) {
+  if (
+    !isCurrentJobStateKnown(currentJobRows) &&
+    (buttonKey !== "connect" || currentJobRows.length > 0)
+  ) {
     return "当前作业状态未确认，请刷新后重试。";
   }
 
@@ -3227,7 +3230,7 @@ export function buildPressJobParameterRequest(
 }
 
 /**
- * @brief 发起不等待、不重试的 operation log（操作日志）请求，并把拒绝收口到现有脱敏诊断入口。
+ * @brief 发起不等待、不重试的 operation log（操作日志）请求，并隔离同步、异步及诊断异常。
  * @author PopoY
  * @param input 严格六字段请求、日志客户端和现有诊断入口。
  */
@@ -3236,14 +3239,28 @@ export function reportPressJobOperationBestEffort(input: {
   recordPressJobOperation?: (request: PressJobOperationLogRequest) => Promise<void>;
   request: PressJobOperationLogRequest;
 }): void {
-  void input.recordPressJobOperation?.(input.request).catch(() => {
-    input.recordDiagnostic?.({
-      correlationId: input.request.correlationId,
-      commandName: input.request.operationCode,
-      durationMs: 0,
-      resultCode: "压机操作日志上报失败。",
-    });
-  });
+  if (!input.recordPressJobOperation) {
+    return;
+  }
+
+  const recordFailureDiagnostic = () => {
+    try {
+      input.recordDiagnostic?.({
+        correlationId: input.request.correlationId,
+        commandName: input.request.operationCode,
+        durationMs: 0,
+        resultCode: "压机操作日志上报失败。",
+      });
+    } catch {
+      // @author PopoY: 诊断回调同属 best-effort（尽力而为），不得反向破坏主动作。
+    }
+  };
+
+  try {
+    void input.recordPressJobOperation(input.request).catch(recordFailureDiagnostic);
+  } catch {
+    recordFailureDiagnostic();
+  }
 }
 
 /**
@@ -3722,7 +3739,7 @@ async function executePressDriverOnlyDeviceAction(
         : input.buttonKey === "moveOut"
           ? "MOVE_OUT"
           : undefined;
-  let operationReported = false;
+  let operationReportAttempted = false;
 
   try {
     const driverResult = await input.executePressDeviceCommand(
@@ -3733,8 +3750,8 @@ async function executePressDriverOnlyDeviceAction(
     const flowResult = resolveDriverOnlyActionFeedback(input.buttonKey, resultCode);
 
     if (operationCode) {
+      operationReportAttempted = true;
       reportPressWorkflowOperation(input, identity, operationCode, isSuccess);
-      operationReported = true;
     }
 
     recordPressDeviceActionResult(input, identity, startedAt, {
@@ -3751,7 +3768,8 @@ async function executePressDriverOnlyDeviceAction(
       identity,
     };
   } catch {
-    if (operationCode && !operationReported) {
+    if (operationCode && !operationReportAttempted) {
+      operationReportAttempted = true;
       reportPressWorkflowOperation(input, identity, operationCode, false);
     }
 
