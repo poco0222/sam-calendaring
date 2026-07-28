@@ -113,4 +113,11 @@
 - Finding verification: coordinator 按 `receiving-code-review` 独立核对 OpenSpec 和真实调用链，确认规范只允许父子同为 `status=0` 或同为 `status=1`；现有 `validateCurrentJobForLock(...)` 已覆盖父子状态、归属、device、host 与唯一性，复用即可，无需新抽象。
 - Final review-fix round: `1/2`（thorough final review budget）。
 - Final review-fix scope: TDD 增加异常父状态与运行中子身份/状态不一致的零写入测试；在选择目标及任何 Mapper 写入前复用现有当前作业校验。仅允许 ERP Service/Test 两文件，不改 Controller、Mapper、schema、日志、公开参数或正常解锁行为。
-- Latest status: 最终集成验证通过；whole-branch final review 发现 1 个已确认 Important，进入第 1 轮最小 review-fix。
+- Final review-fix dispatch: `/root/final_unlock_validation_fix`（fresh `worker`）。
+- Final review-fix effective RED: 修正设备 JSON fixture 后，`PressMouldJobInfoServiceImplQtTest` `49` tests、`2` failures；非法父状态与运行中子状态/身份不一致均因预期 `CustomException` 未抛出而失败。此前只修改 getter 反序列化副本的无效 RED 已作废且未用于生产修复。
+- Final review-fix commit: ERP `806a7dae376c78a2bd4e65ee1ed698b38d725448`（仅 Service/Test 两文件）。
+- Final review-fix implementation: 在 `selectUnlockJobs(...)` 和任何 Mapper 写入前仅复用一次 `validateCurrentJobForLock(...)`；无新 helper、抽象、Controller、Mapper、schema、日志或公开参数改动。
+- Final review-fix verification: target `49/49`、Service combined `123/123`、Controller `39/39`、`yr-admin` 13 模块 compile、`git diff --check` 全部 PASS；ERP/CAL tracked worktree clean。
+- Final review-fix report: `.superpowers/sdd/final-unlock-validation-fix-report.md`。
+- Next gate: fresh final re-review，仅核对原 Important 是否关闭及修复是否引入回归；通过前不勾选 `4.3` 或 Plan Task 7。
+- Latest status: 第 1 轮 final review-fix 已完成并验证，等待 fresh re-review。
