@@ -2,6 +2,7 @@
 change: expand-press-job-operation-log-actions
 design-doc: docs/superpowers/specs/2026-07-27-expand-press-job-operation-log-actions-design.md
 base-ref: f37590a4a1a70565b5c27a65bb9ab8d6ad3e80e4
+archived-with: 2026-07-28-expand-press-job-operation-log-actions
 ---
 
 # 扩展压机作业操作日志动作实施计划

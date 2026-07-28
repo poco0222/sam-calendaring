@@ -2,6 +2,8 @@
 comet_change: expand-press-job-operation-log-actions
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-28-expand-press-job-operation-log-actions
+status: final
 ---
 
 # 扩展压机作业操作日志动作技术设计

@@ -1,6 +1,0 @@
-{
-  "id": "classic-archive:expand-press-job-operation-log-actions",
-  "stepId": "full.archive.execute",
-  "type": "checkpoint",
-  "ref": "expand-press-job-operation-log-actions"
-}
