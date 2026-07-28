@@ -2,34 +2,44 @@
 
 - Change: `expand-press-job-operation-log-actions`
 - Review mode: `standard`
-- Current plan task: `Task 1：锁模持久化待开始父子作业并修复二次锁模状态判断`
+- Current plan task: `Task 2：START 和待开始解锁复用同一批数据库记录`
 - Mapped OpenSpec tasks:
-  - `1.1 先补充聚焦测试：首次锁模插入 status=0 父、子记录并回写真实 ID；待开始二次锁模复用父 ID；存量 id=null,status=0 JSON 只懒持久化一次`
-  - `1.2 调整锁模 Service（服务），复用现有 Domain（领域对象）和 Mapper（映射器）在同一事务持久化待开始父、子记录，修正以对象非空误判加工中的逻辑`
-- Stage: `done`
-- Implementer dispatch: `/root/task1_erp_pending_jobs`（已派发）
-- Implementation commit: `f0a95464ae99c5ed1eb9519a49501b8032bf3d44`
+  - `1.3 调整 START，将同一父作业和当前 status=0 子记录更新为 status=1，不得再次插入或改变父 ID`
+  - `1.4 调整待开始解锁：部分解锁把选中子记录更新为 status=4；全部解锁把剩余子记录和父作业更新为 status=4 并清理设备 JSON`
+- Stage: `blocked`
+- Dependency: Task 1 complete；ERP HEAD `1a0ed8f6f99dfdefa0f97aa821dc90d79b492d98`。
+- Implementer dispatch: `/root/task2_erp_start_unlock`（已派发）
+- Implementation commit: `923a54592e606fbefd2fc00791a1c39d4bdbe5fc`
 - Changed files:
-  - `sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/IPressMouldJobInfoService.java`
+  - `sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/impl/PressJobInfoServiceImpl.java`
   - `sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/impl/PressMouldJobInfoServiceImpl.java`
+  - `sam-erp/src/test/java/com/yr/smes2/smes/modbus/service/impl/PressJobInfoServiceImplQtTest.java`
   - `sam-erp/src/test/java/com/yr/smes2/smes/modbus/service/impl/PressMouldJobInfoServiceImplQtTest.java`
-- RED evidence: Maven 聚焦测试 `26 tests / 4 failures`；自审补强 RED `26 / 1 failure`。
-- GREEN evidence: 同一 Maven 命令 `26/26`，Failures/Errors/Skipped=`0/0/0`，7 个 reactor 模块 SUCCESS，`BUILD SUCCESS`；`git diff --check` 通过。
-- Review-fix commit: `1a0ed8f6f99dfdefa0f97aa821dc90d79b492d98`
-- Review-fix evidence: 行锁 RED 2 fail → GREEN 2 pass；0-row RED 1 fail → GREEN 1 pass；JSON 快照 RED 1 fail → GREEN 1 pass；最终 Maven `29/29`、7/7 reactor SUCCESS、`BUILD SUCCESS`，`git diff --check` 通过。
-- Risk task review: `passed`（fresh re-review：Spec compliant，Task quality Approved）
-- Risk signals: 跨模块/子系统；并发/锁/共享可变状态；公共 API/外部接口变化；单任务 diff 超过 200 行。
+- RED evidence: 双类 `93 tests / 4 expected failures`；补强共享解锁父 ID RED `1 failure`。
+- GREEN evidence: `PressMould 32 + PressJob 61 = 93/93`，Failures/Errors/Skipped=`0/0/0`，7-module reactor `BUILD SUCCESS`；`git diff --check` 通过。
+- Risk task review: `failed`；`/root/task2_erp_review` 返回 `NEEDS_FIXES`
+- Risk signals: 并发/锁/共享可变状态；单任务 diff 超过 200 行。
 - Review-fix round: `1/1`
-- Unresolved feedback: `none`
-- Coordination note: dispatch 中的提交信息与 brief 冲突，已明确以 brief 的 `fix(press-job): 锁模时持久化待开始作业` 为准。
-- Latest status: 最终 GREEN/验证中；自审新增 RED 覆盖存量父 JSON 回填 ID 后重新序列化，最小修复后重跑 26 个聚焦测试。
-- Review-fix status: Finding 1 行锁查询 RED 2 fail → GREEN 2 pass；Finding 2 affected-row=0 RED 1 fail → GREEN 1 pass；Finding 3 JSON 快照 fixture 正在执行聚焦 RED。
-- Implementer report: `.superpowers/sdd/task-1-report.md`
-- Review package: `/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be/.worktrees/expand-press-job-operation-log-actions/.superpowers/sdd/review-8c15f2b9..f0a95464.diff`
-- Review result: `.superpowers/sdd/task-1-review.md`
-- Fixer dispatch: `/root/task1_erp_review_fix`（已派发）
-- Re-review dispatch: `/root/task1_erp_rereview`（已派发）
-- Re-review package: `/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be/.worktrees/expand-press-job-operation-log-actions/.superpowers/sdd/review-8c15f2b9..1a0ed8f6.diff`
-- Re-review result: 三项首轮 Important findings 全部关闭，无新增 Critical/Important/Minor。
-- Checkoff: Plan Task 1、OpenSpec 1.1、OpenSpec 1.2 已勾选，等待 Comet 精确文本验证。
-- Completion: ERP commits `8c15f2b9..1a0ed8f6`；risk-task review clean after review-fix round `1/1`。
+- Review-fix implementer: `/root/task2_erp_review_fix`（已派发）
+- Review-fix commit: `3f988f624055f77b7f6218ba31c7ed0a8a44e46f`
+- Review-fix RED/GREEN: 行锁 `2 failures -> 2/2`；严格子状态 `2 failures -> 2/2`。
+- Review-fix verification: `PressMould 33 + PressJob 63 = 96/96`，Failures/Errors/Skipped=`0/0/0`，7-module reactor `BUILD SUCCESS`；`git diff --check` 通过。
+- Resolved first-review feedback:
+  - 两个解锁入口必须复用现有 `selectBoundPressForUpdate` 行锁查询。
+  - START 必须严格拒绝子作业 `null`/空白状态，仅允许 `status=0`。
+- Accepted/deferred Minor: affected rows 失败路径测试覆盖不完整；本轮不扩展，留给最终 Review 复核。
+- Latest implementation status: review-fix 已提交且 `96/96` GREEN；fresh re-review 未通过，Task 2 已 BLOCKED。
+- Implementer report: `.superpowers/sdd/task-2-report.md`
+- Review package: `/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be/.worktrees/expand-press-job-operation-log-actions/.superpowers/sdd/review-1a0ed8f6..923a5459.diff`
+- Review result: `.superpowers/sdd/task-2-review.md`
+- Re-review package: `/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be/.worktrees/expand-press-job-operation-log-actions/.superpowers/sdd/review-1a0ed8f6..3f988f62.diff`
+- Re-review reviewer: `/root/task2_erp_rereview`（已派发）
+- Re-review result: `NEEDS_FIXES`；首轮两项 Important 已关闭，但发现两个新的阻塞性 Important。
+- Re-review artifact: `.superpowers/sdd/task-2-rereview.md`
+- Blocking reason: `review_mode=standard` 的 Task 2 review-fix round `1/1` 已耗尽，复审仍存在 Important，不得继续第二轮或进入 Task 3。
+- Unresolved blocking feedback:
+  - legacy START 仍用普通 `getPressJobByHandleIp`，未参与设备行锁，START/unlock 交错可复活旧子记录并覆盖设备 JSON。
+  - legacy START 未严格校验父子 `status=0`、设备/主机和真实父 ID 归属，共享实现可重绑并复活 `status=4` 或跨父记录。
+- Unresolved Minor feedback:
+  - affected rows 失败路径测试覆盖不完整。
+  - cross-device 与 craft-mismatch fixture 被 strict-status guard 提前截获。
