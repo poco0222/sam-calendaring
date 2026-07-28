@@ -1823,6 +1823,7 @@ function narrowPressMoldUnlockRequest(
 ): PressMoldUnlockRequest {
   return {
     operatorId: request.operatorId,
+    teamId: request.teamId,
     moldNos: request.moldNos.flatMap((moldNo) => {
       const value = readNonEmptyString(moldNo);
       return value ? [value] : [];

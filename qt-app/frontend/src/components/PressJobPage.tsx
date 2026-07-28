@@ -4699,7 +4699,7 @@ export function createPressMoldInfoSearchInput(
 /**
  * @brief 构造解锁模具 request（请求），只保留 ERP contract（接口契约）字段。
  * @author PopoY
- * @param filters 当前筛选状态，用于读取 operatorId（人员 ID）。
+ * @param filters 当前筛选状态，用于读取 teamId（班组 ID）和 operatorId（人员 ID）。
  * @param moldNos 需要解锁的 moldNo（模具号）数组。
  * @param correlationId 当前解锁请求的关联 ID。
  * @returns 可传给 App layer（应用层）回调的解锁请求。
@@ -4711,6 +4711,7 @@ export function createPressMoldUnlockRequest(
 ): PressMoldUnlockRequest {
   return {
     operatorId: filters.operatorId ?? "",
+    teamId: filters.teamId ?? "",
     moldNos: Array.from(
       new Set(
         moldNos.flatMap((moldNo) => {

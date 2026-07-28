@@ -7,8 +7,9 @@
  * @brief 验证 ERP client（企业资源计划客户端）自动登录和租约流程。
  */
 
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 
+import type { PressJobOperationCode } from "../domain/pressJob";
 import type { NativeBootstrapConfig } from "../types/native";
 import {
   autoLogin,
@@ -45,6 +46,18 @@ const sampleConfig: NativeBootstrapConfig = {
   driverBaseUrl: "http://127.0.0.1:5000",
   configVersion: "v1",
 };
+
+const qtPressJobOperationCodes = [
+  "CONNECT",
+  "MOVE_IN",
+  "MOVE_OUT",
+  "START",
+  "PARAMETER_START",
+  "PARAMETER_END",
+  "LINE_IN",
+  "LINE_OUT",
+  "COMPLETE",
+] as const;
 
 /**
  * @brief Reset all mocks between test cases so call assertions stay isolated.
@@ -511,6 +524,76 @@ describe("erpClient", () => {
   });
 
   /**
+   * @brief 断言 QT operation code（操作码）精确为九类且不包含 ERP 模具动作。
+   * @author PopoY
+   */
+  it("keeps the QT press job operation code contract at exactly nine actions", () => {
+    expectTypeOf<PressJobOperationCode>().toEqualTypeOf<
+      (typeof qtPressJobOperationCodes)[number]
+    >();
+    expect(qtPressJobOperationCodes).not.toContain("LOCK_MOLD");
+    expect(qtPressJobOperationCodes).not.toContain("UNLOCK_MOLD");
+  });
+
+  /**
+   * @brief 断言三类新增 Driver action（驱动动作）继续使用既有严格六字段日志请求。
+   * @author PopoY
+   */
+  it.each(qtPressJobOperationCodes.slice(0, 3))(
+    "sends CONNECT/MOVE_IN/MOVE_OUT through the strict six-field operation-log request: %s",
+    async (operationCode) => {
+      const postJson = vi.fn().mockResolvedValue({ code: 200 });
+      const request = {
+        correlationId: `press-operation-${operationCode}`,
+        localJobSessionId: "press-job-id-17",
+        operationCode,
+        result: true,
+        teamId: "team-1",
+        operatorId: "user-1",
+        deviceId: "drop-device",
+        ip: "drop-ip",
+        port: 502,
+        connectionState: "drop-connection",
+      };
+
+      await recordPressJobOperation(postJson, {
+        erpBaseUrl: sampleConfig.erpBaseUrl,
+        sessionToken: "erp-session-token",
+        request,
+      });
+
+      expect(postJson).toHaveBeenCalledWith(
+        "http://127.0.0.1:8080/api/qt/press-working/operation-logs",
+        {
+          correlationId: `press-operation-${operationCode}`,
+          localJobSessionId: "press-job-id-17",
+          operationCode,
+          result: true,
+          teamId: "team-1",
+          operatorId: "user-1",
+        },
+        {
+          bearerToken: "erp-session-token",
+          headers: {
+            "X-Correlation-Id": `press-operation-${operationCode}`,
+          },
+        },
+      );
+      expect(Object.keys(postJson.mock.calls[0][1]).sort()).toEqual([
+        "correlationId",
+        "localJobSessionId",
+        "operationCode",
+        "operatorId",
+        "result",
+        "teamId",
+      ]);
+      expect(JSON.stringify(postJson.mock.calls[0][1])).not.toMatch(
+        /deviceId|ip|port|connectionState/,
+      );
+    },
+  );
+
+  /**
    * @brief 断言 Driver metadata（驱动元数据）只向 ERP 投影标量 value（值）。
    * @author PopoY
    */
@@ -949,7 +1032,7 @@ describe("erpClient", () => {
    * @author PopoY
    * @returns Promise resolved when unlock request（解锁请求）and result are asserted.
    */
-  it("unlocks press molds without forwarding raw device or network fields", async () => {
+  it("sends teamId in the mold unlock request without raw device fields", async () => {
     const postJson = vi.fn().mockResolvedValueOnce({
       code: 200,
       data: {
@@ -959,6 +1042,7 @@ describe("erpClient", () => {
     });
     const request = {
       operatorId: "zhangsan",
+      teamId: "PLINE-01",
       moldNos: ["MOLD-01", " ", "MOLD-02"],
       correlationId: "press-mold-unlock-01",
       deviceId: "drop-device",
@@ -980,6 +1064,7 @@ describe("erpClient", () => {
       "http://127.0.0.1:8080/api/qt/press-working/mold-unlocks",
       {
         operatorId: "zhangsan",
+        teamId: "PLINE-01",
         moldNos: ["MOLD-01", "MOLD-02"],
         correlationId: "press-mold-unlock-01",
       },
@@ -989,6 +1074,15 @@ describe("erpClient", () => {
           "X-Correlation-Id": "press-mold-unlock-01",
         },
       },
+    );
+    expect(Object.keys(postJson.mock.calls[0][1]).sort()).toEqual([
+      "correlationId",
+      "moldNos",
+      "operatorId",
+      "teamId",
+    ]);
+    expect(JSON.stringify(postJson.mock.calls[0][1])).not.toMatch(
+      /deviceId|ip|port/,
     );
   });
 
@@ -1008,6 +1102,7 @@ describe("erpClient", () => {
         erpBaseUrl: sampleConfig.erpBaseUrl,
         request: {
           operatorId: "zhangsan",
+          teamId: "PLINE-01",
           moldNos: ["MOLD-01"],
           correlationId: "press-mold-unlock-error",
         },

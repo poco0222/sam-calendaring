@@ -160,6 +160,7 @@ export type PressLockedMoldRow = {
  */
 export type PressMoldUnlockRequest = {
   operatorId: string;
+  teamId: string;
   moldNos: string[];
   correlationId: string;
 };
@@ -295,10 +296,13 @@ export type PressJobCompleteResult = {
 };
 
 /**
- * @brief 定义 QT post-action（操作后）允许上报的六个压机操作码。
+ * @brief 定义 QT post-action（操作后）允许上报的九个压机操作码。
  * @author PopoY
  */
 export type PressJobOperationCode =
+  | "CONNECT"
+  | "MOVE_IN"
+  | "MOVE_OUT"
   | "START"
   | "PARAMETER_START"
   | "PARAMETER_END"

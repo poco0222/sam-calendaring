@@ -1338,7 +1338,7 @@ describe("PressJobPage", () => {
    * @brief 断言解锁模具 request（请求）只包含 ERP contract（接口契约）字段。
    * @author PopoY
    */
-  it("creates a mold unlock request without raw device fields", () => {
+  it("creates a mold unlock request from the current team and operator", () => {
     const request = createPressMoldUnlockRequest(
       {
         operatorId: "zhangsan",
@@ -1351,6 +1351,7 @@ describe("PressJobPage", () => {
 
     expect(request).toEqual({
       operatorId: "zhangsan",
+      teamId: "PLINE-01",
       moldNos: ["P123-MOLD-01", "P123-MOLD-02"],
       correlationId: "press-mold-unlock-01",
     });
@@ -1358,10 +1359,29 @@ describe("PressJobPage", () => {
       "correlationId",
       "moldNos",
       "operatorId",
+      "teamId",
     ]);
     expect(JSON.stringify(request)).not.toContain("deviceId");
     expect(JSON.stringify(request)).not.toContain("ip");
     expect(JSON.stringify(request)).not.toContain("port");
+  });
+
+  /**
+   * @brief 断言锁模/解锁 UI（界面）流程不调用 QT operation-log endpoint（操作日志端点）。
+   * @author PopoY
+   */
+  it("keeps mold lock and unlock UI flows away from recordPressJobOperation", () => {
+    const moldActionSource = pageSource.slice(
+      pageSource.indexOf("const handleLockMold ="),
+      pageSource.indexOf("const handleStartProcessing ="),
+    );
+
+    expect(moldActionSource).toContain("cancelMoldLockPanel");
+    expect(moldActionSource).toContain("cancelMoldUnlockDrawer");
+    expect(moldActionSource).toContain("validatePressMoldLockSelection");
+    expect(moldActionSource).toContain("validatePressMoldUnlockSelection");
+    expect(moldActionSource).toContain("refreshPressJobCurrentJobs");
+    expect(moldActionSource).not.toContain("recordPressJobOperation");
   });
 
   /**
