@@ -9,7 +9,7 @@
   - `4.1 运行 QT App 聚焦测试、TypeScript 检查和 production build`
   - `4.2 使用 Java 8/Maven 运行 ERP 聚焦测试、相关模块编译及 diff 检查`
   - `4.3 运行 OpenSpec strict validate，核对 requirements、non-goals 与规定代码审查`
-- Stage: `checkoff`
+- Stage: `implementing`
 - Dependency: Task 1-6 complete；calendaring HEAD `65b604e`；ERP HEAD `89c325b9`。
 - Verification dispatch: `/root/task7_integration_verification`（已派发）
 - Allowed tracked files: none during verification；证据通过后由 coordinator 更新 Plan/OpenSpec/checkpoint。
@@ -92,7 +92,13 @@
 - Final targeted review verdict: `Approved`；Critical `0`、Important `0`、Minor `0`；Qt 工艺闭包与写前失败均确认成立。
 - Final targeted correction budget status: `1 implementation + 1 task re-review` 已使用并通过，不再开放额外 task-level 修复轮次。
 - Closed final blocker: cache/DB `craftCode` 不一致现已在现有可信 DB row validation 中写前失败。
+- OpenSpec targeted checkoff: `1.5`、`1.6` 精确 `comet state task-checkoff` PASS；calendaring status commit `5f3c4e8bf85c2cec0319441576f280d1c8aca707`。
+- Final verification refresh dispatch: `/root/task7_final_verification_refresh`（fresh `tester`，已派发，只读）。
+- Final verification refresh brief: `.superpowers/sdd/task-7-final-verification-refresh-brief.md`。
+- Final verification refresh scope: ERP `121/121` + Controller `39/39` + compile；QT `210/210` + noEmit + build；OpenSpec strict + 两仓 boundary audit。
+- Final verification refresh attempt 1: `BLOCKED` before commands；tester 发现 coordinator-owned `.comet/subagent-progress.md` tracked dirty 后按 brief 停止，未运行 ERP/QT/OpenSpec/boundary 命令，未发现源码或用户脏改动。
+- Verification context recovery: checkpoint 归属明确为当前 change 协调状态；提交后更新 brief 固定 HEAD，并向同一 tester 补充 clean context 重新执行，不计入 review/fix 轮次。
 - Closed feedback: stale/partial 精确集合匹配、last-mold 规则、锁模路径 DB child `FOR UPDATE`、可信实体更新/JSON 替换及缓存宽覆盖/TOCTOU 已关闭。
 - Risk signals: 跨仓构建、类型检查、schema/Driver 非目标、敏感字段与真实设备边界。
 - Deferred mutation: 未经证据不得勾选 `4.1`–`4.3` 或 Plan Task 7。
-- Latest status: 最小 `craftCode` 修正及唯一独立 task re-review 已通过；OpenSpec `1.5`、`1.6` 已勾选，等待精确 checkoff verification 后刷新两仓集成验证。
+- Latest status: 最小 `craftCode` 修正、独立 task re-review 与 OpenSpec `1.5/1.6` checkoff 已通过；首次验证刷新因未提交 coordinator checkpoint 提前停止，正在清理上下文后恢复。
