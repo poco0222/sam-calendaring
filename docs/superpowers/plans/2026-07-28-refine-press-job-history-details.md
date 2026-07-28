@@ -71,7 +71,7 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 - Consumes: `ModbusSignals#getRegisterType()`、`getDataType()` 以及既有 `recordPressJobParametersForQt(...)`、`recordStartParams(...)`。
 - Produces: `ModbusSignalValueKind.STATE = "state"`、`SCALAR = "scalar"`、`classify(ModbusSignals): String`、`isSupported(String): boolean`；两种参数 JSON 每行新增同层 `valueKind`，其他字段和值保持不变。
 
-- [ ] **Step 1：写 QT 参数写入路径的失败测试**
+- [x] **Step 1：写 QT 参数写入路径的失败测试**
 
   在 `parameterSignals()` 给普通压力和状态信号补服务端类型定义，并把 `assertSafeParameterJson` 的固定字段和值断言改为：
 
@@ -93,7 +93,7 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 
   现有 `recordsSafeStartParametersForEveryExactCurrentChild` 和 `recordsSafeEndParametersWithoutWritingStartColumn` 会同时覆盖开始/完工列；不要新增重复测试类。
 
-- [ ] **Step 2：写旧 Vue 参数写入路径的失败测试**
+- [x] **Step 2：写旧 Vue 参数写入路径的失败测试**
 
   在同一测试类新增 `legacyRecordStartParamsPersistsValueKindWithoutChangingValues`，用现有 JDK Proxy（代理）捕获 `updatePressMouldJobInfo`：
 
@@ -140,7 +140,7 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
   }
   ```
 
-- [ ] **Step 3：运行聚焦测试并确认 RED（红灯）**
+- [x] **Step 3：运行聚焦测试并确认 RED（红灯）**
 
   Run（ERP 仓库）：
 
@@ -155,7 +155,7 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 
   Expected: FAIL；两条 JSON 尚无 `valueKind`，断言实际值为 `null`，其余既有参数安全断言仍通过。
 
-- [ ] **Step 4：新增最小共享分类类**
+- [x] **Step 4：新增最小共享分类类**
 
   新建 `ModbusSignalValueKind.java`，执行时用本地真实时间填写文件头；类体固定为：
 
@@ -195,7 +195,7 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 
   不增加 interface（接口）、enum（枚举）、Spring Bean、配置或独立依赖。
 
-- [ ] **Step 5：在两个现有 record map 中保存分类**
+- [x] **Step 5：在两个现有 record map 中保存分类**
 
   在 `PressMouldJobInfoServiceImpl` 导入共享类，并分别在 `recordPressJobParametersForQt` 和 `generateParameterRecords` 的 `signalValue` 同层加入同一行：
 
@@ -209,13 +209,13 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 
   不改变 `signalValue` 的来源、类型、写入列、事务或旧 `recordStartParams` 的其他行为。
 
-- [ ] **Step 6：运行聚焦测试并确认 GREEN（绿灯）**
+- [x] **Step 6：运行聚焦测试并确认 GREEN（绿灯）**
 
   Run: 使用 Step 3 的同一 Maven 命令。
 
   Expected: `PressMouldJobInfoServiceImplQtTest` PASS；开始/完工与旧 Vue 路径同时得到 `state/scalar`，String、Number、Boolean 原值不变。
 
-- [ ] **Step 7：提交 ERP 分类写入改动**
+- [x] **Step 7：提交 ERP 分类写入改动**
 
   ```bash
   cd /Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be
