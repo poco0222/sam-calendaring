@@ -1,0 +1,14 @@
+{
+  "change": "refine-press-job-history-details",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "6bed57afc56aa834786fbd88d5b72f926c2b573ae58dbcb01c56e056839684bf",
+  "files": [
+    { "path": "openspec/changes/refine-press-job-history-details/proposal.md", "sha256": "f55eee17fcb1d4bdf078da74d012209b23b886d4655dd3910803b1e64cd2f888" },
+    { "path": "openspec/changes/refine-press-job-history-details/design.md", "sha256": "40fed747dfeb5f088b773421f9e3c08c3c3872d745978758f447b476d5bd6c42" },
+    { "path": "openspec/changes/refine-press-job-history-details/tasks.md", "sha256": "5529b87a22c50d6d37555f88ed4b9c734d99c97d7622d906e584b7d558d63a90" },
+    { "path": "openspec/changes/refine-press-job-history-details/specs/press-job-history-query/spec.md", "sha256": "1321e53e185856737b104bfa0af0b6199cdbb931047e8dbe91059660b9a03e96" }
+  ]
+}
