@@ -1,12 +1,12 @@
 # Subagent Progress
 
 - Change: `expand-press-job-operation-log-actions`
-- Review mode: `standard`
+- Review mode: `thorough`
 - Current plan task: `Task 2：START 和待开始解锁复用同一批数据库记录`
 - Mapped OpenSpec tasks:
   - `1.3 调整 START，将同一父作业和当前 status=0 子记录更新为 status=1，不得再次插入或改变父 ID`
   - `1.4 调整待开始解锁：部分解锁把选中子记录更新为 status=4；全部解锁把剩余子记录和父作业更新为 status=4 并清理设备 JSON`
-- Stage: `blocked`
+- Stage: `done`
 - Dependency: Task 1 complete；ERP HEAD `1a0ed8f6f99dfdefa0f97aa821dc90d79b492d98`。
 - Implementer dispatch: `/root/task2_erp_start_unlock`（已派发）
 - Implementation commit: `923a54592e606fbefd2fc00791a1c39d4bdbe5fc`
@@ -17,9 +17,9 @@
   - `sam-erp/src/test/java/com/yr/smes2/smes/modbus/service/impl/PressMouldJobInfoServiceImplQtTest.java`
 - RED evidence: 双类 `93 tests / 4 expected failures`；补强共享解锁父 ID RED `1 failure`。
 - GREEN evidence: `PressMould 32 + PressJob 61 = 93/93`，Failures/Errors/Skipped=`0/0/0`，7-module reactor `BUILD SUCCESS`；`git diff --check` 通过。
-- Risk task review: `failed`；`/root/task2_erp_review` 返回 `NEEDS_FIXES`
+- Risk task review: `passed`；第 `2/2` 轮 fresh re-review 为 `APPROVED`
 - Risk signals: 并发/锁/共享可变状态；单任务 diff 超过 200 行。
-- Review-fix round: `1/1`
+- Review-fix round: `2/2`
 - Review-fix implementer: `/root/task2_erp_review_fix`（已派发）
 - Review-fix commit: `3f988f624055f77b7f6218ba31c7ed0a8a44e46f`
 - Review-fix RED/GREEN: 行锁 `2 failures -> 2/2`；严格子状态 `2 failures -> 2/2`。
@@ -27,8 +27,8 @@
 - Resolved first-review feedback:
   - 两个解锁入口必须复用现有 `selectBoundPressForUpdate` 行锁查询。
   - START 必须严格拒绝子作业 `null`/空白状态，仅允许 `status=0`。
-- Accepted/deferred Minor: affected rows 失败路径测试覆盖不完整；本轮不扩展，留给最终 Review 复核。
-- Latest implementation status: review-fix 已提交且 `96/96` GREEN；fresh re-review 未通过，Task 2 已 BLOCKED。
+- Accepted Minor: affected rows 精确失败路径测试覆盖不完整；生产 `!= 1` guard 与事务回滚均存在，仅影响未来回归探测能力。
+- Latest implementation status: Task 2 最终 `98/98` GREEN，fresh re-review `APPROVED`。
 - Implementer report: `.superpowers/sdd/task-2-report.md`
 - Review package: `/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be/.worktrees/expand-press-job-operation-log-actions/.superpowers/sdd/review-1a0ed8f6..923a5459.diff`
 - Review result: `.superpowers/sdd/task-2-review.md`
@@ -36,10 +36,20 @@
 - Re-review reviewer: `/root/task2_erp_rereview`（已派发）
 - Re-review result: `NEEDS_FIXES`；首轮两项 Important 已关闭，但发现两个新的阻塞性 Important。
 - Re-review artifact: `.superpowers/sdd/task-2-rereview.md`
-- Blocking reason: `review_mode=standard` 的 Task 2 review-fix round `1/1` 已耗尽，复审仍存在 Important，不得继续第二轮或进入 Task 3。
-- Unresolved blocking feedback:
+- Resume decision: 用户明确授权将 `review_mode` 从 `standard` 切换为 `thorough`；保留既有轮次并执行第 `2/2` 轮，不进入 Task 3。
+- Review-fix round 2 implementer: `/root/task2_erp_review_fix_round2`（已派发）
+- Review-fix round 2 commit: `836cd5dd8b5c77664405624b2296e5a8999c850b`
+- Review-fix round 2 RED/GREEN: legacy START 行锁 `1 failure -> 1/1`；父子真实状态/归属 `2 tests / 1 failure -> 2/2`。
+- Review-fix round 2 verification: `PressJob 65 + PressMould 33 = 98/98`，Failures/Errors/Skipped=`0/0/0`，7-module reactor `BUILD SUCCESS`；`git diff --check` 通过。
+- Review-fix round 2 changed files:
+  - `sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/impl/PressJobInfoServiceImpl.java`
+  - `sam-erp/src/test/java/com/yr/smes2/smes/modbus/service/impl/PressJobInfoServiceImplQtTest.java`
+- Re-review round 2 package: `/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be/.worktrees/expand-press-job-operation-log-actions/.superpowers/sdd/review-1a0ed8f6..836cd5dd.diff`
+- Re-review round 2 reviewer: `/root/task2_erp_rereview_round2`（已派发）
+- Re-review round 2 result: `APPROVED`；`.superpowers/sdd/task-2-rereview-round2.md`
+- Resolved second-review feedback:
   - legacy START 仍用普通 `getPressJobByHandleIp`，未参与设备行锁，START/unlock 交错可复活旧子记录并覆盖设备 JSON。
   - legacy START 未严格校验父子 `status=0`、设备/主机和真实父 ID 归属，共享实现可重绑并复活 `status=4` 或跨父记录。
-- Unresolved Minor feedback:
+- Accepted Minor feedback:
   - affected rows 失败路径测试覆盖不完整。
-  - cross-device 与 craft-mismatch fixture 被 strict-status guard 提前截获。
+- Checkoff: Plan Task 2、OpenSpec 1.3、OpenSpec 1.4 已勾选，等待 Comet 精确文本验证。

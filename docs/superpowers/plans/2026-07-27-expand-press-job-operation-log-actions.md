@@ -171,7 +171,7 @@ git commit -m "fix(press-job): 锁模时持久化待开始作业"
 
 ## Task 2：START 和待开始解锁复用同一批数据库记录
 
-- [ ] Task 2：START 和待开始解锁复用同一批数据库记录
+- [x] Task 2：START 和待开始解锁复用同一批数据库记录
 
 **OpenSpec coverage（覆盖）:** `1.3`、`1.4`；START、待开始部分/全部解锁、加工中解锁不回归。
 
