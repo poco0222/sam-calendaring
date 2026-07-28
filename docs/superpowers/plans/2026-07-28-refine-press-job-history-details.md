@@ -8,6 +8,8 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 @file 2026-07-28-refine-press-job-history-details.md
 @author PopoY
 @created 2026-07-28 16:43:41
+@editor PopoY
+@edited 2026-07-29 07:53:32
 @purpose 将已确认的历史作业详情设计拆成可独立验证的跨仓 TDD 实施步骤。
 -->
 
@@ -17,7 +19,7 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 
 **Goal:** 让历史作业筛选项水平排列，开始/完工两列安全显示 Coil/Bit（线圈/位）状态，压缩操作时间线并固定每页 5 条，同时兼容既有参数 JSON 且不泄露信号配置。
 
-**Architecture:** ERP 用一个无状态分类类为两条参数写入路径保存 `valueKind`，历史详情只查询一次认证设备的全部现存信号定义，并按合法快照、`signalId`、唯一 `signalCode` 的顺序安全回退。QT App 只接收 `state/scalar` 白名单，开始与完工参数共用既有格式化入口；操作记录继续使用现有 Ant Design（组件库）和 Timeline CSS（时间线样式），只做本地每页 5 条分页及紧凑布局。
+**Architecture:** ERP 用一个无状态分类类为两条参数写入路径保存 `valueKind`，历史详情只查询一次认证设备的全部现存信号定义，并按合法快照、`signalId`、唯一 `signalCode` 的顺序安全回退。QT App 只接收 `state/scalar` 白名单，开始与完工参数共用既有格式化入口；操作记录直接复用 Ant Design Timeline（时间轴）与 Pagination（分页），只做本地每页 5 条切片和紧凑内容布局，不手写圆点或连接竖线。
 
 **Tech Stack:** Java 8、Spring MVC、MyBatis、Jackson、Gson、JUnit 5、Mockito；React 19、TypeScript 6、Ant Design 6、Day.js、Vitest、CSS；OpenSpec、Comet。
 
@@ -54,9 +56,9 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 | QT | `/Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/qt-app/frontend/src/domain/pressJob.ts` | 历史参数增加可选联合类型，操作记录删除 `content` |
 | QT | `/Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/qt-app/frontend/src/services/erpClient.ts` | 精确收窄 `valueKind`，剔除后端兼容 `content` 与未知字段 |
 | QT | `/Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/qt-app/frontend/src/services/erpClient.test.ts` | 验证安全白名单、非法分类丢弃和响应脱敏 |
-| QT | `/Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/qt-app/frontend/src/components/PressJobHistoryPage.tsx` | 两列统一格式化、删除缺失提示、操作每页 5 条和组合信息 |
-| QT | `/Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/qt-app/frontend/src/components/PressJobHistoryPage.css` | 水平筛选、紧凑操作项、竖线、局部滚动和固定分页底栏 |
-| QT | `/Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/qt-app/frontend/src/components/PressJobHistoryPage.test.tsx` | 锁定参数、分页、组合文案、提示和 CSS 契约 |
+| QT | `/Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/qt-app/frontend/src/components/PressJobHistoryPage.tsx` | 两列统一格式化、删除缺失提示、用 Ant Design Timeline 展示每页 5 条组合信息 |
+| QT | `/Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/qt-app/frontend/src/components/PressJobHistoryPage.css` | 水平筛选、Timeline 内容紧凑布局、局部滚动和固定分页底栏 |
+| QT | `/Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/qt-app/frontend/src/components/PressJobHistoryPage.test.tsx` | 锁定参数、Timeline 条目、分页、组合文案、提示和布局契约 |
 
 **OpenSpec 12 项覆盖：** `1.1 → Task 1 / Steps 1-3`，`1.2 → Task 2 / Steps 1-3`，`1.3 → Task 1 / Steps 4-6 + Task 2 / Steps 4-6`；`2.1 → Task 3`，`2.2 → Task 4 / Steps 1-3`，`2.3 → Task 4 / Step 4`；`3.1 → Task 4 / Steps 2-3`，`3.2 → Task 4 / Step 6`，`3.3 → Task 4 / Steps 5-7`；`4.1 → Task 5 / Steps 1、5`，`4.2 → Task 5 / Step 2`，`4.3 → Task 5 / Steps 3-5`。
 
@@ -608,8 +610,8 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 - Test: `/Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/qt-app/frontend/src/components/PressJobHistoryPage.test.tsx:43-103,376-507`
 
 **Interfaces:**
-- Consumes: Task 3 的可选 `valueKind` 和五字段 `PressJobHistoryOperation`；复用现有 `formatHistoryParameterValue`、Ant Design `Pagination`、Design Token 与 Drawer 布局。
-- Produces: 开始/完工两列唯一状态格式化入口；局部 `operationPage`，固定 `OPERATION_PAGE_SIZE = 5`；当前页相邻节点竖线和固定分页底栏。
+- Consumes: Task 3 的可选 `valueKind` 和五字段 `PressJobHistoryOperation`；复用现有 `formatHistoryParameterValue`、Ant Design `Timeline` / `Pagination`、Design Token 与 Drawer 布局。
+- Produces: 开始/完工两列唯一状态格式化入口；局部 `operationPage`，固定 `OPERATION_PAGE_SIZE = 5`；由 Timeline 自带 tail 连接当前页相邻节点，Pagination 固定在操作面板底部。
 
 - [ ] **Step 1：把参数格式化测试改为可靠状态分类并增加两列覆盖**
 
@@ -673,6 +675,8 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
   expect(operations).toContain("班组 / 作业人员：夜班 / 张三");
   expect(operations).toContain("班组 / 作业人员：未记录 / 未记录");
   expect(operations).not.toContain("内容：");
+  expect(operations).toContain("ant-timeline");
+  expect(operations.match(/class="ant-timeline-item(?: |")/g)).toHaveLength(5);
   expect(operations).toContain("press-job-history-detail__operation-pagination");
   expect(html).not.toContain("未记录开始参数");
   expect(html).not.toContain("未记录完工参数");
@@ -688,7 +692,8 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
     /\.press-job-history-page__field\s*\{[^}]*display: flex;[^}]*align-items: center;/,
   );
   expect(pageCss).not.toContain("border-bottom: 1px solid var(--qt-app-control-blue-line)");
-  expect(pageCss).toContain("li:not(:last-child)::before");
+  expect(pageCss).not.toContain("li:not(:last-child)::before");
+  expect(pageCss).not.toContain("press-job-history-detail__operation-marker");
   expect(pageCss).toMatch(
     /\.press-job-history-detail__operation-list\s*\{[^}]*overflow: auto;/,
   );
@@ -704,7 +709,7 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
   npm test -- src/components/PressJobHistoryPage.test.tsx
   ```
 
-  Expected: FAIL；Boolean 仍被无条件翻译，missing 提示和内容字段仍存在，6 条操作全部渲染，CSS 仍为上下 Grid（网格）及水平分割线。
+  Expected: FAIL；Boolean 仍被无条件翻译，missing 提示和内容字段仍存在，6 条操作全部渲染，操作记录尚未使用 Ant Design Timeline，CSS 仍为上下 Grid（网格）及水平分割线。
 
 - [ ] **Step 4：最小实现两列状态格式化和提示删除**
 
@@ -731,9 +736,9 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 
   从 `press-job-history-detail__parameter-states` 删除两个 `missing` JSX 分支，只保留 `invalid` 两个分支；Table（表格）现有“未记录”和“记录不完整”逻辑不改。
 
-- [ ] **Step 5：用现有 Pagination 实现固定每页 5 条操作**
+- [ ] **Step 5：用现有 Timeline 和 Pagination 实现固定每页 5 条操作**
 
-  从 `antd` 导入 `Pagination`，在文件常量区增加：
+  从 `antd` 导入 `Timeline` 和 `Pagination`，在文件常量区增加：
 
   ```ts
   const OPERATION_PAGE_SIZE = 5;
@@ -752,23 +757,37 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
   );
   ```
 
-  把 `.map` 数据源改为 `visibleOperations`，每项只保留操作/结果与组合字段：
+  用 `visibleOperations` 生成 Timeline items；圆点和相邻连接竖线完全交给组件，页面不再渲染自定义 marker：
 
   ```tsx
-  <span className="press-job-history-detail__operation-main">
-    <span className="press-job-history-detail__operation-name">
-      {formatHistoryCell(operation.operationName)}
-    </span>
-    <Tag color={operation.result === "成功" ? "success" : operation.result === "失败" ? "error" : "default"}>
-      {formatHistoryCell(operation.result)}
-    </Tag>
-  </span>
-  <span>
-    班组 / 作业人员：{formatHistoryCell(operation.teamName)} / {formatHistoryCell(operation.operatorName)}
-  </span>
+  <Timeline
+    className="press-job-history-detail__operation-list"
+    items={visibleOperations.map((operation) => ({
+      children: (
+        <span className="press-job-history-detail__operation-item">
+          <time className="press-job-history-detail__operation-time">
+            {formatHistoryCell(operation.operationTime)}
+          </time>
+          <span className="press-job-history-detail__operation-content">
+            <span className="press-job-history-detail__operation-main">
+              <span className="press-job-history-detail__operation-name">
+                {formatHistoryCell(operation.operationName)}
+              </span>
+              <Tag color={operation.result === "成功" ? "success" : operation.result === "失败" ? "error" : "default"}>
+                {formatHistoryCell(operation.result)}
+              </Tag>
+            </span>
+            <span>
+              班组 / 作业人员：{formatHistoryCell(operation.teamName)} / {formatHistoryCell(operation.operatorName)}
+            </span>
+          </span>
+        </span>
+      ),
+    }))}
+  />
   ```
 
-  `</ol>` 后仅在总数超过 5 时复用 Ant Design 分页器：
+  Timeline 后仅在总数超过 5 时复用 Ant Design 分页器：
 
   ```tsx
   {detail.operationRecords.length > OPERATION_PAGE_SIZE ? (
@@ -786,9 +805,9 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 
   不请求后端、不写 URL、不提供 page size（每页数量）切换。
 
-- [ ] **Step 6：把筛选和时间线 CSS 改为最小水平/紧凑布局**
+- [ ] **Step 6：把筛选和 Timeline 内容 CSS 改为最小水平/紧凑布局**
 
-  保持现有 DOM 和 Design Token，只调整已有选择器并新增伪元素/分页底栏：
+  保持 Design Token，只调整 Timeline 内容与分页底栏；不得覆盖 `.ant-timeline-item-tail` 的几何样式：
 
   ```css
   .press-job-history-page__filters {
@@ -825,39 +844,23 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
   }
 
   .press-job-history-detail__operation-list {
-    display: grid;
-    align-content: start;
     flex: 1 1 auto;
-    gap: 4px;
     min-height: 0;
     margin: 0;
-    padding: 0;
+    padding-inline-start: 0;
     overflow: auto;
-    list-style: none;
   }
 
-  .press-job-history-detail__operation-list li {
-    position: relative;
+  .press-job-history-detail__operation-list .ant-timeline-item {
+    min-height: 40px;
+    padding-bottom: 4px;
+  }
+
+  .press-job-history-detail__operation-item {
     display: grid;
-    grid-template-columns: 12px 96px minmax(0, 1fr);
+    grid-template-columns: 96px minmax(0, 1fr);
     gap: 8px;
     min-height: 40px;
-    padding: 4px;
-  }
-
-  .press-job-history-detail__operation-list li:not(:last-child)::before {
-    position: absolute;
-    top: 12px;
-    bottom: -4px;
-    left: 8px;
-    width: 1px;
-    background: var(--qt-app-control-blue-line);
-    content: "";
-  }
-
-  .press-job-history-detail__operation-marker {
-    position: relative;
-    z-index: 1;
   }
 
   .press-job-history-detail__operation-pagination {
@@ -867,13 +870,13 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
   }
   ```
 
-  从 `.press-job-history-detail__operation-list li` 删除 `border-bottom`；把 `.press-job-history-detail__operations` 从现有 `overflow: auto` 组合选择器中移出，只有 `<ol>` 滚动。最后一个 `li` 不匹配伪元素，因此不会连向分页器。
+  删除原 `.operation-marker`、`li:not(:last-child)::before` 和手写 `<ol>/<li>` 专属样式；把 `.press-job-history-detail__operations` 从现有 `overflow: auto` 组合选择器中移出，只有 Timeline 本体滚动。Ant Design 自动隐藏最后一个 item 的 tail，不会连向分页器。
 
 - [ ] **Step 7：运行页面测试并确认 GREEN**
 
   Run: 使用 Step 3 的同一 Vitest 命令。
 
-  Expected: `PressJobHistoryPage.test.tsx` PASS；两列只翻译可靠状态，missing 提示消失而 invalid 提示保留，首屏只有 5 条，组合文案无“内容”，CSS 无横线且有当前页竖线和固定底栏。
+  Expected: `PressJobHistoryPage.test.tsx` PASS；两列只翻译可靠状态，missing 提示消失而 invalid 提示保留，首屏 Timeline 只有 5 条，组合文案无“内容”，无手写圆点/连接线，分页器固定底栏。
 
 - [ ] **Step 8：提交 QT 页面改动**
 
