@@ -5,10 +5,11 @@
 - Current plan task: `Task 7：两仓集成验证、规格核对与收口`
 - Mapped OpenSpec tasks:
   - `1.5 补充 mixed legacy START 状态矩阵并可信懒持久化`
+  - `1.6 补齐 mixed Qt START 的可信工艺身份校验`
   - `4.1 运行 QT App 聚焦测试、TypeScript 检查和 production build`
   - `4.2 使用 Java 8/Maven 运行 ERP 聚焦测试、相关模块编译及 diff 检查`
   - `4.3 运行 OpenSpec strict validate，核对 requirements、non-goals 与规定代码审查`
-- Stage: `BLOCKED`
+- Stage: `implementing`
 - Dependency: Task 1-6 complete；calendaring HEAD `90ed108`；ERP HEAD `33b97ff`。
 - Verification dispatch: `/root/task7_integration_verification`（已派发）
 - Allowed tracked files: none during verification；证据通过后由 coordinator 更新 Plan/OpenSpec/checkpoint。
@@ -73,7 +74,11 @@
 - Remaining blocker: mixed Qt 入口先以缓存 child `craftCode` 校验 `processId`，随后用 DB trusted child 替换缓存时未校验 DB `craftCode` 与缓存一致；cache `process-1` / DB `process-2` 可启动错误工艺。
 - Minimal unresolved fix: 现有 DB row validation 增加 cache/DB `craftCode` null-safe exact equality，并补 legacy/Qt mixed 成功与不一致零写入测试；无需 Controller、Mapper、schema、日志、公开参数或新抽象。
 - Post-blocked correction budget status: `1 implementation + 1 task re-review` 已耗尽；未经用户再次明确授权，不得自动派发修复或复审。
+- Final targeted correction authorization: 用户于 2026-07-28 明确确认一次最小 `craftCode` 修正与一次独立复核；既有 review 历史与轮次不重置。
+- Final targeted correction budget: `1 implementation + 1 task re-review`。
+- Final targeted scope: 仅在现有 DB row validation 增加 cache/DB `craftCode` null-safe exact equality，并补 legacy/Qt mixed 成功与不一致零写入测试；不得修改 Controller、Mapper、schema、日志、公开参数或正常已持久化路径。
+- Final spec increment: 已写入 delta spec、design、tasks `1.6` 与 Plan；`openspec validate expand-press-job-operation-log-actions --strict` 与 `git diff --check` PASS，等待提交。
 - Closed feedback: stale/partial 精确集合匹配、last-mold 规则、锁模路径 DB child `FOR UPDATE`、可信实体更新/JSON 替换及缓存宽覆盖/TOCTOU 已关闭。
 - Risk signals: 跨仓构建、类型检查、schema/Driver 非目标、敏感字段与真实设备边界。
 - Deferred mutation: 未经证据不得勾选 `4.1`–`4.3` 或 Plan Task 7。
-- Latest status: 定向修正实现与测试通过，但唯一 task re-review 仍有 1 个真实 Important；Task 7 保持 BLOCKED，等待用户决定是否授权一次最小 craftCode 修正与复核。
+- Latest status: 用户已授权最后一次最小 `craftCode` 修正与独立复核；规格增量已通过严格校验，等待提交并派发 fresh fix agent。

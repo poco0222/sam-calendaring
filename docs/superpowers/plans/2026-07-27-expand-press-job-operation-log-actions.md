@@ -745,7 +745,7 @@ git commit -m "feat(qt): 上报三类驱动操作结果"
 
 - [ ] Task 7：两仓集成验证、规格核对与收口
 
-**OpenSpec coverage（覆盖）:** `4.1`、`4.2`、`4.3`；全部需求、non-goals（非目标）和发布边界。
+**OpenSpec coverage（覆盖）:** `1.5`、`1.6`、`4.1`、`4.2`、`4.3`；全部需求、non-goals（非目标）和发布边界。
 
 **2026-07-28 用户确认的收口口径：** 解锁 `moldNos` 保留既有 trim、去空、去重语义，不把 blank/duplicate 视为失败；Task 7 只新增 mixed legacy `START` 的父子 ID 状态矩阵修复，复用现有可信 child 行锁查询，不扩展 Controller、schema 或日志体系。
 
@@ -756,7 +756,7 @@ git commit -m "feat(qt): 上报三类驱动操作结果"
 
 ### Step 1：运行 ERP 聚焦测试
 
-在集成命令前，先以 TDD 补齐 `PressJobInfoServiceImplQtTest`：覆盖父 ID 为空、部分子作业已有 ID 的直接 `START`，证明已有子作业来自行锁后的数据库实体、全部子作业绑定同一新父 ID、设备 JSON 使用可信字段；冲突父 ID、重复子 ID/模具号、跨设备/主机或非待开始状态必须在任何写入前失败。
+在集成命令前，先以 TDD 补齐 `PressJobInfoServiceImplQtTest`：覆盖父 ID 为空、部分子作业已有 ID 的直接 `START`，证明已有子作业来自行锁后的数据库实体、全部子作业绑定同一新父 ID、设备 JSON 使用可信字段；冲突父 ID、重复子 ID/模具号、跨设备/主机或非待开始状态必须在任何写入前失败。mixed Qt 路径还必须证明可信数据库 child 的 `craftCode` 与已校验缓存 child 一致时才可继续；cache/DB 工艺不一致时 legacy 与 Qt 都必须零业务写入，Qt 一致时仍沿用所选 `processId` 成功启动。
 
 ```bash
 cd /Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be
