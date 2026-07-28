@@ -1,8 +1,8 @@
 ## 1. ERP 参数分类与安全投影
 
 - [x] 1.1 在 `PressMouldJobInfoServiceImplQtTest` 增加失败测试，覆盖 `recordPressJobParametersForQt` 与 `recordStartParams/generateParameterRecords` 两条路径的开始/完工参数按现有 `registerType`、`dataType` 规则保存 `state` / `scalar`，且原始参数值保持不变
-- [ ] 1.2 在 `QtPressWorkingControllerTest` 增加失败测试，覆盖新记录合法标记优先、旧记录按认证设备内 `signalId` / 唯一 `signalCode` 回退、停用定义、重复 code、非法标记、畸形身份、配置不可用时保留原值，以及响应不泄露信号身份和配置
-- [ ] 1.3 用一个最小共享分类入口为两条参数写入路径保存 `valueKind`，并在历史详情中用一次当前设备全部信号定义查询完成旧记录回退；单行匹配失败安全降级，不新增数据库迁移或外部接口
+- [x] 1.2 在 `QtPressWorkingControllerTest` 增加失败测试，覆盖新记录合法标记优先、旧记录按认证设备内 `signalId` / 唯一 `signalCode` 回退、停用定义、重复 code、非法标记、畸形身份、配置不可用时保留原值，以及响应不泄露信号身份和配置
+- [x] 1.3 用一个最小共享分类入口为两条参数写入路径保存 `valueKind`，并在历史详情中用一次当前设备全部信号定义查询完成旧记录回退；单行匹配失败安全降级，不新增数据库迁移或外部接口
 
 ## 2. QT App 响应收窄与统一格式化
 

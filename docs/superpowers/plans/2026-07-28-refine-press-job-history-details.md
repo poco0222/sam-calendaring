@@ -238,7 +238,7 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 - Consumes: Task 1 的 `ModbusSignalValueKind.isSupported(String)`、`classify(ModbusSignals)`，以及 `IModbusSignalsService#selectSignalsList(ModbusSignals)`。
 - Produces: 历史参数每行可选 `valueKind`；controller-private `HistorySignalDefinitions` 仅保存认证设备的 `byId` 与 `byUniqueCode`，开始/完工两侧复用同一实例。
 
-- [ ] **Step 1：扩展 Controller 测试夹具并写快照/ID/code 回退失败测试**
+- [x] **Step 1：扩展 Controller 测试夹具并写快照/ID/code 回退失败测试**
 
   给 `historyMockMvc` 增加 `IModbusSignalsService` 参数，原有重载统一传 `mock(IModbusSignalsService.class)`；所有直接 `new QtPressWorkingController(...)` 调用在 `ModbusHandleLogMapper` 后追加该 mock，避免遗漏构造器编译点。新增聚焦用例：
 
@@ -281,7 +281,7 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 
   在测试类增加 `historySignal(...)` helper（辅助方法），显式设置 `id/deviceId/signalCode/registerType/dataType/isActive`；停用定义使用 `isActive=0`，证明查询没有启用过滤。
 
-- [ ] **Step 2：写歧义、非法值和查询异常失败测试**
+- [x] **Step 2：写歧义、非法值和查询异常失败测试**
 
   新增第二个聚焦测试，单一响应中覆盖非法快照后回退、重复 code、跨设备定义、畸形 ID 和非文本 code；再单独让查询抛出 `RuntimeException`：
 
@@ -315,7 +315,7 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 
   同时断言序列化响应不包含 `signalId`、`signalCode`、`registerType`、`dataType`、`sensitive-definition-error` 或完整配置文本；既有 `invalid` 参数侧测试保持原语义。
 
-- [ ] **Step 3：运行 Controller 测试并确认 RED**
+- [x] **Step 3：运行 Controller 测试并确认 RED**
 
   ```bash
   cd /Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be
@@ -328,7 +328,7 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 
   Expected: FAIL；构造器尚未接收 `IModbusSignalsService`，历史投影也尚无 `valueKind`。失败不得来自既有操作日志或认证测试。
 
-- [ ] **Step 4：注入信号服务并建立一次性认证设备索引**
+- [x] **Step 4：注入信号服务并建立一次性认证设备索引**
 
   在 `QtPressWorkingController` 增加 final 字段和构造器参数：
 
@@ -422,7 +422,7 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 
   查询异常不打印异常正文，不记录定义或参数内容；无需新增日志。
 
-- [ ] **Step 5：按快照、ID、唯一 code 顺序投影可选分类**
+- [x] **Step 5：按快照、ID、唯一 code 顺序投影可选分类**
 
   将 `toHistoryDetail` 和 `toParameterProjection` 签名改为接收同一索引。保留既有四个展示字段严格解析，分类单独安全读取：
 
@@ -465,13 +465,13 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 
   不把 `signalId`、`signalCode` 或定义字段加入响应；分类字段错误不能进入现有 `optionalHistoryText`，因此不会导致整侧 `invalid`。
 
-- [ ] **Step 6：运行 Controller 测试并确认 GREEN**
+- [x] **Step 6：运行 Controller 测试并确认 GREEN**
 
   Run: 使用 Step 3 的同一 Maven 命令。
 
   Expected: `QtPressWorkingControllerTest` PASS；定义只查询一次，合法快照优先，停用 ID 与唯一 code 可回退，重复/cross-device（跨设备）/畸形/查询异常只省略分类，响应仍无敏感字段。
 
-- [ ] **Step 7：提交 ERP 历史投影改动**
+- [x] **Step 7：提交 ERP 历史投影改动**
 
   ```bash
   cd /Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be
