@@ -551,7 +551,7 @@ git commit -m "feat(press-job): 记录可信模具操作日志"
 
 ## Task 5：扩展 QT App 九类操作码和解锁班组字段
 
-- [ ] Task 5：扩展 QT App 九类操作码和解锁班组字段
+- [x] Task 5：扩展 QT App 九类操作码和解锁班组字段
 
 **OpenSpec coverage（覆盖）:** `3.1`、`3.3`；九类固定操作码、严格六字段日志请求、解锁 `teamId`、锁模/解锁不重复上报。
 

@@ -2,31 +2,32 @@
 
 - Change: `expand-press-job-operation-log-actions`
 - Review mode: `thorough`
-- Current plan task: `Task 4：由 ERP 锁模/解锁端点记录可信日志并扩展 QT 九类白名单`
+- Current plan task: `Task 5：扩展 QT App 九类操作码和解锁班组字段`
 - Mapped OpenSpec tasks:
-  - `2.1 十一类固定中文映射、QT 九类白名单、Boolean 校验、客户端关联字段防护和当前设备作业可信 fallback`
-  - `2.3 锁模/解锁 Service 返回可信父 ID，由 ERP Controller 在主事务结束后尽力记录 LOCK_MOLD / UNLOCK_MOLD`
-  - `2.4 通用 /modbus/handleLog 无法提交父作业关联，并覆盖跨设备、跨授权主机、未知字段和日志异常不覆盖主业务响应`
+  - `3.1 扩展 PressJobOperationCode、ERP client 收窄和契约测试，使客户端负责的九类固定操作码继续使用同一六字段请求`
+  - `3.3 保持锁模/解锁不从 QT 重复调用日志端点，为解锁请求传递页面已有 teamId，并证明面板、选择/取消、本地前置校验和 current jobs 刷新不会产生错误日志`
 - Stage: `done`
-- Dependency: Task 1-3 complete；ERP HEAD `c5f1c18dffe69703e4e10b43c569ed1ff7b2c665`。
-- Implementer dispatch: `/root/task4_erp_controller_logs`（已派发）
+- Dependency: Task 1-4 complete；calendaring HEAD `ff4c7f7`。
+- Implementer dispatch: `/root/task5_qt_contract`（已派发）
 - Allowed files:
-  - `yr-admin/src/test/java/com/yr/web/controller/system/QtPressWorkingControllerTest.java`
-  - `yr-admin/src/main/java/com/yr/web/controller/system/QtPressWorkingController.java`
-  - `sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/IPressMouldJobInfoService.java`
-  - `sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/impl/PressMouldJobInfoServiceImpl.java`
+  - `qt-app/frontend/src/domain/pressJob.ts`
+  - `qt-app/frontend/src/services/erpClient.ts`
+  - `qt-app/frontend/src/services/erpClient.test.ts`
+  - `qt-app/frontend/src/components/PressJobPage.tsx`
+  - `qt-app/frontend/src/components/PressJobPage.test.tsx`
 - TDD mode: `tdd`
 - Review-fix round: `0/2`
 - Risk task review: `required`（review_mode=`thorough`）
-- Implementer brief: `.superpowers/sdd/task-4-brief.md`
-- Implementation commit: `0f5770a101d902d359a53e3603ed0d04d41b8d5a`
-- RED evidence: `QtPressWorkingControllerTest 38 tests / 4 failures / 1 error`。
-- GREEN evidence: `QtPressWorkingControllerTest 38/38`；`PressMould 33 + PressJob 69 = 102/102`；均 `BUILD SUCCESS`，`git diff --check` 通过。
-- Changed files: 四个允许文件；ERP 工作树干净。
-- Risk signals: Controller/Service 跨模块协调；公共 Service 返回契约变化；日志失败隔离与业务异常保持。
-- Implementer report: `.superpowers/sdd/task-4-report.md`
-- Review package: `/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be/.worktrees/expand-press-job-operation-log-actions/.superpowers/sdd/review-c5f1c18d..0f5770a1.diff`
-- Reviewer dispatch: `/root/task4_erp_review`（已派发）
-- Review result: `APPROVED`；Critical/Important/Minor=`0/0/0`；`.superpowers/sdd/task-4-review.md`
-- Checkoff: Plan Task 4、OpenSpec 2.1、2.3、2.4 已勾选，等待 Comet 精确文本验证。
-- Latest status: Task 4 完成，thorough task review 通过。
+- Implementer brief: `.superpowers/sdd/task-5-brief.md`
+- Implementation commit: `3c6aa87d317e391bcd697a226f95ed08992011fc`
+- RED evidence: focused Vitest `2 failed / 192 passed`（unlock narrow/create 丢失 teamId）。
+- GREEN evidence: focused Vitest `194/194`，2/2 files；`git diff --check` 通过。
+- Changed files: 五个允许文件；除 coordinator checkpoint 外 worktree 无其他未提交变更。
+- Risk signals: QT domain/client/page 契约协调；严格请求字段与敏感字段边界。
+- Implementer report: `.superpowers/sdd/task-5-report.md`
+- Review package: `/Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/.worktrees/expand-press-job-operation-log-actions/.superpowers/sdd/review-ff4c7f7..3c6aa87.diff`
+- Reviewer dispatch: `/root/task5_qt_review`（已派发）
+- Deferred verification: TypeScript noEmit、production build 与全量验证留给 Task 7 / OpenSpec 4.1。
+- Review result: `APPROVED`；Critical/Important/Minor=`0/0/0`；`.superpowers/sdd/task-5-review.md`
+- Checkoff: Plan Task 5、OpenSpec 3.1、3.3 已勾选，等待 Comet 精确文本验证。
+- Latest status: Task 5 完成，thorough task review 通过。
