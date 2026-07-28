@@ -299,7 +299,7 @@ git commit -m "fix(press-job): 复用待开始父子作业记录"
 
 ## Task 3：在现有 ERP 日志 Service 中固定十一类映射和可信关联
 
-- [ ] Task 3：在现有 ERP 日志 Service 中固定十一类映射和可信关联
+- [x] Task 3：在现有 ERP 日志 Service 中固定十一类映射和可信关联
 
 **OpenSpec coverage（覆盖）:** `2.1`、`2.2`、`2.4`；十一类映射、QT 九类、设备当前作业 fallback、通用入口隔离。
 

@@ -8,7 +8,7 @@
 ## 2. ERP 十一类操作日志契约
 
 - [ ] 2.1 先补充聚焦测试：十一类固定中文映射、QT 九类白名单、Boolean（布尔值）校验、客户端关联字段防护和当前设备作业可信 fallback（降级）
-- [ ] 2.2 复用现有日志 Service 的最小私有映射，扩展 `CONNECT` / `MOVE_IN` / `MOVE_OUT`，保持 QT operation-log endpoint（操作日志端点）严格六字段请求
+- [x] 2.2 复用现有日志 Service 的最小私有映射，扩展 `CONNECT` / `MOVE_IN` / `MOVE_OUT`，保持 QT operation-log endpoint（操作日志端点）严格六字段请求
 - [ ] 2.3 让锁模/解锁 Service 返回可信父 ID，并由 ERP Controller（控制器）在主事务结束后尽力记录 `LOCK_MOLD` / `UNLOCK_MOLD`；成功必须关联，失败无稳定 ID 时允许设备级
 - [ ] 2.4 保持通用 `/modbus/handleLog` 无法提交父作业关联，并覆盖跨设备、跨授权主机、未知字段和日志异常不覆盖主业务响应的回归测试
 
