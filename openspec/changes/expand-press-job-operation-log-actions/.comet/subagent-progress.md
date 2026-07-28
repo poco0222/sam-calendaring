@@ -2,32 +2,46 @@
 
 - Change: `expand-press-job-operation-log-actions`
 - Review mode: `thorough`
-- Current plan task: `Task 5：扩展 QT App 九类操作码和解锁班组字段`
+- Current plan task: `Task 6：在真实 Driver 结果边界上报建立通信、移入、移出`
 - Mapped OpenSpec tasks:
-  - `3.1 扩展 PressJobOperationCode、ERP client 收窄和契约测试，使客户端负责的九类固定操作码继续使用同一六字段请求`
-  - `3.3 保持锁模/解锁不从 QT 重复调用日志端点，为解锁请求传递页面已有 teamId，并证明面板、选择/取消、本地前置校验和 current jobs 刷新不会产生错误日志`
-- Stage: `done`
-- Dependency: Task 1-4 complete；calendaring HEAD `ff4c7f7`。
-- Implementer dispatch: `/root/task5_qt_contract`（已派发）
+  - `3.2 为建立通信、移入和移出的真实 Driver result 接入现有 best-effort 上报，有父作业时关联、无父作业时允许设备级日志`
+  - `3.3 保持锁模/解锁不从 QT 重复调用日志端点，并证明前置校验和刷新不会产生错误日志`
+  - `3.4 覆盖移出自动完成加工组合流程，分别保留 PARAMETER_END、COMPLETE、MOVE_OUT，并保持原六类日志行为不回归`
+- Stage: `task-complete`
+- Dependency: Task 1-5 complete；Task 6 implementation HEAD `c50d817`。
+- Implementer dispatch: `/root/task6_qt_driver_results`（已派发）
 - Allowed files:
-  - `qt-app/frontend/src/domain/pressJob.ts`
-  - `qt-app/frontend/src/services/erpClient.ts`
-  - `qt-app/frontend/src/services/erpClient.test.ts`
   - `qt-app/frontend/src/components/PressJobPage.tsx`
   - `qt-app/frontend/src/components/PressJobPage.test.tsx`
+- Real-device boundary: 只运行 tests/mocks，禁止真实 Driver/PLC 请求或设备探测。
 - TDD mode: `tdd`
-- Review-fix round: `0/2`
+- Review-fix round: `1/2`
 - Risk task review: `required`（review_mode=`thorough`）
-- Implementer brief: `.superpowers/sdd/task-5-brief.md`
-- Implementation commit: `3c6aa87d317e391bcd697a226f95ed08992011fc`
-- RED evidence: focused Vitest `2 failed / 192 passed`（unlock narrow/create 丢失 teamId）。
-- GREEN evidence: focused Vitest `194/194`，2/2 files；`git diff --check` 通过。
-- Changed files: 五个允许文件；除 coordinator checkpoint 外 worktree 无其他未提交变更。
-- Risk signals: QT domain/client/page 契约协调；严格请求字段与敏感字段边界。
-- Implementer report: `.superpowers/sdd/task-5-report.md`
-- Review package: `/Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/.worktrees/expand-press-job-operation-log-actions/.superpowers/sdd/review-ff4c7f7..3c6aa87.diff`
-- Reviewer dispatch: `/root/task5_qt_review`（已派发）
-- Deferred verification: TypeScript noEmit、production build 与全量验证留给 Task 7 / OpenSpec 4.1。
-- Review result: `APPROVED`；Critical/Important/Minor=`0/0/0`；`.superpowers/sdd/task-5-review.md`
-- Checkoff: Plan Task 5、OpenSpec 3.1、3.3 已勾选，等待 Comet 精确文本验证。
-- Latest status: Task 5 完成，thorough task review 通过。
+- Implementer brief: `.superpowers/sdd/task-6-brief.md`
+- Implementation commit: `c50d81702362cb0780bfec29606d2e6c1c7356d5`
+- RED evidence: `PressJobPage.test.tsx 154 tests / 12 failures / 142 passes`；阻断场景已通过。
+- GREEN evidence: `154/154`；`git diff --check` 通过。
+- Changed files: 两个允许文件；除 coordinator checkpoint 外 worktree 无其他未提交变更。
+- Risk signals: Driver result 与日志结果顺序；组合工作流与共享 helper；日志失败/刷新失败隔离。
+- Implementer report: `.superpowers/sdd/task-6-report.md`
+- Review package: `/Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/.worktrees/expand-press-job-operation-log-actions/.superpowers/sdd/review-ff21319..c50d817.diff`
+- Reviewer dispatch: `/root/task6_qt_review`（已派发）
+- Review verdict: `Needs fixes`；2 个 Important、1 个 Minor。
+- Review report: `.superpowers/sdd/task-6-review.md`
+- Review-fix implementer: `/root/task6_qt_review_fix`
+- Review-fix commit: `7e8f3d2ebfc772cc8a787c05d854ba23a33ab0b1`
+- Review-fix RED: `157 tests / 2 failures / 155 passes`。
+- Review-fix GREEN: `157/157`；fresh verification `157/157`；`git diff --check` 通过。
+- Review-fix report: `.superpowers/sdd/task-6-review-fix-1-report.md`
+- Claimed resolved feedback:
+  - 共享 best-effort helper 隔离同步 throw、异步 reject 和诊断 callback 异常。
+  - 每个真实 Driver 动作最多尝试一条日志，原 Driver 结果不被日志失败覆盖。
+  - 仅 CONNECT 在 `currentJobRows=[]` 时允许 device-only 上报。
+  - 无 Driver executor 时 `SERVICE_NOT_READY` 且零日志已有回归测试。
+- Rereview range: `ff21319..7e8f3d2`；重点核对 `c50d817..7e8f3d2`。
+- Fresh rereviewer: `/root/task6_qt_rereview`
+- Rereview verdict: `Approved`；旧 2 个 Important 与 1 个 Minor 全部关闭，无新 finding。
+- Plan checkoff: Task 6 `[x]`。
+- OpenSpec checkoff: `3.2`、`3.4` `[x]`；`3.3` 沿用 Task 5 已通过证据。
+- Deferred verification: noEmit/build 留给 Task 7；未触发真实 Driver/PLC。
+- Latest status: Task 6 实现、修复、聚焦验证与 thorough rereview 全部完成。
