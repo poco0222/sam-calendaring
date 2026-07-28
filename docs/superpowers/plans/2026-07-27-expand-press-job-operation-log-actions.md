@@ -41,6 +41,8 @@ export MVN=/Users/popoy/WorkSpace/DevTools/Maven/bin/mvn
 
 ## Task 1：锁模持久化待开始父子作业并修复二次锁模状态判断
 
+- [x] Task 1：锁模持久化待开始父子作业并修复二次锁模状态判断
+
 **OpenSpec coverage（覆盖）:** `1.1`、`1.2`；首次锁模、待开始继续锁模、加工中继续锁模、存量空 ID JSON。
 
 **Files（文件）:**
@@ -169,6 +171,8 @@ git commit -m "fix(press-job): 锁模时持久化待开始作业"
 
 ## Task 2：START 和待开始解锁复用同一批数据库记录
 
+- [ ] Task 2：START 和待开始解锁复用同一批数据库记录
+
 **OpenSpec coverage（覆盖）:** `1.3`、`1.4`；START、待开始部分/全部解锁、加工中解锁不回归。
 
 **Files（文件）:**
@@ -294,6 +298,8 @@ git commit -m "fix(press-job): 复用待开始父子作业记录"
 ---
 
 ## Task 3：在现有 ERP 日志 Service 中固定十一类映射和可信关联
+
+- [ ] Task 3：在现有 ERP 日志 Service 中固定十一类映射和可信关联
 
 **OpenSpec coverage（覆盖）:** `2.1`、`2.2`、`2.4`；十一类映射、QT 九类、设备当前作业 fallback、通用入口隔离。
 
@@ -424,6 +430,8 @@ git commit -m "feat(press-job): 扩展十一类操作日志映射"
 
 ## Task 4：由 ERP 锁模/解锁端点记录可信日志并扩展 QT 九类白名单
 
+- [ ] Task 4：由 ERP 锁模/解锁端点记录可信日志并扩展 QT 九类白名单
+
 **OpenSpec coverage（覆盖）:** `2.1`、`2.3`、`2.4`；锁模/解锁成功关联、失败隔离、严格六字段、Boolean（布尔值）、未知字段和九类白名单。
 
 **Files（文件）:**
@@ -543,6 +551,8 @@ git commit -m "feat(press-job): 记录可信模具操作日志"
 
 ## Task 5：扩展 QT App 九类操作码和解锁班组字段
 
+- [ ] Task 5：扩展 QT App 九类操作码和解锁班组字段
+
 **OpenSpec coverage（覆盖）:** `3.1`、`3.3`；九类固定操作码、严格六字段日志请求、解锁 `teamId`、锁模/解锁不重复上报。
 
 **Files（文件）:**
@@ -642,6 +652,8 @@ git commit -m "feat(qt): 扩展压机操作日志契约"
 
 ## Task 6：在真实 Driver 结果边界上报建立通信、移入、移出
 
+- [ ] Task 6：在真实 Driver 结果边界上报建立通信、移入、移出
+
 **OpenSpec coverage（覆盖）:** `3.2`、`3.3`、`3.4`；真实结果、无前置日志、设备级关联、移出组合流程、日志失败隔离。
 
 **Files（文件）:**
@@ -730,6 +742,8 @@ git commit -m "feat(qt): 上报三类驱动操作结果"
 ---
 
 ## Task 7：两仓集成验证、规格核对与收口
+
+- [ ] Task 7：两仓集成验证、规格核对与收口
 
 **OpenSpec coverage（覆盖）:** `4.1`、`4.2`、`4.3`；全部需求、non-goals（非目标）和发布边界。
 

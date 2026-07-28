@@ -1,0 +1,35 @@
+# Subagent Progress
+
+- Change: `expand-press-job-operation-log-actions`
+- Review mode: `standard`
+- Current plan task: `Task 1：锁模持久化待开始父子作业并修复二次锁模状态判断`
+- Mapped OpenSpec tasks:
+  - `1.1 先补充聚焦测试：首次锁模插入 status=0 父、子记录并回写真实 ID；待开始二次锁模复用父 ID；存量 id=null,status=0 JSON 只懒持久化一次`
+  - `1.2 调整锁模 Service（服务），复用现有 Domain（领域对象）和 Mapper（映射器）在同一事务持久化待开始父、子记录，修正以对象非空误判加工中的逻辑`
+- Stage: `done`
+- Implementer dispatch: `/root/task1_erp_pending_jobs`（已派发）
+- Implementation commit: `f0a95464ae99c5ed1eb9519a49501b8032bf3d44`
+- Changed files:
+  - `sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/IPressMouldJobInfoService.java`
+  - `sam-erp/src/main/java/com/yr/smes2/smes/modbus/service/impl/PressMouldJobInfoServiceImpl.java`
+  - `sam-erp/src/test/java/com/yr/smes2/smes/modbus/service/impl/PressMouldJobInfoServiceImplQtTest.java`
+- RED evidence: Maven 聚焦测试 `26 tests / 4 failures`；自审补强 RED `26 / 1 failure`。
+- GREEN evidence: 同一 Maven 命令 `26/26`，Failures/Errors/Skipped=`0/0/0`，7 个 reactor 模块 SUCCESS，`BUILD SUCCESS`；`git diff --check` 通过。
+- Review-fix commit: `1a0ed8f6f99dfdefa0f97aa821dc90d79b492d98`
+- Review-fix evidence: 行锁 RED 2 fail → GREEN 2 pass；0-row RED 1 fail → GREEN 1 pass；JSON 快照 RED 1 fail → GREEN 1 pass；最终 Maven `29/29`、7/7 reactor SUCCESS、`BUILD SUCCESS`，`git diff --check` 通过。
+- Risk task review: `passed`（fresh re-review：Spec compliant，Task quality Approved）
+- Risk signals: 跨模块/子系统；并发/锁/共享可变状态；公共 API/外部接口变化；单任务 diff 超过 200 行。
+- Review-fix round: `1/1`
+- Unresolved feedback: `none`
+- Coordination note: dispatch 中的提交信息与 brief 冲突，已明确以 brief 的 `fix(press-job): 锁模时持久化待开始作业` 为准。
+- Latest status: 最终 GREEN/验证中；自审新增 RED 覆盖存量父 JSON 回填 ID 后重新序列化，最小修复后重跑 26 个聚焦测试。
+- Review-fix status: Finding 1 行锁查询 RED 2 fail → GREEN 2 pass；Finding 2 affected-row=0 RED 1 fail → GREEN 1 pass；Finding 3 JSON 快照 fixture 正在执行聚焦 RED。
+- Implementer report: `.superpowers/sdd/task-1-report.md`
+- Review package: `/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be/.worktrees/expand-press-job-operation-log-actions/.superpowers/sdd/review-8c15f2b9..f0a95464.diff`
+- Review result: `.superpowers/sdd/task-1-review.md`
+- Fixer dispatch: `/root/task1_erp_review_fix`（已派发）
+- Re-review dispatch: `/root/task1_erp_rereview`（已派发）
+- Re-review package: `/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be/.worktrees/expand-press-job-operation-log-actions/.superpowers/sdd/review-8c15f2b9..1a0ed8f6.diff`
+- Re-review result: 三项首轮 Important findings 全部关闭，无新增 Critical/Important/Minor。
+- Checkoff: Plan Task 1、OpenSpec 1.1、OpenSpec 1.2 已勾选，等待 Comet 精确文本验证。
+- Completion: ERP commits `8c15f2b9..1a0ed8f6`；risk-task review clean after review-fix round `1/1`。
