@@ -27,3 +27,4 @@
 - [x] 4.1 运行 QT App 聚焦测试、TypeScript（类型脚本）检查和 production build（生产构建），确认日志失败不改变主操作结果且不泄露敏感字段
 - [x] 4.2 使用项目 Java 8 和 Maven 工具链运行 ERP 聚焦测试、相关模块编译及 `git diff --check`，确认本变更没有 Liquibase 或 schema 改动
 - [x] 4.3 运行 `openspec validate --strict`，核对十一类操作、待开始状态迁移、设备级边界、历史投影和 non-goals（非目标），再完成规定的代码审查
+- [x] 4.4 修正 Delta Spec（增量规格）的 `ADDED`、`MODIFIED`、`RENAMED` 归档语义，严格校验并证明归档合并可执行

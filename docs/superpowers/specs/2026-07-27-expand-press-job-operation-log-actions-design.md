@@ -8,6 +8,8 @@ canonical_spec: openspec
 
 - Author: PopoY
 - Created: 2026-07-27 16:44:04
+- Editor: PopoY
+- Edited: 2026-07-28 15:05:44
 - Change: `expand-press-job-operation-log-actions`
 - Canonical requirements: `openspec/changes/expand-press-job-operation-log-actions/specs/`
 
@@ -155,7 +157,11 @@ QT 的日志调用继续 fire-and-forget style（不阻塞主流程）：不重�
 - `qt-app/frontend/src/components/PressJobPage.tsx`：只在 `CONNECT`、`MOVE_IN`、`MOVE_OUT` 真实 Driver 结果边界调用现有 best-effort helper；锁模/解锁不重复上报。
 - 对应既有测试文件：覆盖成功码、失败码、异常、preflight/取消不记录、刷新失败不改变模具动作结果和移出组合日志。
 
-## 9. 验证策略
+## 9. OpenSpec 增量归档模型
+
+两个全新作业生命周期需求使用 `ADDED Requirements`；三个既有需求标题的扩展通过 `RENAMED Requirements` 声明 `FROM/TO`，其完整新内容在 `MODIFIED Requirements` 中引用新标题。其余既有需求继续使用 `MODIFIED Requirements`。归档必须按 OpenSpec 的 `RENAMED → MODIFIED → ADDED` 顺序合并，不直接编辑主规格，也不使用 `--skip-specs` 跳过规格同步。
+
+## 10. 验证策略
 
 ### ERP 聚焦验证
 
@@ -177,13 +183,13 @@ QT 的日志调用继续 fire-and-forget style（不阻塞主流程）：不重�
 
 最后执行 ERP 聚焦测试和相关模块编译、QT 聚焦测试/typecheck/build、两仓 `git diff --check`、`openspec validate --strict` 及代码审查。没有实际执行证据时不得标记对应任务完成。
 
-## 10. 发布与回滚
+## 11. 发布与回滚
 
 先部署 ERP，再部署 QT App。ERP 部署后旧 QT 客户端的锁模/解锁也会由服务端记录；三类 Driver 新日志在 QT 更新后开始产生。
 
 本变更没有数据库迁移。代码回滚不会要求 schema rollback，但旧版本仍假设待开始 ID 为空，因此回滚前应先让设备上的 `status=0` 作业完成、终止或人工确认清理，避免旧代码重新处理已持久化待开始状态。
 
-## 11. 明确不做
+## 12. 明确不做
 
 - 不新增 `mould_operation_session_id`、索引、Liquibase、日志回填或批量迁移。
 - 不新增 `PressOperationLogWriter`、通用 Writer、队列、重试、补偿、请求指纹、来源列或权限体系。

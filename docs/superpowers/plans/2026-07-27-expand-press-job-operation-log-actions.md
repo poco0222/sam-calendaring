@@ -10,6 +10,8 @@ base-ref: f37590a4a1a70565b5c27a65bb9ab8d6ad3e80e4
 
 - Author: PopoY
 - Created: 2026-07-27 17:01:09
+- Editor: PopoY
+- Edited: 2026-07-28 15:05:44
 - Backend base: `8c15f2b9b9cd3a229e5159d391bf282ddcdadc7c`
 
 **Goal（目标）:** 让锁模时立即产生真实待开始父子作业 ID，并完整记录十一类压机真实操作；不新增 session（会话）、数据库结构或日志基础设施。
@@ -847,9 +849,51 @@ Expected（预期）: 两仓工作树只包含已知的本变更文件；所有�
 
 ---
 
+## Task 8：修正 OpenSpec 增量归档语义
+
+- [x] Task 8：修正 OpenSpec 增量归档语义
+
+**OpenSpec coverage（覆盖）:** `4.4`；新增、修改和改名需求的归档合并模型。
+
+**Files（文件）:**
+
+- Modify: `/Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/.worktrees/expand-press-job-operation-log-actions/openspec/changes/expand-press-job-operation-log-actions/specs/press-job-operation-log/spec.md`
+- Modify: `/Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/.worktrees/expand-press-job-operation-log-actions/openspec/changes/expand-press-job-operation-log-actions/design.md`
+- Modify: `/Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/.worktrees/expand-press-job-operation-log-actions/docs/superpowers/specs/2026-07-27-expand-press-job-operation-log-actions-design.md`
+- Modify after evidence: `/Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/.worktrees/expand-press-job-operation-log-actions/openspec/changes/expand-press-job-operation-log-actions/tasks.md`
+- Modify after evidence: `/Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/.worktrees/expand-press-job-operation-log-actions/docs/superpowers/plans/2026-07-27-expand-press-job-operation-log-actions.md`
+
+### Step 1：保留失败证据并确认根因
+
+既有归档命令已经以 `MODIFIED failed ... source not found` 原子失败，证明 Delta Spec 把新需求误标为 `MODIFIED`，并且三个已改名需求缺少 `RENAMED` 映射；归档目录和主规格均未发生部分写入。
+
+### Step 2：写最小规格修复
+
+- 两个全新需求移入 `ADDED Requirements`。
+- 三个标题变更通过 `RENAMED Requirements` 使用 `FROM/TO` 声明。
+- 五个既有需求的完整新内容放入 `MODIFIED Requirements`，改名需求引用新标题。
+- 所有既有 Scenario（场景）标题和既有约束必须保留；新增内容只能扩展或明确收窄，不得静默删除旧约束。
+- 不修改业务代码、主规格或归档 CLI，不使用 `--skip-specs`。
+
+### Step 3：运行 GREEN 验证和聚焦复审
+
+```bash
+cd /Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/.worktrees/expand-press-job-operation-log-actions
+openspec validate expand-press-job-operation-log-actions --strict
+git diff --check
+```
+
+进入 Archive（归档）阶段后先执行 Comet archive dry-run（归档预演），确认三项 `RENAMED`、五项 `MODIFIED` 和两项 `ADDED` 均可合并，再执行实际归档。复审必须核对改名来源都存在、新增标题不存在、既有场景没有丢失。
+
+### Step 4：完成任务状态
+
+只有严格校验、归档预演和聚焦复审全部通过后，才把 OpenSpec `4.4` 与本计划 Task 8 标记为完成。
+
+---
+
 ## Plan Self-Review（计划自检）
 
-- Spec coverage（规格覆盖）: OpenSpec `1.1`–`4.3` 全部映射到 Task 1–7，没有未归属 requirement（需求）。
+- Spec coverage（规格覆盖）: OpenSpec `1.1`–`4.4` 全部映射到 Task 1–8，没有未归属 requirement（需求）。
 - Type consistency（类型一致）: ERP 内部支持十一类；QT 公共类型和端点只支持九类；`LOCK_MOLD` / `UNLOCK_MOLD` 只走 ERP 内部方法。
 - State consistency（状态一致）: `status=0` 持久化待开始，`START` 原 ID 更新为 `1`，待开始解锁收口为 `4`；加工中既有规则保持。
 - Trust boundary（可信边界）: 客户端不提交父作业 ID或设备连接字段；关联来自服务端认证上下文和真实数据库 ID。

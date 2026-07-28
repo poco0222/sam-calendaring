@@ -120,6 +120,10 @@ ERP 锁模/解锁事务成功
 
 QT 的日志 HTTP 请求继续不重试、不排队、不补偿，且不覆盖主操作结果。ERP 锁模/解锁日志在业务事务之后同步尝试一次，异常只记录 `correlationId`、操作码和固定中文摘要，不记录请求原文、第三方异常正文或敏感数据，也不改变原业务响应。
 
+### 7. Delta Spec 按需求身份声明归档操作
+
+本变更新增的“首次锁模持久化待开始父子作业”和“START 和待开始解锁复用既有作业记录”使用 `ADDED Requirements`。三个既有需求的标题扩展使用 `RENAMED Requirements` 声明旧标题到新标题的映射，完整新内容继续在 `MODIFIED Requirements` 中引用新标题；其余既有需求只使用 `MODIFIED Requirements`。该结构遵循 OpenSpec 的 `RENAMED → MODIFIED → ADDED` 合并顺序，不直接编辑主规格，也不使用 `--skip-specs` 绕过归档。
+
 ## Risks / Trade-offs
 
 - [父作业比原流程更早落库] → 复用已有 `status=0` 待开始和 `status=4` 终止状态；列表仍按既有完成态过滤，不把待开始记录当成加工历史。

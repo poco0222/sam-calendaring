@@ -1,17 +1,13 @@
-## MODIFIED Requirements
+## RENAMED Requirements
 
-### Requirement: 压机操作日志复用既有 ERP 日志表和作业关联
-系统 MUST 使用既有 `modbus_handle_log` 保存 QT 压机操作日志，MUST 只使用既有 nullable（可空）的 `press_job_info_id`、`team_id` 和 `(device_id, press_job_info_id, handle_time, id)` 查询索引，并 MUST 复用既有 `handle_type`、`handle_content`、`handle_result`、`handle_by`、`handle_time`。系统 MUST NOT 为本变更新增 session（会话）字段、索引或日志表。
+- FROM: `### Requirement: 压机操作日志复用既有 ERP 日志表`
+- TO: `### Requirement: 压机操作日志复用既有 ERP 日志表和作业关联`
+- FROM: `### Requirement: 操作码和中文内容由服务端固定映射`
+- TO: `### Requirement: 十一类操作码和中文内容由服务端固定映射`
+- FROM: `### Requirement: QT 只在真实操作结束后尽力上报`
+- TO: `### Requirement: 系统只在真实操作结束后尽力记录`
 
-#### Scenario: 保存已关联操作日志
-- **WHEN** ERP 从可信服务端上下文取得真实 `pressJobInfoId`
-- **THEN** 系统写入该父作业 ID、班组 ID、操作员 ID、固定中文操作名称与内容、字符串 `true` / `false` 结果和记录时间
-- **AND** 系统不得保存班组或人员名称快照
-
-#### Scenario: 保存未关联设备日志
-- **WHEN** 当前真实操作没有可解析的父作业
-- **THEN** 系统按认证设备写入 `press_job_info_id = null` 的 device-only log（仅设备日志）
-- **AND** 系统不得按模具号、操作员或时间窗口猜测父作业
+## ADDED Requirements
 
 ### Requirement: 首次锁模持久化待开始父子作业
 ERP MUST 在首次锁模业务事务中使用既有 `press_job_info` 和 `press_mould_job_info` 持久化待开始作业，MUST 使用既有 `status=0` 表示待开始，并 MUST 将生成的父、子 ID 同步保存到设备当前作业 JSON。成功锁模 MUST 具有真实 `press_job_info_id`。
@@ -80,10 +76,25 @@ ERP MUST 在首次锁模业务事务中使用既有 `press_job_info` 和 `press_
 - **AND** 规范化后为空的请求 MUST 在主业务调用前拒绝，且不得记录一次已执行的 `UNLOCK_MOLD`
 - **AND** ERP MUST NOT 丢弃或忽略规范化集合中的 stale/partial 模具号；任一模具号未命中当前锁定集合时，主业务 MUST 失败并记录真实失败结果
 
+## MODIFIED Requirements
+
+### Requirement: 压机操作日志复用既有 ERP 日志表和作业关联
+系统 MUST 使用既有 `modbus_handle_log` 保存 QT 压机操作日志，MUST 只使用既有 nullable（可空）的 `press_job_info_id`、`team_id` 和 `(device_id, press_job_info_id, handle_time, id)` 查询索引，并 MUST 复用既有 `handle_type`、`handle_content`、`handle_result`、`handle_by`、`handle_time`。系统 MUST NOT 为本变更新增 session（会话）字段、索引或日志表。
+
+#### Scenario: 保存已关联操作日志
+- **WHEN** ERP 从可信服务端上下文取得真实 `pressJobInfoId`
+- **THEN** 系统写入该父作业 ID、班组 ID、操作员 ID、固定中文操作名称与内容、字符串 `true` / `false` 结果和记录时间
+- **AND** 系统不得保存班组或人员名称快照
+
+#### Scenario: 保存未关联设备日志
+- **WHEN** 当前真实操作没有可解析的父作业
+- **THEN** 系统按认证设备写入 `press_job_info_id = null` 的 device-only log（仅设备日志）
+- **AND** 系统不得后续回填，也不得按设备、模具号、操作员或时间窗口猜测父作业
+
 ### Requirement: QT 操作日志端点保持最薄可信边界
 ERP MUST 保持既有 QT operation-log endpoint（操作日志端点），请求 MUST 只包含 `correlationId`、`localJobSessionId`、`operationCode`、`result`、`teamId`、`operatorId`。ERP MUST 从认证上下文取得 `deviceId` 与 `granteeHostId`。该端点 MUST 只接受 QT 实际执行的 `CONNECT`、`MOVE_IN`、`MOVE_OUT`、`START`、`PARAMETER_START`、`PARAMETER_END`、`LINE_IN`、`LINE_OUT`、`COMPLETE` 九类操作；`LOCK_MOLD` 和 `UNLOCK_MOLD` MUST 只由 ERP 对应业务端点内部记录。
 
-#### Scenario: 接收合法 QT 日志请求
+#### Scenario: 接收合法日志请求
 - **WHEN** 认证 QT 客户端提交六个允许字段，`operationCode` 在 QT 九类允许列表内且 `result` 是 JSON Boolean `true` 或 `false`
 - **THEN** ERP 使用认证设备和可信作业上下文写入一条日志
 - **AND** `teamId` 写入 `team_id`，`operatorId` 写入 `handle_by`，`correlationId` 只用于技术诊断串联
@@ -103,18 +114,19 @@ ERP MUST 保持既有 QT operation-log endpoint（操作日志端点），请求
 - **THEN** ERP 按认证设备保存 device-only log
 - **AND** 不得因为没有父作业而拒绝建立通信日志
 
-#### Scenario: 请求包含敏感、关联或自由文本字段
+#### Scenario: 请求包含敏感或自由文本字段
 - **WHEN** 请求尝试提交 `deviceId`、`pressJobInfoId`、IP、port（端口）、原始参数、信号配置、异常正文、凭据、令牌、租约、签名、操作名称或操作内容
 - **THEN** 端点在调用认证解析和 Service（服务）前以固定中文业务错误拒绝请求，且不得使用这些值写入业务日志
 - **AND** DTO（数据传输对象）只记录不含字段名和值的内部未知字段标记，不得在 JSON 反序列化阶段抛出包含 DTO、字段或第三方异常栈的错误
+- **AND** 服务端不得为了日志新增会话、请求去重或人员班组关系校验
 
 ### Requirement: 父作业关联只能由可信服务端路径建立
 系统 MUST 只允许 QT 专用 Service（服务）在校验认证 `deviceId`、`granteeHostId` 和现有作业身份后写入 `press_job_info_id`，或由锁模/解锁业务 Service 返回其事务中的真实父 ID。既有通用 `POST /modbus/handleLog` MUST 忽略客户端提交的 `pressJobInfoId`，并 MUST 保持普通 device-only log（仅设备日志）写入能力。
 
-#### Scenario: 通用日志入口提交父作业
+#### Scenario: 通用日志入口提交父作业 ID
 - **WHEN** 已认证客户端向 `POST /modbus/handleLog` 提交非空 `pressJobInfoId`
 - **THEN** Controller（控制器）在调用既有 Service 前清空该字段，最终日志不得建立父作业关联
-- **AND** 系统不得为此新增来源列、权限体系或通用 Writer（写入器）框架
+- **AND** 系统不得为此新增来源列、权限体系或通用 Writer（写入器）框架，也不得修改 Domain（领域对象）、Mapper（映射器）和通用 Service（服务）的 Java contract（Java 契约）
 
 #### Scenario: QT 专用服务建立父作业关联
 - **WHEN** QT 操作日志端点通过 `press-job-id-*`、现有 Qt `START` 会话映射或认证设备当前 JSON 解析出父作业
@@ -197,7 +209,7 @@ ERP MUST 保持既有 QT operation-log endpoint（操作日志端点），请求
 - **THEN** 只有 `OK` 使用 `result=true`
 - **AND** `PARTIAL_OK` / `FAILED` 必须使用 `result=false`
 
-#### Scenario: QT 日志请求结果不确定
+#### Scenario: 日志请求结果不确定
 - **WHEN** 异步日志请求超时、断网或进程退出
 - **THEN** 系统不重试、不排队、不补偿、不按时间或设备回填
 - **AND** 主操作不得等待该日志请求完成
