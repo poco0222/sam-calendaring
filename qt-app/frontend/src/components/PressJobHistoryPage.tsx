@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-28 17:47:28
+ * @edited 2026-07-29 07:57:11
  * @brief 提供本地自然日筛选、服务端分页和脱敏历史作业详情。
  */
 
@@ -21,6 +21,7 @@ import {
   Table,
   Tag,
   theme,
+  Timeline,
   Typography,
 } from "antd";
 import type { TableProps } from "antd";
@@ -849,42 +850,42 @@ export function HistoryDetailContent({
               该作业没有可查看的操作记录
             </Typography.Text>
           ) : (
-            <ol className="press-job-history-detail__operation-list">
-              {visibleOperations.map((operation, index) => (
-                <li key={`${operation.operationTime ?? "未记录"}-${index}`}>
-                  <span
-                    aria-hidden="true"
-                    className="press-job-history-detail__operation-marker"
-                  />
-                  <time className="press-job-history-detail__operation-time">
-                    {formatHistoryCell(operation.operationTime)}
-                  </time>
-                  <span className="press-job-history-detail__operation-content">
-                    <span className="press-job-history-detail__operation-main">
-                      <span className="press-job-history-detail__operation-name">
-                        {formatHistoryCell(operation.operationName)}
+            <Timeline
+              className="press-job-history-detail__operation-list"
+              items={visibleOperations.map((operation, index) => ({
+                key: `${operation.operationTime ?? "未记录"}-${index}`,
+                content: (
+                  <span className="press-job-history-detail__operation-item">
+                    <time className="press-job-history-detail__operation-time">
+                      {formatHistoryCell(operation.operationTime)}
+                    </time>
+                    <span className="press-job-history-detail__operation-content">
+                      <span className="press-job-history-detail__operation-main">
+                        <span className="press-job-history-detail__operation-name">
+                          {formatHistoryCell(operation.operationName)}
+                        </span>
+                        <Tag
+                          color={
+                            operation.result === "成功"
+                              ? "success"
+                              : operation.result === "失败"
+                                ? "error"
+                                : "default"
+                          }
+                        >
+                          {formatHistoryCell(operation.result)}
+                        </Tag>
                       </span>
-                      <Tag
-                        color={
-                          operation.result === "成功"
-                            ? "success"
-                            : operation.result === "失败"
-                              ? "error"
-                              : "default"
-                        }
-                      >
-                        {formatHistoryCell(operation.result)}
-                      </Tag>
-                    </span>
-                    <span>
-                      班组 / 作业人员：{formatHistoryCell(operation.teamName)} / {formatHistoryCell(
-                        operation.operatorName,
-                      )}
+                      <span>
+                        班组 / 作业人员：{formatHistoryCell(operation.teamName)} / {formatHistoryCell(
+                          operation.operatorName,
+                        )}
+                      </span>
                     </span>
                   </span>
-                </li>
-              ))}
-            </ol>
+                ),
+              }))}
+            />
           )}
           {detail.operationRecords.length > OPERATION_PAGE_SIZE ? (
             <Pagination

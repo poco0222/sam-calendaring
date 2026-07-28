@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-28 17:45:49
+ * @edited 2026-07-29 07:56:39
  * @brief 锁定日期快照、请求竞态、表格、详情和现有 Design Token（设计变量）契约。
  */
 
@@ -490,6 +490,12 @@ describe("PressJobHistoryPage", () => {
     expect(operations).toContain("班组 / 作业人员：夜班 / 张三");
     expect(operations).toContain("班组 / 作业人员：未记录 / 未记录");
     expect(operations).not.toContain("内容：");
+    expect(operations).toContain("ant-timeline");
+    expect(
+      operations.match(
+        /<li[^>]*class="[^"]*\bant-timeline-item(?=[\s"])[^"]*"/g,
+      ),
+    ).toHaveLength(5);
     expect(operations).toContain(
       "press-job-history-detail__operation-pagination",
     );
@@ -529,11 +535,13 @@ describe("PressJobHistoryPage", () => {
     expect(pageCss).toMatch(
       /\.press-job-history-page__query\s*\{[^}]*white-space: nowrap;[^}]*\}/,
     );
-    expect(pageCss).toContain("grid-template-columns: 12px 96px minmax(0, 1fr)");
     expect(pageCss).not.toContain(
       "border-bottom: 1px solid var(--qt-app-control-blue-line)",
     );
-    expect(pageCss).toContain("li:not(:last-child)::before");
+    expect(pageCss).not.toContain("li:not(:last-child)::before");
+    expect(pageCss).not.toContain(
+      "press-job-history-detail__operation-marker",
+    );
     expect(pageCss).toMatch(
       /\.press-job-history-detail__operation-list\s*\{[^}]*overflow: auto;/,
     );
@@ -543,8 +551,6 @@ describe("PressJobHistoryPage", () => {
     expect(pageCss).toMatch(
       /\.press-job-history-detail__operation-time\s*\{[^}]*white-space: normal;[^}]*\}/,
     );
-    expect(pageCss).toContain("width: 8px");
-    expect(pageCss).toContain("height: 8px");
   });
 
   it("uses only existing tokens for the bounded touch layout", () => {
