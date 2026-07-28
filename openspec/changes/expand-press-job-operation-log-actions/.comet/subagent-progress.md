@@ -120,4 +120,11 @@
 - Final review-fix verification: target `49/49`、Service combined `123/123`、Controller `39/39`、`yr-admin` 13 模块 compile、`git diff --check` 全部 PASS；ERP/CAL tracked worktree clean。
 - Final review-fix report: `.superpowers/sdd/final-unlock-validation-fix-report.md`。
 - Next gate: fresh final re-review，仅核对原 Important 是否关闭及修复是否引入回归；通过前不勾选 `4.3` 或 Plan Task 7。
-- Latest status: 第 1 轮 final review-fix 已完成并验证，等待 fresh re-review。
+- Final re-review dispatch: `/root/final_unlock_validation_rereview`（fresh `reviewer`，只读）。
+- Final re-review report: `.superpowers/sdd/final-unlock-validation-rereview.md`。
+- Final re-review verdict: `Approved`；原 Important `Closed`，Critical `0`、Important `0`、Minor `0`。
+- Fresh completion verification: ERP Service `123/123`、Controller `39/39`、`yr-admin` 13 模块 compile、ERP diff/schema/forbidden additions；QT Vitest `210/210`、`tsc --noEmit`、production build、CAL diff/Driver/sensitive additions；OpenSpec strict validate 全部 exit `0`。QT 仅保留既有 chunk >500 kB warning。
+- Final review-fix budget: `1/2` 已使用且复审通过，第二轮未使用。
+- Final review status: PASS；whole-branch final review 的唯一 Important 已通过最小修复关闭。
+- OpenSpec/Plan status: `4.3` 与 Plan Task 7 证据齐备，已由 coordinator 精确 checkoff。
+- Latest status: Task 7 实现、验证、thorough whole-branch review、review-fix 与 fresh re-review 全部完成，等待 Comet build exit guard。
