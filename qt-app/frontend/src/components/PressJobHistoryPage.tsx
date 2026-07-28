@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-27 13:00:14
+ * @edited 2026-07-28 17:47:28
  * @brief 提供本地自然日筛选、服务端分页和脱敏历史作业详情。
  */
 
@@ -15,6 +15,7 @@ import {
   Descriptions,
   Drawer,
   Input,
+  Pagination,
   Select,
   Skeleton,
   Table,
@@ -40,6 +41,7 @@ import "./PressJobHistoryPage.css";
 
 const { RangePicker } = DatePicker;
 const EMPTY_HISTORY_TEXT = "当前查询范围暂无已完成作业，请调整日期范围后查询。";
+const OPERATION_PAGE_SIZE = 5;
 let historyCorrelationSequence = 0;
 
 export type HistoryDraftFilters = {
@@ -760,6 +762,14 @@ export function HistoryDetailContent({
   operatorLabelByValue: Map<string, string>;
   craftLabelByValue: Map<string, string>;
 }) {
+  const [operationPage, setOperationPage] = useState(1);
+  useEffect(() => {
+    setOperationPage(1);
+  }, [detail.moldJobId, detail.operationRecords]);
+  const visibleOperations = detail.operationRecords.slice(
+    (operationPage - 1) * OPERATION_PAGE_SIZE,
+    operationPage * OPERATION_PAGE_SIZE,
+  );
   const parameterRows = alignHistoryParameters(
     detail.startParameters,
     detail.endParameters,
@@ -814,14 +824,8 @@ export function HistoryDetailContent({
         <section className="press-job-history-detail__parameters" aria-label="参数记录">
           <Typography.Title level={5}>参数记录</Typography.Title>
           <div className="press-job-history-detail__parameter-states">
-            {detail.startParameterState === "missing" ? (
-              <Typography.Text type="secondary">未记录开始参数</Typography.Text>
-            ) : null}
             {detail.startParameterState === "invalid" ? (
               <Typography.Text type="warning">开始参数记录格式异常</Typography.Text>
-            ) : null}
-            {detail.endParameterState === "missing" ? (
-              <Typography.Text type="secondary">未记录完工参数</Typography.Text>
             ) : null}
             {detail.endParameterState === "invalid" ? (
               <Typography.Text type="warning">完工参数记录格式异常</Typography.Text>
@@ -846,7 +850,7 @@ export function HistoryDetailContent({
             </Typography.Text>
           ) : (
             <ol className="press-job-history-detail__operation-list">
-              {detail.operationRecords.map((operation, index) => (
+              {visibleOperations.map((operation, index) => (
                 <li key={`${operation.operationTime ?? "未记录"}-${index}`}>
                   <span
                     aria-hidden="true"
@@ -872,16 +876,27 @@ export function HistoryDetailContent({
                         {formatHistoryCell(operation.result)}
                       </Tag>
                     </span>
-                    <span>内容：{formatHistoryCell(operation.content)}</span>
-                    <span>班组：{formatHistoryCell(operation.teamName)}</span>
                     <span>
-                      作业人员：{formatHistoryCell(operation.operatorName)}
+                      班组 / 作业人员：{formatHistoryCell(operation.teamName)} / {formatHistoryCell(
+                        operation.operatorName,
+                      )}
                     </span>
                   </span>
                 </li>
               ))}
             </ol>
           )}
+          {detail.operationRecords.length > OPERATION_PAGE_SIZE ? (
+            <Pagination
+              className="press-job-history-detail__operation-pagination"
+              current={operationPage}
+              onChange={setOperationPage}
+              pageSize={OPERATION_PAGE_SIZE}
+              showSizeChanger={false}
+              size="small"
+              total={detail.operationRecords.length}
+            />
+          ) : null}
         </section>
       </div>
     </div>
@@ -898,11 +913,23 @@ export function formatHistoryParameterValue(
   if (parameter?.status !== "recorded" || parameter.value === undefined) {
     return "未记录";
   }
-  return typeof parameter.value === "boolean"
-    ? parameter.value
-      ? "是"
-      : "否"
-    : String(parameter.value);
+  if (parameter.valueKind === "state") {
+    if (
+      parameter.value === 0 ||
+      parameter.value === "0" ||
+      parameter.value === false
+    ) {
+      return "否";
+    }
+    if (
+      parameter.value === 1 ||
+      parameter.value === "1" ||
+      parameter.value === true
+    ) {
+      return "是";
+    }
+  }
+  return String(parameter.value);
 }
 
 /**

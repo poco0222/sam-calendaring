@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-27 13:00:14
+ * @edited 2026-07-28 17:47:28
  * @brief 复用现有 Design Token（设计变量）约束 1280x720 触控布局和详情局部滚动。
  */
 
@@ -19,7 +19,7 @@
 .press-job-history-page__filters {
   display: flex;
   flex-wrap: nowrap;
-  align-items: end;
+  align-items: center;
   gap: 12px;
   min-height: 62px;
   padding: 8px 12px;
@@ -30,10 +30,21 @@
 
 .press-job-history-page__field {
   position: relative;
-  display: grid;
-  gap: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
   font-size: 12px;
+}
+
+.press-job-history-page__field > span:first-child {
+  flex: 0 0 56px;
+  white-space: nowrap;
+}
+
+.press-job-history-page__field > :where(.ant-picker, .ant-input, .ant-select) {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .press-job-history-page__field:first-child {
@@ -56,7 +67,7 @@
 .press-job-history-page__validation {
   position: absolute;
   top: 100%;
-  left: 0;
+  left: 64px;
   z-index: 1;
   padding-top: 2px;
   color: var(--ant-color-error, currentColor);
@@ -207,29 +218,44 @@
   height: 100%;
 }
 
-.press-job-history-detail__parameters .ant-table-body,
-.press-job-history-detail__operations {
+.press-job-history-detail__parameters .ant-table-body {
   overflow: auto;
 }
 
 .press-job-history-detail__operation-list {
   display: grid;
-  gap: 6px;
+  align-content: start;
+  flex: 1 1 auto;
+  gap: 4px;
+  min-height: 0;
   margin: 0;
   padding: 0;
+  overflow: auto;
   list-style: none;
 }
 
 .press-job-history-detail__operation-list li {
+  position: relative;
   display: grid;
   grid-template-columns: 12px 96px minmax(0, 1fr);
   gap: 8px;
-  min-height: 48px;
-  padding: 6px;
-  border-bottom: 1px solid var(--qt-app-control-blue-line);
+  min-height: 40px;
+  padding: 4px;
+}
+
+.press-job-history-detail__operation-list li:not(:last-child)::before {
+  position: absolute;
+  top: 12px;
+  bottom: -4px;
+  left: 8px;
+  width: 1px;
+  background: var(--qt-app-control-blue-line);
+  content: "";
 }
 
 .press-job-history-detail__operation-marker {
+  position: relative;
+  z-index: 1;
   width: 8px;
   height: 8px;
   margin-top: 6px;
@@ -271,6 +297,12 @@
 
 .press-job-history-detail__operation-list .ant-tag {
   margin-inline-end: 0;
+}
+
+.press-job-history-detail__operation-pagination {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-top: 8px;
 }
 
 @media (prefers-reduced-motion: reduce) {

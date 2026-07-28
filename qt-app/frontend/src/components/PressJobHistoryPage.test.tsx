@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-27 13:09:51
+ * @edited 2026-07-28 17:45:49
  * @brief 锁定日期快照、请求竞态、表格、详情和现有 Design Token（设计变量）契约。
  */
 
@@ -66,11 +66,19 @@ function renderPage(): string {
 /**
  * @brief 使用真实 HistoryDetailContent（历史详情内容）渲染操作记录。
  * @author PopoY
- * @param operationRecords 固定六字段的操作记录。
+ * @param operationRecords 固定五字段的操作记录。
+ * @param parameterStates 开始与完工参数的整体状态。
  * @returns server-rendered HTML（服务端渲染 HTML）。
  */
 function renderHistoryDetail(
   operationRecords: PressJobHistoryDetail["operationRecords"],
+  parameterStates: Pick<
+    PressJobHistoryDetail,
+    "startParameterState" | "endParameterState"
+  > = {
+    startParameterState: "missing",
+    endParameterState: "missing",
+  },
 ): string {
   const detail: PressJobHistoryDetail = {
     moldJobId: "job-1",
@@ -82,8 +90,7 @@ function renderHistoryDetail(
     completedAt: "2026-07-27 12:34:56",
     actualDurationHours: "1.5",
     status: "3",
-    startParameterState: "missing",
-    endParameterState: "missing",
+    ...parameterStates,
     startParameters: [],
     endParameters: [],
     operationRecords,
@@ -398,71 +405,103 @@ describe("PressJobHistoryPage", () => {
   });
 
   /**
-   * @brief 只有后端原始 Boolean（布尔值）翻译为“是/否”，其他标量保持原样。
+   * @brief 只有可靠分类为 state（状态）的 0/1 与 Boolean（布尔值）翻译为“是/否”。
    * @author PopoY
    */
-  it("translates only original boolean parameter values", () => {
+  it("translates only values reliably classified as state", () => {
+    for (const [value, expected] of [
+      [0, "否"],
+      ["0", "否"],
+      [false, "否"],
+      [1, "是"],
+      ["1", "是"],
+      [true, "是"],
+    ] as const) {
+      expect(
+        formatHistoryParameterValue({
+          parameterName: "状态",
+          status: "recorded",
+          value,
+          valueKind: "state",
+        }),
+      ).toBe(expected);
+    }
     expect(
       formatHistoryParameterValue({
-        parameterName: "自动模式",
-        status: "recorded",
-        value: true,
-      }),
-    ).toBe("是");
-    expect(
-      formatHistoryParameterValue({
-        parameterName: "自动模式文本",
-        status: "recorded",
-        value: "true",
-      }),
-    ).toBe("true");
-    expect(
-      formatHistoryParameterValue({
-        parameterName: "自动模式数字",
+        parameterName: "普通数值",
         status: "recorded",
         value: 1,
+        valueKind: "scalar",
       }),
     ).toBe("1");
     expect(
       formatHistoryParameterValue({
-        parameterName: "手动模式",
+        parameterName: "普通布尔",
         status: "recorded",
-        value: false,
+        value: true,
+        valueKind: "scalar",
       }),
-    ).toBe("否");
+    ).toBe("true");
+    expect(
+      formatHistoryParameterValue({
+        parameterName: "状态文本",
+        status: "recorded",
+        value: "true",
+        valueKind: "state",
+      }),
+    ).toBe("true");
+    expect(
+      alignHistoryParameters(
+        [
+          {
+            parameterName: "就绪",
+            status: "recorded",
+            value: 0,
+            valueKind: "state",
+          },
+        ],
+        [
+          {
+            parameterName: "就绪",
+            status: "recorded",
+            value: 1,
+            valueKind: "state",
+          },
+        ],
+      )[0],
+    ).toMatchObject({ startValue: "否", endValue: "是" });
   });
 
-  it("renders complete, missing and failed operation fields in the real detail UI", () => {
-    const html = renderHistoryDetail([
-      {
-        operationTime: "2026-07-27 12:34:56",
-        operationName: "完工参数记录",
-        result: "失败",
-        content: "参数记录失败",
-        teamName: "夜班",
-        operatorName: "张三",
-      },
-      {
-        operationTime: undefined,
-        operationName: undefined,
-        result: undefined,
-        content: undefined,
-        teamName: undefined,
-        operatorName: undefined,
-      },
-    ]);
-    const operationHtml = html.slice(html.indexOf('aria-label="操作记录"'));
+  it("paginates compact operation records and keeps only invalid parameter hints", () => {
+    const html = renderHistoryDetail(
+      Array.from({ length: 6 }, (_, index) => ({
+        operationTime: `2026-07-27 12:0${index}:00`,
+        operationName: `操作-${index + 1}`,
+        result: index === 0 ? "失败" : "成功",
+        teamName: index === 1 ? undefined : "夜班",
+        operatorName: index === 1 ? undefined : "张三",
+      })),
+    );
+    const operations = html.slice(html.indexOf('aria-label="操作记录"'));
 
-    expect(operationHtml).toContain("2026-07-27 12:34:56");
-    expect(operationHtml).toContain("完工参数记录");
-    expect(operationHtml).toContain("失败");
-    expect(operationHtml).toContain("内容：参数记录失败");
-    expect(operationHtml).toContain("班组：夜班");
-    expect(operationHtml).toContain("作业人员：张三");
-    expect(operationHtml).toContain("内容：未记录");
-    expect(operationHtml).toContain("班组：未记录");
-    expect(operationHtml).toContain("作业人员：未记录");
-    expect(operationHtml.match(/未记录/g)).toHaveLength(6);
+    expect(operations).toContain("操作-1");
+    expect(operations).toContain("操作-5");
+    expect(operations).not.toContain("操作-6");
+    expect(operations).toContain("班组 / 作业人员：夜班 / 张三");
+    expect(operations).toContain("班组 / 作业人员：未记录 / 未记录");
+    expect(operations).not.toContain("内容：");
+    expect(operations).toContain(
+      "press-job-history-detail__operation-pagination",
+    );
+    expect(html).not.toContain("未记录开始参数");
+    expect(html).not.toContain("未记录完工参数");
+
+    const invalidHtml = renderHistoryDetail([], {
+      startParameterState: "invalid",
+      endParameterState: "invalid",
+    });
+    expect(invalidHtml).toContain("开始参数记录格式异常");
+    expect(invalidHtml).toContain("完工参数记录格式异常");
   });
 
   it("renders the operation empty state in the real detail UI", () => {
@@ -481,10 +520,26 @@ describe("PressJobHistoryPage", () => {
     expect(pageSource).toContain('<SearchOutlined aria-hidden="true" />');
     expect(pageSource).toContain("presets={createHistoryRangePresets()}");
     expect(pageCss).toContain("flex-wrap: nowrap");
+    expect(pageSource).toMatch(
+      /useEffect\(\(\) => \{\s*setOperationPage\(1\);\s*\}, \[detail\.moldJobId, detail\.operationRecords\]\);/,
+    );
+    expect(pageCss).toMatch(
+      /\.press-job-history-page__field\s*\{[^}]*display: flex;[^}]*align-items: center;/,
+    );
     expect(pageCss).toMatch(
       /\.press-job-history-page__query\s*\{[^}]*white-space: nowrap;[^}]*\}/,
     );
     expect(pageCss).toContain("grid-template-columns: 12px 96px minmax(0, 1fr)");
+    expect(pageCss).not.toContain(
+      "border-bottom: 1px solid var(--qt-app-control-blue-line)",
+    );
+    expect(pageCss).toContain("li:not(:last-child)::before");
+    expect(pageCss).toMatch(
+      /\.press-job-history-detail__operation-list\s*\{[^}]*overflow: auto;/,
+    );
+    expect(pageCss).toMatch(
+      /\.press-job-history-detail__operation-pagination\s*\{[^}]*flex: 0 0 auto;/,
+    );
     expect(pageCss).toMatch(
       /\.press-job-history-detail__operation-time\s*\{[^}]*white-space: normal;[^}]*\}/,
     );
