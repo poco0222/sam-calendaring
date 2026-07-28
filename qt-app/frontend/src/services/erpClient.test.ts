@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-06-25
  * @editor PopoY
- * @edited 2026-07-27 12:38:48
+ * @edited 2026-07-28 17:34:47
  * @brief 验证 ERP client（企业资源计划客户端）自动登录和租约流程。
  */
 
@@ -1367,11 +1367,19 @@ describe("erpClient", () => {
           {
             parameterName: "压力",
             value: 135.5,
+            valueKind: "scalar",
             unit: "MPa",
             recordedAt: "2026-07-24 08:00:01",
             ...forbiddenPayload,
           },
-          { parameterName: "自动模式", value: true },
+          { parameterName: "自动模式", value: 1, valueKind: "state" },
+          { parameterName: "非法空白", value: 1, valueKind: " state " },
+          { parameterName: "非法大小写", value: 1, valueKind: "STATE" },
+          {
+            parameterName: "非法对象",
+            value: 1,
+            valueKind: { raw: "state" },
+          },
           { parameterName: "备注", value: "稳定" },
           { parameterName: "嵌套对象", value: { raw: "secret-nested" } },
           { parameterName: "嵌套数组", value: ["secret-array"] },
@@ -1427,11 +1435,20 @@ describe("erpClient", () => {
         {
           parameterName: "压力",
           value: 135.5,
+          valueKind: "scalar",
           unit: "MPa",
           recordedAt: "2026-07-24 08:00:01",
           status: "recorded",
         },
-        { parameterName: "自动模式", value: true, status: "recorded" },
+        {
+          parameterName: "自动模式",
+          value: 1,
+          valueKind: "state",
+          status: "recorded",
+        },
+        { parameterName: "非法空白", value: 1, status: "recorded" },
+        { parameterName: "非法大小写", value: 1, status: "recorded" },
+        { parameterName: "非法对象", value: 1, status: "recorded" },
         { parameterName: "备注", value: "稳定", status: "recorded" },
         { parameterName: "嵌套对象", status: "invalid" },
         { parameterName: "嵌套数组", status: "invalid" },
@@ -1443,7 +1460,6 @@ describe("erpClient", () => {
           operationTime: "2026-07-24 09:00:00",
           operationName: "完成加工",
           result: "失败",
-          content: "完成加工失败",
           teamName: "甲班",
           operatorName: "张三",
         },
@@ -1451,7 +1467,6 @@ describe("erpClient", () => {
           operationTime: "2026-07-24 08:00:00",
           operationName: undefined,
           result: "成功",
-          content: undefined,
           teamName: undefined,
           operatorName: undefined,
         },
@@ -1461,6 +1476,21 @@ describe("erpClient", () => {
       "http://127.0.0.1:8080/api/qt/press-working/history-jobs/9223372036854775807",
       "erp-token",
       { headers: { "X-Correlation-Id": "corr-detail-1" } },
+    );
+    expect(result.startParameters[0].valueKind).toBe("scalar");
+    expect(result.startParameters[1].valueKind).toBe("state");
+    expect(result.startParameters[2]).not.toHaveProperty("valueKind");
+    expect(result.startParameters[3]).not.toHaveProperty("valueKind");
+    expect(result.startParameters[4]).not.toHaveProperty("valueKind");
+    expect(result.operationRecords[0]).toEqual({
+      operationTime: "2026-07-24 09:00:00",
+      operationName: "完成加工",
+      result: "失败",
+      teamName: "甲班",
+      operatorName: "张三",
+    });
+    expect(JSON.stringify(result.operationRecords)).not.toContain(
+      "完成加工失败",
     );
     expect(JSON.stringify(result)).not.toMatch(
       /deviceId|192\.0\.2\.10|signedLease|secret-signature|signalConfig|secret-token|idempotencyKey|requestFingerprint|secret-nested|secret-array/,

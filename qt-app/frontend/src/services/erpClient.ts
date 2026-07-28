@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-06-25
  * @editor PopoY
- * @edited 2026-07-27 12:40:07
+ * @edited 2026-07-28 17:35:36
  * @brief 实现 ERP（企业资源计划系统）auto-login（自动登录）和租约引导客户端。
  */
 
@@ -1519,7 +1519,7 @@ function narrowPressJobHistoryDetail(value: unknown): PressJobHistoryDetail {
 }
 
 /**
- * @brief 收窄历史参数数组，仅保留名称、标量值、单位、时间和派生状态。
+ * @brief 收窄历史参数数组，仅保留名称、标量值、精确分类、单位、时间和派生状态。
  * @author PopoY
  * @param value 历史参数原始数组。
  * @returns 安全参数行，嵌套或非有限 value（值）仅标记 invalid（无效）。
@@ -1546,9 +1546,11 @@ function narrowPressJobHistoryParameters(
       parameterName,
       status: scalar === undefined ? "invalid" : "recorded",
     };
+    const valueKind = readHistoryValueKind(record.valueKind);
     const unit = readHistoryString(record.unit);
     const recordedAt = readHistoryString(record.recordedAt);
     if (scalar !== undefined) parameter.value = scalar;
+    if (valueKind) parameter.valueKind = valueKind;
     if (unit) parameter.unit = unit;
     if (recordedAt) parameter.recordedAt = recordedAt;
 
@@ -1557,7 +1559,7 @@ function narrowPressJobHistoryParameters(
 }
 
 /**
- * @brief 收窄历史操作，只保留固定六个展示字段。
+ * @brief 收窄历史操作，只保留固定五个展示字段。
  * @author PopoY
  * @param value 历史操作原始数组。
  * @returns 缺失文本保持 undefined（未定义）的安全操作行。
@@ -1579,7 +1581,6 @@ function narrowPressJobHistoryOperations(
         operationTime: readHistoryString(record.operationTime),
         operationName: readHistoryString(record.operationName),
         result: readHistoryString(record.result),
-        content: readHistoryString(record.content),
         teamName: readHistoryString(record.teamName),
         operatorName: readHistoryString(record.operatorName),
       },
@@ -1599,6 +1600,18 @@ function readHistoryParameterState(
   return value === "recorded" || value === "missing" || value === "invalid"
     ? value
     : "invalid";
+}
+
+/**
+ * @brief 精确读取历史参数 value kind（值分类），不兼容空白或大小写变体。
+ * @author PopoY
+ * @param value 后端分类字段。
+ * @returns state、scalar 或 undefined（未定义）。
+ */
+function readHistoryValueKind(
+  value: unknown,
+): PressJobHistoryParameter["valueKind"] {
+  return value === "state" || value === "scalar" ? value : undefined;
 }
 
 /**
