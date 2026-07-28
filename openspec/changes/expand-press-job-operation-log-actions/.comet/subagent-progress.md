@@ -101,4 +101,9 @@
 - Closed feedback: stale/partial 精确集合匹配、last-mold 规则、锁模路径 DB child `FOR UPDATE`、可信实体更新/JSON 替换及缓存宽覆盖/TOCTOU 已关闭。
 - Risk signals: 跨仓构建、类型检查、schema/Driver 非目标、敏感字段与真实设备边界。
 - Deferred mutation: 未经证据不得勾选 `4.1`–`4.3` 或 Plan Task 7。
-- Latest status: 最小 `craftCode` 修正、独立 task re-review 与 OpenSpec `1.5/1.6` checkoff 已通过；首次验证刷新因未提交 coordinator checkpoint 提前停止，正在清理上下文后恢复。
+- Final verification refresh attempt 2: 固定 CAL `5f5c02f`、ERP `265ca37` 且两仓 clean 后完整执行；QT Vitest `210/210`、`tsc --noEmit`、production build、CAL diff/Driver boundary、ERP Controller `39/39`、`yr-admin` 13 模块 compile、ERP diff/schema boundary、OpenSpec strict validate 全部 PASS。
+- Transient Maven evidence: ERP Service 首次在 `yr-activiti7:testCompile` 遇到同模块主类瞬时不可见；命令严格串行，失败后没有源码或 HEAD 变化。协调线程按 systematic-debugging 复核编译输入/输出记录，并用同一 Java 8/Maven/工作目录/命令独立重跑，`47 + 74 = 121/121`、7 模块 reactor BUILD SUCCESS；保留 `/tmp/t7-erp_service.log` 与 `/tmp/t7-erp_service-rerun.log`。
+- Final verification result: PASS with warning；瞬时 Maven target 增量状态不一致不归因于本变更，不新增构建脚本或清理逻辑。
+- Final verification report: `.superpowers/sdd/task-7-final-verification-refresh-report.md`。
+- Next gate: 生成两仓完整 review package，执行 review_mode=`thorough` 的 whole-branch final review；通过前不勾选 `4.3` 或 Plan Task 7。
+- Latest status: 最小 `craftCode` 修正、独立 task re-review、OpenSpec `1.5/1.6` checkoff 与最终集成验证均已通过；等待 whole-branch final review。
