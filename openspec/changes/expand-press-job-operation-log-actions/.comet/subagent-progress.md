@@ -9,8 +9,8 @@
   - `4.1 运行 QT App 聚焦测试、TypeScript 检查和 production build`
   - `4.2 使用 Java 8/Maven 运行 ERP 聚焦测试、相关模块编译及 diff 检查`
   - `4.3 运行 OpenSpec strict validate，核对 requirements、non-goals 与规定代码审查`
-- Stage: `implementing`
-- Dependency: Task 1-6 complete；calendaring HEAD `90ed108`；ERP HEAD `33b97ff`。
+- Stage: `checkoff`
+- Dependency: Task 1-6 complete；calendaring HEAD `65b604e`；ERP HEAD `89c325b9`。
 - Verification dispatch: `/root/task7_integration_verification`（已派发）
 - Allowed tracked files: none during verification；证据通过后由 coordinator 更新 Plan/OpenSpec/checkpoint。
 - Real-device boundary: 只运行 tests/mocks，禁止真实 Driver/PLC 请求或设备探测。
@@ -78,7 +78,21 @@
 - Final targeted correction budget: `1 implementation + 1 task re-review`。
 - Final targeted scope: 仅在现有 DB row validation 增加 cache/DB `craftCode` null-safe exact equality，并补 legacy/Qt mixed 成功与不一致零写入测试；不得修改 Controller、Mapper、schema、日志、公开参数或正常已持久化路径。
 - Final spec increment: 已写入 delta spec、design、tasks `1.6` 与 Plan；`openspec validate expand-press-job-operation-log-actions --strict` 与 `git diff --check` PASS，等待提交。
+- Final spec increment commit: calendaring `65b604e7c21d3bb7fa488c70c123d40601062b83`。
+- Final targeted fix dispatch: `/root/task7_craft_code_fix`（fresh `worker`，已派发）。
+- Final targeted fix brief: `.superpowers/sdd/task-7-craft-code-fix-brief.md`。
+- Final targeted fix commit: ERP `265ca37d91107fcb5037ba566c63cfe0004b9449`（仅 Service/Test 两文件；production diff 仅新增一条 `StringUtils.equals` 校验）。
+- Final targeted RED: `PressJobInfoServiceImplQtTest` 74 tests，2 failures；legacy/Qt mixed cache/DB `craftCode` 不一致均未抛异常。
+- Final targeted GREEN: 聚焦 `74/74`；Service 组合 `121/121`；Controller `39/39`；`yr-admin` 13 模块 compile；diff check 全部 PASS。
+- Final targeted fix report: `.superpowers/sdd/task-7-craft-code-fix-report.md`。
+- Final targeted fix status: 已完成并提交，等待用户授权预算内的唯一一次 fresh task re-review。
+- Final targeted review package: ERP `.superpowers/sdd/review-89c325b9..265ca37d.diff`。
+- Final targeted reviewer dispatch: `/root/task7_craft_code_review`（fresh `reviewer`，已派发，只读）。
+- Final targeted review report: `.superpowers/sdd/task-7-craft-code-review.md`。
+- Final targeted review verdict: `Approved`；Critical `0`、Important `0`、Minor `0`；Qt 工艺闭包与写前失败均确认成立。
+- Final targeted correction budget status: `1 implementation + 1 task re-review` 已使用并通过，不再开放额外 task-level 修复轮次。
+- Closed final blocker: cache/DB `craftCode` 不一致现已在现有可信 DB row validation 中写前失败。
 - Closed feedback: stale/partial 精确集合匹配、last-mold 规则、锁模路径 DB child `FOR UPDATE`、可信实体更新/JSON 替换及缓存宽覆盖/TOCTOU 已关闭。
 - Risk signals: 跨仓构建、类型检查、schema/Driver 非目标、敏感字段与真实设备边界。
 - Deferred mutation: 未经证据不得勾选 `4.1`–`4.3` 或 Plan Task 7。
-- Latest status: 用户已授权最后一次最小 `craftCode` 修正与独立复核；规格增量已通过严格校验，等待提交并派发 fresh fix agent。
+- Latest status: 最小 `craftCode` 修正及唯一独立 task re-review 已通过；OpenSpec `1.5`、`1.6` 已勾选，等待精确 checkoff verification 后刷新两仓集成验证。
