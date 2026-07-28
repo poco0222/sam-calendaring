@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-06-30
  * @editor PopoY
- * @edited 2026-07-28 11:27:19
+ * @edited 2026-07-28 11:45:15
  * @brief 锁定 frontend-only（仅前端）压机作业页的四行布局、空数据和安全边界。
  */
 
@@ -2902,7 +2902,7 @@ describe("PressJobPage", () => {
     ["moveOut", "MOVE_OUT", "MONITOR_ALREADY_RUNNING", false, true, "MONITOR_ALREADY_RUNNING"],
     ["moveOut", "MOVE_OUT", "FAILED", false, false, "FAILED"],
     ["moveOut", "MOVE_OUT", "THROW", true, false, "FAILED"],
-  ])(
+  ] as const)(
     "reports %s as %s for Driver code %s",
     async (
       buttonKey,
