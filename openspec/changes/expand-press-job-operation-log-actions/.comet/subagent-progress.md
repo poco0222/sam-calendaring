@@ -106,4 +106,11 @@
 - Final verification result: PASS with warning；瞬时 Maven target 增量状态不一致不归因于本变更，不新增构建脚本或清理逻辑。
 - Final verification report: `.superpowers/sdd/task-7-final-verification-refresh-report.md`。
 - Next gate: 生成两仓完整 review package，执行 review_mode=`thorough` 的 whole-branch final review；通过前不勾选 `4.3` 或 Plan Task 7。
-- Latest status: 最小 `craftCode` 修正、独立 task re-review、OpenSpec `1.5/1.6` checkoff 与最终集成验证均已通过；等待 whole-branch final review。
+- Whole-branch final review package: CAL `f37590a..80aff22`（19 commits）、ERP `8c15f2b..265ca37`（11 commits），均已确认与固定 `base..HEAD` diff 一致。
+- Whole-branch final review report: `.superpowers/sdd/final-whole-branch-review.md`。
+- Whole-branch final review verdict: `Changes requested`；Critical `0`、Important `1`、Minor `0`。
+- Final-review finding: 解锁 Service 只特判父 `status=0`，其他任意状态均进入加工中分支；父为终止/完成态，或父为 `status=1` 但子状态、父 ID、device、host 不一致时，可能更新不可信/已完成子记录并改写设备 JSON，而不是写前失败。
+- Finding verification: coordinator 按 `receiving-code-review` 独立核对 OpenSpec 和真实调用链，确认规范只允许父子同为 `status=0` 或同为 `status=1`；现有 `validateCurrentJobForLock(...)` 已覆盖父子状态、归属、device、host 与唯一性，复用即可，无需新抽象。
+- Final review-fix round: `1/2`（thorough final review budget）。
+- Final review-fix scope: TDD 增加异常父状态与运行中子身份/状态不一致的零写入测试；在选择目标及任何 Mapper 写入前复用现有当前作业校验。仅允许 ERP Service/Test 两文件，不改 Controller、Mapper、schema、日志、公开参数或正常解锁行为。
+- Latest status: 最终集成验证通过；whole-branch final review 发现 1 个已确认 Important，进入第 1 轮最小 review-fix。
