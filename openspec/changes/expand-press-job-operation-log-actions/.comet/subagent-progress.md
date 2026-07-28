@@ -8,7 +8,7 @@
   - `4.1 运行 QT App 聚焦测试、TypeScript 检查和 production build`
   - `4.2 使用 Java 8/Maven 运行 ERP 聚焦测试、相关模块编译及 diff 检查`
   - `4.3 运行 OpenSpec strict validate，核对 requirements、non-goals 与规定代码审查`
-- Stage: `implementing`
+- Stage: `BLOCKED`
 - Dependency: Task 1-6 complete；calendaring HEAD `90ed108`；ERP HEAD `33b97ff`。
 - Verification dispatch: `/root/task7_integration_verification`（已派发）
 - Allowed tracked files: none during verification；证据通过后由 coordinator 更新 Plan/OpenSpec/checkpoint。
@@ -57,8 +57,23 @@
   - mixed legacy 的“再次锁模”路径已可信修复；本次唯一生产修正是直接 `START` 对父 ID 为空、已有子 ID 的状态执行可信懒持久化。
 - Post-blocked correction budget: `1 implementation + 1 task re-review`（用户已授权）
 - Spec increment validation: `openspec validate expand-press-job-operation-log-actions --strict` PASS；OpenSpec `2.5` 精确 task-checkoff PASS。
-- Post-blocked implementation status: 待提交规格增量并派发 fresh implementer，TDD 必须先证明 mixed legacy 直接 `START` 当前失败。
+- Spec increment commit: calendaring `7e3d7cf2171f4c6caac5139124178f2fa9878d76`。
+- Post-blocked implementer dispatch: `/root/task7_mixed_start_fix`（fresh `worker`，已派发）。
+- Post-blocked implementer brief: `.superpowers/sdd/task-7-mixed-start-brief.md`。
+- Post-blocked implementation commit: ERP `89c325b9a489e892c9b9524bedd23a9d5aeefba6`（仅 Service/Test 两文件）。
+- Post-blocked RED: `PressJobInfoServiceImplQtTest` 71 tests，1 failure + 1 error；旧逻辑提前拒绝 mixed START，且未执行 child `FOR UPDATE`。
+- Post-blocked GREEN: 聚焦 `71/71`；Service 组合 `118/118`；Controller `39/39`；`yr-admin` 13 模块 compile；diff check 全部 PASS。
+- Post-blocked implementation report: `.superpowers/sdd/task-7-mixed-start-report.md`。
+- Post-blocked implementation status: 已完成并提交，等待唯一一次 fresh task re-review。
+- Post-blocked reviewer dispatch: `/root/task7_mixed_start_review`（fresh `reviewer`，已派发，只读）。
+- Post-blocked review brief: `.superpowers/sdd/task-7-mixed-start-review-brief.md`。
+- Post-blocked review report: `.superpowers/sdd/task-7-mixed-start-review.md`。
+- Post-blocked review verdict: `Changes requested`；初始 2 个 Important，经同轮规格澄清后撤回 1 个越界 finding，最终 Critical `0`、Important `1`、Minor `0`。
+- Withdrawn review finding: 父 ID 已存在的正常路径不属于用户批准的 mixed-only 修正，继续使用可信设备 JSON 是既有设计，不由本提交引入，也不独立违反当前 delta spec。
+- Remaining blocker: mixed Qt 入口先以缓存 child `craftCode` 校验 `processId`，随后用 DB trusted child 替换缓存时未校验 DB `craftCode` 与缓存一致；cache `process-1` / DB `process-2` 可启动错误工艺。
+- Minimal unresolved fix: 现有 DB row validation 增加 cache/DB `craftCode` null-safe exact equality，并补 legacy/Qt mixed 成功与不一致零写入测试；无需 Controller、Mapper、schema、日志、公开参数或新抽象。
+- Post-blocked correction budget status: `1 implementation + 1 task re-review` 已耗尽；未经用户再次明确授权，不得自动派发修复或复审。
 - Closed feedback: stale/partial 精确集合匹配、last-mold 规则、锁模路径 DB child `FOR UPDATE`、可信实体更新/JSON 替换及缓存宽覆盖/TOCTOU 已关闭。
 - Risk signals: 跨仓构建、类型检查、schema/Driver 非目标、敏感字段与真实设备边界。
 - Deferred mutation: 未经证据不得勾选 `4.1`–`4.3` 或 Plan Task 7。
-- Latest status: 用户已确认规范化语义并授权定向修正；OpenSpec/Design/Plan 增量已通过严格校验，等待提交后派发 mixed legacy `START` implementer。
+- Latest status: 定向修正实现与测试通过，但唯一 task re-review 仍有 1 个真实 Important；Task 7 保持 BLOCKED，等待用户决定是否授权一次最小 craftCode 修正与复核。
