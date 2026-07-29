@@ -41,9 +41,14 @@ QT App MUST 在“压机作业”右侧提供第四个一级入口“历史作�
 - **AND** 历史详情只返回可选的 `valueKind`，不得返回 `signalId`、`signalCode`、`registerType`、`dataType` 或 `signalConfig`
 
 #### Scenario: 两列统一显示状态值
-- **WHEN** 开始参数或完工参数的 `valueKind` 为 `state`，且原始值为数字或字符串 `0`、`1`，或者 Boolean（布尔值）`false`、`true`
+- **WHEN** 开始参数或完工参数的 `valueKind` 为 `state`，且原始值为数字 `0`、`1`、字符串 `"0"`、`"1"`，或者 Boolean（布尔值）`false`、`true`
 - **THEN** 前端对两列分别显示“否”或“是”
 - **AND** 无法识别的状态值和所有非状态值保持原有白名单格式，不得仅根据数值 `0/1` 猜测转换
+
+#### Scenario: 参数值为 JSON Boolean
+- **WHEN** 开始参数或完工参数的 `valueKind` 为 `state`，且原始值是 JSON Boolean（布尔值）`true` 或 `false`
+- **THEN** 前端分别显示“是”或“否”
+- **AND** 字符串 `"true"`、`"false"`、无法识别的状态值和所有非状态值保持原有白名单格式，不得猜测转换
 
 #### Scenario: 既有参数记录缺少状态分类
 - **WHEN** 既有参数 JSON 没有精确文本 `state` 或 `scalar`，或者携带空白、大小写变体、数字、对象等非法 `valueKind`
