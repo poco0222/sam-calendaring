@@ -1,6 +1,6 @@
 workflow: hotfix
 language: zh-CN
-phase: build
+phase: archive
 context_compression: off
 build_mode: direct
 build_pause: null
@@ -13,14 +13,14 @@ auto_transition: true
 base_ref: 6d8c96207016849bdc9a5bbdde94fd2999a12972
 design_doc: null
 plan: null
-verify_result: pending
+verify_result: pass
 verify_failures: 0
-verification_report: null
+verification_report: docs/superpowers/reports/2026-07-29-fix-connect-without-current-job-verify.md
 branch_status: pending
 created_at: 2026-07-29
-verified_at: null
-archive_confirmation: null
-archived: false
+verified_at: 2026-07-29
+archive_confirmation: confirmed
+archived: true
 bound_branch: main
 direct_override: null
 handoff_context: null
