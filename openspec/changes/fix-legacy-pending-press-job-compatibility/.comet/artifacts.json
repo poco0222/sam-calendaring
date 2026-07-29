@@ -1,0 +1,6 @@
+{
+  "openspec_proposal": "openspec/changes/fix-legacy-pending-press-job-compatibility/proposal.md",
+  "openspec_design": "openspec/changes/fix-legacy-pending-press-job-compatibility/design.md",
+  "openspec_tasks": "openspec/changes/fix-legacy-pending-press-job-compatibility/tasks.md",
+  "openspec_delta_spec": "openspec/changes/fix-legacy-pending-press-job-compatibility/specs/press-job-operation-log/spec.md"
+}
