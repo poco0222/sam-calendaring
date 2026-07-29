@@ -203,7 +203,7 @@ Expected: `docs/sql/2026-07-27-qt-press-job-operation-log.sql` 仍为未跟踪�
 - Consumes: 现有 `PressJobHistoryRow.status/completedAt/actualDurationHours` 与 `PressJobHistoryDetail` 同名字段。
 - Produces: `formatHistoryStatus`、`formatHistoryCompletedAt`、`formatHistoryDuration` 三个共享纯函数；接口类型和请求不变。
 
-- [ ] **Step 1: 先补进行中展示测试**
+- [x] **Step 1: 先补进行中展示测试**
 
 保留现有具名导入，并增加 `import * as historyPage from "./PressJobHistoryPage"`。通过 `Reflect.get` 描述期望导出，使旧实现先产生 assertion failure（断言失败），而不是因为具名导出不存在产生编译错误：
 
@@ -252,7 +252,7 @@ expect(pageSource).not.toContain('label: "完工状态"');
 
 新增详情静态渲染用例：构造 `status: "1"`、`completedAt: undefined`、`actualDurationHours: undefined` 的 `PressJobHistoryDetail`，断言 HTML 同时包含“作业状态”“进行中”“未完成”，且仍包含“完工参数”和“未记录”。复用现有 `renderHistoryDetail`，只给它增加可选 detail overrides（详情覆盖值），不要新建渲染框架。更新两个文件头 `@edited` 为执行时本地时间。
 
-- [ ] **Step 2: 运行历史页测试，取得 RED 证据**
+- [x] **Step 2: 运行历史页测试，取得 RED 证据**
 
 ```bash
 cd /Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/qt-app/frontend
@@ -261,7 +261,7 @@ pnpm test -- src/components/PressJobHistoryPage.test.tsx
 
 Expected: FAIL，原因是 `status="1"` 仍为“状态未知”、旧“完工状态”与旧空态文案仍存在，且共享格式化函数尚未导出。
 
-- [ ] **Step 3: 实现最小共享格式化**
+- [x] **Step 3: 实现最小共享格式化**
 
 在现有状态格式化附近增加两个纯函数：
 
@@ -322,7 +322,7 @@ const EMPTY_HISTORY_TEXT = "当前查询范围暂无作业，请调整日期范�
 
 不要新增组件、hook（钩子）、定时器、状态筛选或 CSS。
 
-- [ ] **Step 4: 运行历史页测试，取得 GREEN 证据**
+- [x] **Step 4: 运行历史页测试，取得 GREEN 证据**
 
 ```bash
 pnpm test -- src/components/PressJobHistoryPage.test.tsx
@@ -330,7 +330,7 @@ pnpm test -- src/components/PressJobHistoryPage.test.tsx
 
 Expected: `PressJobHistoryPage.test.tsx` PASS，已完成、未知状态、参数对照、操作时间线和抽屉契约仍通过。
 
-- [ ] **Step 5: 检查 QT App 改动并提交**
+- [x] **Step 5: 检查 QT App 改动并提交**
 
 ```bash
 cd /Users/popoy/WorkSpace/Projects/SAM/sam-calendaring

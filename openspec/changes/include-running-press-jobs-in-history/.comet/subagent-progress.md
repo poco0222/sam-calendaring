@@ -1,30 +1,23 @@
 # Subagent Progress
 
 - Change: `include-running-press-jobs-in-history`
-- Plan task: `Task 1: ERP 历史查询 RED/GREEN`
+- Plan task: `Task 2: QT App 展示 RED/GREEN`
 - OpenSpec mapping:
-  - `1.1 先修改 Mapper 和 Controller 聚焦测试，证明列表允许 status=1/3、跨日进行中作业按区间相交返回且置顶，并证明详情允许同设备进行中作业；运行测试取得预期 RED（失败）证据`
-  - `1.2 最小修改 PressMouldJobInfoMapper 列表与详情 SQL，保留认证设备、半开时间、稳定分页和父作业身份边界，使 1.1 测试转为 GREEN（通过）`
-- Stage: `done`
-- Implementer: `/root/implement_erp_running_history`
-- Baseline: `085c6f1576ac12b624b7cbec4c5ce2b94a8d81ff`
-- Implementation commits:
-  - `4b8b58f6047e1c2bc4aab06a6f12f8341e6f2f3e`
-  - `92f1b0ad3ca552168746710ca9d0d594496a9d72`
+  - `2.1 先修改 PressJobHistoryPage 聚焦测试，锁定进行中/已完成状态映射、作业状态列名、进行中完成时间/时长和通用空状态文案；运行测试取得预期 RED 证据`
+  - `2.2 最小修改历史列表与详情展示，复用现有类型、Tag、Drawer、参数缺失和操作时间线实现，使 2.1 测试转为 GREEN`
+- Stage: `checkoff`
+- Implementer: `/root/implement_qt_running_history`
+- Baseline: `b2b4e8f`
+- Implementation commit: `0c0939570271c24f219aeb97b3d93bed692c29bb`
 - Changed files:
-  - `sam-erp/src/main/resources/mapper/smes/modbus/PressMouldJobInfoMapper.xml`
-  - `sam-erp/src/test/java/com/yr/smes2/smes/modbus/mapper/PressMouldJobInfoHistoryMapperContractTest.java`
-  - `yr-admin/src/test/java/com/yr/web/controller/system/QtPressWorkingControllerTest.java`
-- RED evidence: Initial Mapper contract `3` tests, `2` expected failures; review fix mutation suite `7` tests, `4` expected failures, `0` errors.
-- GREEN evidence: Strengthened Mapper contract `7/7` and Controller `42/42`; Maven reactors reported `BUILD SUCCESS`.
+  - `qt-app/frontend/src/components/PressJobHistoryPage.tsx`
+  - `qt-app/frontend/src/components/PressJobHistoryPage.test.tsx`
+- RED evidence: `PressJobHistoryPage.test.tsx` 共 26 个测试，3 个预期 assertion failure（断言失败），退出码 1
+- GREEN evidence: 21/21 个测试文件、377/377 个测试通过，其中历史页 26/26，退出码 0
 - Review mode: `standard`
-- Risk task-level review: required
-- Risk signals: coordinator confirmed `cross-module coordinated change` and `SQL`, despite implementer self-reporting none.
-- Review round: `1/1`
-- Review package: `/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be/.superpowers/sdd/review-085c6f15..92f1b0ad.diff`
-- Reviewer: `/root/review_erp_running_history`
-- Re-reviewer: `/root/rereview_erp_running_history`
-- Fix agent: `/root/fix_erp_history_contract_review`
-- Review status: approved after re-review
+- Risk task-level review: skipped under standard mode
+- Risk signals: none
+- Review round: `0/1`
+- Review status: skipped because no risk signals were found
 - Unresolved feedback: none
-- Checkoff: plan Steps 1-6 and OpenSpec 1.1-1.2 verified by `comet state task-checkoff`.
+- Checkoff: plan Steps 1-5 and OpenSpec 2.1-2.2 verified by `comet state task-checkoff`.
