@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-29 10:29:11
+ * @edited 2026-07-29 10:43:20
  * @brief 锁定日期快照、请求竞态、表格、详情和现有 Design Token（设计变量）契约。
  */
 
@@ -571,17 +571,17 @@ describe("PressJobHistoryPage", () => {
     );
   });
 
-  it("uses only existing tokens for the bounded touch layout", () => {
+  it("uses only existing tokens and inherits the press-job control height", () => {
     expect(pageCss).toContain("grid-template-rows: auto minmax(0, 1fr)");
     expect(pageCss).toContain("min-height: 44px");
     expect(pageCss).toMatch(
       /\.press-job-history-page__filters\s*\{[^}]*box-sizing: border-box;[^}]*min-height: 62px;[^}]*padding: 8px 12px;/,
     );
-    expect(pageCss).toMatch(
+    expect(pageCss).not.toMatch(
       /\.press-job-history-page__filters\s+:where\(\.ant-picker, \.ant-input, \.ant-select, \.ant-btn\)\s*\{[^}]*min-height: 44px;/,
     );
-    expect(pageCss).toMatch(
-      /\.press-job-history-page__filters\s+\.ant-select-selector\s*\{[^}]*min-height: 44px;/,
+    expect(pageCss).not.toContain(
+      ".press-job-history-page__filters .ant-select-selector",
     );
     expect(pageCss).toContain("grid-template-columns: minmax(0, 64fr) minmax(260px, 36fr)");
     expect(pageCss).toContain(":focus-visible");
