@@ -9,7 +9,7 @@ base-ref: e8c832b1d45663d496f0e9c9a71b69bd39984142
 @author PopoY
 @created 2026-07-29 10:59:40
 @editor PopoY
-@edited 2026-07-29 11:08:06
+@edited 2026-07-29 11:10:15
 @purpose 将已批准的压机作业指导按钮紧凑化设计拆成最小 TDD 实施和验证步骤。
 -->
 
@@ -66,8 +66,8 @@ base-ref: e8c832b1d45663d496f0e9c9a71b69bd39984142
   将 proposal/design 补充以下明确决策，并在 tasks 增加未完成项 `1.4` 与重新打开的验证项：
 
   ```markdown
-  - [ ] 1.4 先补充压机指导按钮不得单独锁定 `44px` 的契约并记录 RED，再删除该高度覆盖并确认 GREEN。
-  - [ ] 2.1 执行聚焦测试、完整测试、类型检查、生产构建、两路布局复扫、1280×720 真实尺寸检查和 `git diff --check`。
+  - [x] 1.4 先补充压机指导按钮不得单独锁定 `44px` 的契约并记录 RED，再删除该高度覆盖并确认 GREEN。
+  - [x] 2.1 执行聚焦测试、完整测试、类型检查、生产构建、两路布局复扫、1280×720 真实尺寸检查和 `git diff --check`。
   ```
 
 - [x] **Step 2：写失败测试**
@@ -202,7 +202,7 @@ base-ref: e8c832b1d45663d496f0e9c9a71b69bd39984142
 
   Expected：`git diff --check` 退出码 0；产品改动只涉及 `PressJobPage.css`、`PressJobPage.test.tsx`，其余均为当前 Comet change 的 artifacts、计划和验证报告。
 
-- [ ] **Step 5：提交实现并重新通过 Comet verify（验证）**
+- [x] **Step 5：提交实现并准备进入 Comet verify（验证）**
 
   仅暂存本计划列出的归属路径和当前 change 的 Comet 状态文件，检查 staged diff（暂存差异）后提交：
 
