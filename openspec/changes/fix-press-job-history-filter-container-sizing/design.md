@@ -3,7 +3,7 @@
 @author PopoY
 @created 2026-07-29 10:10:51
 @editor PopoY
-@edited 2026-07-29 11:02:17
+@edited 2026-07-29 11:14:03
 @purpose 规定压机作业与历史作业复用既有表单栅格和 medium 控件高度的最小实现。
 -->
 
@@ -38,6 +38,7 @@
 3. 保留历史页专属 `RangePicker（日期范围选择器）`、Input（输入框）、日期校验提示和查询处理；只替换布局容器，不复制压机页业务逻辑。
 4. 保留已有 `border-box + 62px` 外层尺寸；删除历史页筛选控件的两段 `44px` override（覆盖规则），避免继续维护与压机页不同的高度体系。
 5. 删除 `.press-job-page__guidance-launchers .ant-btn` 的 `min-height: 44px`，保留 `white-space: nowrap`；不显式写 `32px` 或 `size="middle"`，直接继承与历史查询按钮相同的 medium 主题尺寸。
+6. 通过 `press-job-history-query` delta spec（增量规格）固化跨页面 medium 高度与生产操作按钮独立触控高度，不提前同步主规格，统一由 archive（归档）阶段处理。
 
 ## Risks / Trade-offs
 

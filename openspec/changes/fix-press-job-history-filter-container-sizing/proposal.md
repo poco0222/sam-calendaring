@@ -3,7 +3,7 @@
 @author PopoY
 @created 2026-07-29 10:10:51
 @editor PopoY
-@edited 2026-07-29 11:02:17
+@edited 2026-07-29 11:14:03
 @purpose 记录压机作业与历史作业筛选栏栅格和控件高度不一致的问题、修复目标与边界。
 -->
 
@@ -30,7 +30,7 @@
 
 ### Modified Capabilities
 
-无。主规格 `press-job-history-query` 已要求筛选项在固定 1280×720 视口中使用统一、可读的控件布局，本次只修复实现偏差，不改变验收场景。
+- `press-job-history-query`：明确历史筛选控件与压机作业顶部指导按钮复用同一 Ant Design medium（中号）高度，同时保持下方真实生产操作按钮的独立触控高度。
 
 ## Impact
 

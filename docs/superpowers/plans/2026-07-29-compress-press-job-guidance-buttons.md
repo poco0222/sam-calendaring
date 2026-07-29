@@ -9,7 +9,7 @@ base-ref: e8c832b1d45663d496f0e9c9a71b69bd39984142
 @author PopoY
 @created 2026-07-29 10:59:40
 @editor PopoY
-@edited 2026-07-29 11:10:15
+@edited 2026-07-29 11:14:03
 @purpose 将已批准的压机作业指导按钮紧凑化设计拆成最小 TDD 实施和验证步骤。
 -->
 
@@ -211,3 +211,9 @@ base-ref: e8c832b1d45663d496f0e9c9a71b69bd39984142
   ```
 
   重新记录 build/verify 命令证据并运行 phase guard（阶段守卫），最终停在 archive（归档）确认点；不归档、不推送，等待用户明确选择。
+
+### Task 3：补齐 OpenSpec 增量规格
+
+- [x] **Step 1：修复完整验证发现的 delta spec 缺口**
+
+  为 `press-job-history-query` 补充最小 `MODIFIED Requirements`，固化历史筛选控件、压机顶部指导按钮和下方生产操作按钮的尺寸边界；同步 proposal/design/tasks，并运行 OpenSpec strict validation（严格校验）。不修改产品代码或既有业务行为。

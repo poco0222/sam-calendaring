@@ -3,7 +3,7 @@
 @author PopoY
 @created 2026-07-29 10:48:07
 @editor PopoY
-@edited 2026-07-29 11:08:06
+@edited 2026-07-29 11:15:12
 @purpose 记录 Hotfix（热修复）的失败验证回退、控件高度根因、RED/GREEN、真实页面尺寸、构建、测试和安全证据。
 -->
 
@@ -16,6 +16,7 @@
 ## 失败验证回退与根因
 
 - 前两次实现分别只处理了外层盒模型和横向字段分配，仍保留历史页通用 `min-height:44px`，因此用户运行界面的控件高度没有变化。此前的 verify pass（验证通过）已撤销并回退到 build（构建）阶段。
+- 本轮首次 full verification（完整验证）发现 change 缺少 OpenSpec delta spec（增量规格），`openspec validate --strict` 因无 delta 报错；流程自动回到 build，补齐 `press-job-history-query` 的最小 `MODIFIED Requirements` 后严格校验通过，OpenSpec 状态恢复为 `isComplete: true`。
 - 两张用户截图及真实 DOM（文档对象模型）测量确认：两页外框都约 `62px`；压机筛选 Select 实际为 `32px`，历史筛选控件因专属通用选择器被强制到 `44px`。
 - 最小根因修复先成对删除历史页对 `.ant-picker/.ant-input/.ant-select/.ant-btn` 和 `.ant-select-selector` 的 `44px` override（覆盖规则），再删除压机作业顶部指导按钮专属的 `min-height:44px`；两处均回归组件库同一 medium 默认尺寸来源。
 
@@ -33,13 +34,24 @@
 
 | # | 检查 | 结果 | 证据 |
 |---|---|---|---|
-| 1 | 任务完成 | PASS | `tasks.md` 5/5 为 `[x]`。 |
+| 1 | 任务完成 | PASS | `tasks.md` 6/6 为 `[x]`。 |
 | 2 | 聚焦测试 | PASS | 历史页 20/20；压机页指导按钮 RED 156/157、GREEN 157/157。 |
 | 3 | 完整测试 | PASS | `pnpm test`：21/21 test files、370/370 tests。 |
 | 4 | TypeScript（类型检查） | PASS | `pnpm exec tsc --noEmit`：退出码 0。 |
 | 5 | Production build（生产构建） | PASS | `pnpm build`：1144 个模块转换完成，退出码 0。 |
 | 6 | Impeccable layout（布局） | PASS | 两路独立复核均确认 Spacing、Hierarchy、Grid、Rhythm、Density 对齐；detector 输出 `[]`。 |
 | 7 | Diff 与安全 | PASS | `git diff --check` 退出码 0；未新增凭据、令牌、网络请求、不安全 DOM 操作或依赖。 |
+| 8 | OpenSpec | PASS | change strict validation（严格校验）无 issue，`isComplete: true`。 |
+
+## OpenSpec 完整验证
+
+| Dimension（维度） | Status（状态） | Evidence（证据） |
+|---|---|---|
+| Completeness（完整性） | PASS | 6/6 tasks；1 个 modified requirement（修改需求）；delta spec 可定位且严格校验通过。 |
+| Correctness（正确性） | PASS | 1/1 requirement 由历史页布局测试、压机指导按钮契约测试和真实 `1280×720` 尺寸测量覆盖；3/3 scenarios 与实现一致。 |
+| Coherence（一致性） | PASS | proposal、OpenSpec design、technical Design Doc（技术设计文档）、delta spec 与产品 diff 均采用同一 medium 尺寸来源；未发现 drift（漂移）或矛盾。 |
+
+CRITICAL、WARNING、SUGGESTION：均无。`review_mode: off`，按已确认的小范围 CSS hotfix（热修复）配置跳过自动代码审查；两路只读 Impeccable 布局复核仍已执行并通过。
 
 ## 范围与已知边界
 
