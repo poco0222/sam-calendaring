@@ -2,5 +2,6 @@
   "openspec_proposal": "openspec/changes/improve-diagnostic-timeline-and-history-filters/proposal.md",
   "openspec_design": "openspec/changes/improve-diagnostic-timeline-and-history-filters/design.md",
   "openspec_tasks": "openspec/changes/improve-diagnostic-timeline-and-history-filters/tasks.md",
-  "openspec_delta_spec": "openspec/changes/improve-diagnostic-timeline-and-history-filters/specs/driver-diagnostic-log-viewing/spec.md"
+  "openspec_delta_spec": "openspec/changes/improve-diagnostic-timeline-and-history-filters/specs/driver-diagnostic-log-viewing/spec.md",
+  "archive_directory": "openspec/changes/archive/2026-07-29-improve-diagnostic-timeline-and-history-filters"
 }
