@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-29 09:46:03
+ * @edited 2026-07-29 10:14:02
  * @brief 复用现有 Design Token（设计变量）约束 1280x720 触控布局和详情局部滚动。
  */
 
@@ -17,6 +17,7 @@
 }
 
 .press-job-history-page__filters {
+  box-sizing: border-box;
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
