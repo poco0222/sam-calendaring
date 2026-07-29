@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-29 12:21:24
+ * @edited 2026-07-29 14:56:52
  * @brief 提供本地自然日筛选、服务端分页和脱敏历史作业详情。
  */
 
@@ -53,7 +53,7 @@ import {
 import "./PressJobHistoryPage.css";
 
 const { RangePicker } = DatePicker;
-const EMPTY_HISTORY_TEXT = "当前查询范围暂无已完成作业，请调整日期范围后查询。";
+const EMPTY_HISTORY_TEXT = "当前查询范围暂无作业，请调整日期范围后查询。";
 const OPERATION_PAGE_SIZE = 5;
 let historyCorrelationSequence = 0;
 
@@ -270,11 +270,40 @@ export function shouldApplyHistoryLookupResponse(
 }
 
 /**
- * @brief 把 ERP 完工状态映射为固定中文，未知值不得回显。
+ * @brief 把 ERP 作业状态映射为固定中文，未知值不得回显。
  * @author PopoY
  */
 export function formatHistoryStatus(status: string | undefined): string {
+  if (status === "1") return "进行中";
   return status === "3" ? "已完成" : "状态未知";
+}
+
+/**
+ * @brief 进行中作业没有完成时间，不得显示为普通缺失记录。
+ * @author PopoY
+ */
+export function formatHistoryCompletedAt(
+  status: string | undefined,
+  completedAt: string | undefined,
+): string {
+  return status === "1" && !completedAt?.trim()
+    ? "未完成"
+    : formatHistoryCell(completedAt);
+}
+
+/**
+ * @brief 进行中作业不在前端推算实时时长，只显示固定状态。
+ * @author PopoY
+ */
+export function formatHistoryDuration(
+  status: string | undefined,
+  duration: string | undefined,
+): string {
+  return status === "1" && !duration?.trim()
+    ? "进行中"
+    : duration?.trim()
+      ? `${duration} 小时`
+      : "未记录";
 }
 
 /**
@@ -635,21 +664,24 @@ export function PressJobHistoryPage({
         title: "完成时间",
         dataIndex: "completedAt",
         width: 180,
-        render: (value: string | undefined) => formatHistoryCell(value),
+        render: (value: string | undefined, row) =>
+          formatHistoryCompletedAt(row.status, value),
       },
       {
         title: "实际时长",
         dataIndex: "actualDurationHours",
         width: 120,
-        render: (value: string | undefined) =>
-          value?.trim() ? `${value} 小时` : "未记录",
+        render: (value: string | undefined, row) =>
+          formatHistoryDuration(row.status, value),
       },
       {
-        title: "完工状态",
+        title: "作业状态",
         dataIndex: "status",
         width: 110,
         render: (value: string | undefined) => (
-          <Tag color={value === "3" ? "success" : "warning"}>
+          <Tag
+            color={value === "1" ? "processing" : value === "3" ? "success" : "warning"}
+          >
             {formatHistoryStatus(value)}
           </Tag>
         ),
@@ -1206,13 +1238,11 @@ export function HistoryDetailContent({
         items={[
           { key: "press", label: "压机", children: formatHistoryCell(detail.pressName) },
           { key: "mold", label: "模具号", children: detail.moldNo },
-          { key: "status", label: "完工状态", children: formatHistoryStatus(detail.status) },
+          { key: "status", label: "作业状态", children: formatHistoryStatus(detail.status) },
           {
             key: "duration",
             label: "实际时长",
-            children: detail.actualDurationHours
-              ? `${detail.actualDurationHours} 小时`
-              : "未记录",
+            children: formatHistoryDuration(detail.status, detail.actualDurationHours),
           },
           { key: "operator", label: "班组 / 作业人员", children: `未记录 / ${operator}` },
           {
@@ -1221,7 +1251,11 @@ export function HistoryDetailContent({
             children: formatDictValue(craftLabelByValue, detail.craftCode),
           },
           { key: "start", label: "开始时间", children: formatHistoryCell(detail.startedAt) },
-          { key: "end", label: "完成时间", children: formatHistoryCell(detail.completedAt) },
+          {
+            key: "end",
+            label: "完成时间",
+            children: formatHistoryCompletedAt(detail.status, detail.completedAt),
+          },
         ]}
       />
 
