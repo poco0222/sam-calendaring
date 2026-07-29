@@ -10,5 +10,5 @@
 
 ## 3. 回归验证
 
-- [ ] 3.1 运行 ERP 历史 Mapper/Controller 聚焦测试及相关模块测试，确认设备隔离、已完成查询和详情操作日志关联不回归
-- [ ] 3.2 运行 QT App 历史页测试、完整 Vitest、TypeScript 检查、生产构建、`git diff --check` 和 OpenSpec strict validation（严格校验），记录真实结果
+- [x] 3.1 运行 ERP 历史 Mapper/Controller 聚焦测试及相关模块测试，确认设备隔离、已完成查询和详情操作日志关联不回归
+- [x] 3.2 运行 QT App 历史页测试、完整 Vitest、TypeScript 检查、生产构建、`git diff --check` 和 OpenSpec strict validation（严格校验），记录真实结果

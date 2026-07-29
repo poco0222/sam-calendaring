@@ -355,7 +355,7 @@ git commit -m "feat: 历史作业展示进行中状态"
 - Consumes: Task 1 和 Task 2 的已通过聚焦测试。
 - Produces: 可审计的测试、构建、diff 和 strict validation（严格校验）证据。
 
-- [ ] **Step 1: 运行 ERP 相关模块验证**
+- [x] **Step 1: 运行 ERP 相关模块验证**
 
 ```bash
 cd /Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be
@@ -369,7 +369,7 @@ git status --short
 
 Expected: Maven commands `BUILD SUCCESS`，`git diff --check` 无输出；用户的 SQL 文件仍未跟踪且未暂存。
 
-- [ ] **Step 2: 运行 QT App 完整验证**
+- [x] **Step 2: 运行 QT App 完整验证**
 
 ```bash
 cd /Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/qt-app/frontend
@@ -380,7 +380,7 @@ pnpm build
 
 Expected: Vitest 全部 PASS；TypeScript 无诊断；Vite production build（生产构建）成功。
 
-- [ ] **Step 3: 运行交付检查**
+- [x] **Step 3: 运行交付检查**
 
 ```bash
 cd /Users/popoy/WorkSpace/Projects/SAM/sam-calendaring
@@ -393,11 +393,11 @@ git -C /Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be status --short
 
 Expected: diff check 无输出；OpenSpec strict validation（严格校验）与 Comet build entry check（构建入口检查）通过；两个仓库只出现本变更的预期文件和 ERP 原有未跟踪 SQL。最终 `comet guard ... build --apply` 由协调器在代码审查通过且任务全部勾选后执行，避免提前进入 Verify(验证)阶段。
 
-- [ ] **Step 4: 请求代码审查并处理结论**
+- [x] **Step 4: 请求代码审查并处理结论**
 
 Review 必须检查：状态集合仅为 `1/3`、跨日相交语义、稳定排序、详情设备隔离、未知状态不回显、进行中空字段不伪造、旧操作日志关联和脱敏无回归。若 Review 发现问题，先补失败测试再作最小修复，并重跑受影响验证。
 
-- [ ] **Step 5: 更新 OpenSpec task 状态**
+- [x] **Step 5: 更新 OpenSpec task 状态**
 
 只有对应命令取得真实证据后，才在 `openspec/changes/include-running-press-jobs-in-history/tasks.md` 勾选 1.1–3.2。不得因代码已写或单个聚焦测试通过而提前标记完整验证完成。
 

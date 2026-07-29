@@ -1,23 +1,23 @@
 # Subagent Progress
 
 - Change: `include-running-press-jobs-in-history`
-- Plan task: `Task 2: QT App 展示 RED/GREEN`
+- Plan task: `Task 3: 双仓库回归与规格一致性`
 - OpenSpec mapping:
-  - `2.1 先修改 PressJobHistoryPage 聚焦测试，锁定进行中/已完成状态映射、作业状态列名、进行中完成时间/时长和通用空状态文案；运行测试取得预期 RED 证据`
-  - `2.2 最小修改历史列表与详情展示，复用现有类型、Tag、Drawer、参数缺失和操作时间线实现，使 2.1 测试转为 GREEN`
-- Stage: `checkoff`
-- Implementer: `/root/implement_qt_running_history`
-- Baseline: `b2b4e8f`
-- Implementation commit: `0c0939570271c24f219aeb97b3d93bed692c29bb`
-- Changed files:
-  - `qt-app/frontend/src/components/PressJobHistoryPage.tsx`
-  - `qt-app/frontend/src/components/PressJobHistoryPage.test.tsx`
-- RED evidence: `PressJobHistoryPage.test.tsx` 共 26 个测试，3 个预期 assertion failure（断言失败），退出码 1
-- GREEN evidence: 21/21 个测试文件、377/377 个测试通过，其中历史页 26/26，退出码 0
+  - `3.1 运行 ERP 历史 Mapper/Controller 聚焦测试及相关模块测试，确认设备隔离、已完成查询和详情操作日志关联不回归`
+  - `3.2 运行 QT App 历史页测试、完整 Vitest、TypeScript 检查、生产构建、git diff --check 和 OpenSpec strict validation，记录真实结果`
+- Stage: `done`
+- Tester: `/root/verify_running_history`
+- Main baseline: `bf0d571`
+- ERP baseline: `92f1b0ad`
+- Verification report: `.superpowers/sdd/task-3-report.md`
+- ERP verification: 310/310 related-module tests and 42/42 Controller tests passed; both Maven reactors `BUILD SUCCESS`
+- QT App verification: 21/21 Vitest files and 377/377 tests passed; TypeScript check and production build passed
+- Delivery checks: both diff checks, OpenSpec strict validation and Comet build entry check passed
 - Review mode: `standard`
-- Risk task-level review: skipped under standard mode
-- Risk signals: none
-- Review round: `0/1`
-- Review status: skipped because no risk signals were found
-- Unresolved feedback: none
-- Checkoff: plan Steps 1-5 and OpenSpec 2.1-2.2 verified by `comet state task-checkoff`.
+- Risk task-level review: not applicable to verification-only task
+- Risk signals: existing Maven warnings and Vite chunk-size warning only; no failure or task regression
+- Final reviewer: `/root/final_review_running_history`
+- Final review: approved; no Critical or Important findings
+- Minor feedback: `PressJobHistoryPage.test.tsx` does not directly drive a running row through the Table renderer; accepted as non-blocking because shared formatters, Drawer rendering, 377-test regression and production build all passed
+- Unresolved feedback: no blocking feedback
+- Checkoff: plan Steps 1-5 and OpenSpec 3.1-3.2 verified by `comet state task-checkoff`.
