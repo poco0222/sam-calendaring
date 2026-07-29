@@ -2,6 +2,7 @@
 comet_change: fix-press-job-history-filter-container-sizing
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-29-fix-press-job-history-filter-container-sizing
 status: final
 ---
 

@@ -3,7 +3,7 @@
 @author PopoY
 @created 2026-07-29 10:48:07
 @editor PopoY
-@edited 2026-07-29 11:15:12
+@edited 2026-07-29 11:16:47
 @purpose 记录 Hotfix（热修复）的失败验证回退、控件高度根因、RED/GREEN、真实页面尺寸、构建、测试和安全证据。
 -->
 

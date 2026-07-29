@@ -2,6 +2,7 @@
 change: fix-press-job-history-filter-container-sizing
 design-doc: docs/superpowers/specs/2026-07-29-compress-press-job-guidance-buttons-design.md
 base-ref: e8c832b1d45663d496f0e9c9a71b69bd39984142
+archived-with: 2026-07-29-fix-press-job-history-filter-container-sizing
 ---
 
 <!--
