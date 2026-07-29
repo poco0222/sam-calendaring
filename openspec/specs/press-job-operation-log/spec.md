@@ -114,6 +114,12 @@ ERP MUST 保持既有 QT operation-log endpoint（操作日志端点），请求
 - **WHEN** 操作员只打开锁模面板、选择或取消模具，或请求被 QT 本地前置校验阻止而没有提交 ERP 锁模业务
 - **THEN** 系统不得写入 `LOCK_MOLD` 或 `UNLOCK_MOLD` 日志
 
+#### Scenario: 建立通信未选择预选工艺
+- **WHEN** 操作员已选择班组和人员、未选择 `processId`，并执行 `CONNECT`
+- **THEN** QT MUST NOT 返回“请先选择预选工艺。”
+- **AND** 其他前置条件通过时，QT 继续调用既有 Driver Service（驱动服务）建立通信
+- **AND** `MOVE_IN`、`MOVE_OUT`、`LINE_IN` 和 `LINE_OUT` 仍 MUST 要求预选工艺
+
 #### Scenario: 建立通信、移入或移出结束
 - **WHEN** `CONNECT`、`MOVE_IN` 或 `MOVE_OUT` 已实际调用 Driver Service 并返回现有成功结果码
 - **THEN** QT 使用 `result=true` 记录对应操作
