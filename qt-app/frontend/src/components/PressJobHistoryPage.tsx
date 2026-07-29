@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-29 17:18:56
+ * @edited 2026-07-29 17:28:56
  * @brief 提供本地自然日筛选、服务端分页和脱敏历史作业详情。
  */
 
@@ -1163,7 +1163,17 @@ export function PressJobHistoryPage({
         open={selectedMoldJobId !== undefined}
         rootStyle={drawerRootStyle}
         size="80%"
-        title={`作业详情 · ${selectedRow?.moldNo ?? "未记录"}`}
+        title={
+          detail ? (
+            <HistoryDetailSummary
+              craftLabelByValue={craftLabelByValue}
+              detail={detail}
+              operatorLabelByValue={operatorLabelByValue}
+            />
+          ) : (
+            `作业详情 · ${selectedRow?.moldNo ?? "未记录"}`
+          )
+        }
       >
         {detailLoading || detailStatus === "loading" ? (
           <Skeleton active paragraph={{ rows: 10 }} />
@@ -1175,11 +1185,7 @@ export function PressJobHistoryPage({
             type="error"
           />
         ) : detail ? (
-          <HistoryDetailContent
-            craftLabelByValue={craftLabelByValue}
-            detail={detail}
-            operatorLabelByValue={operatorLabelByValue}
-          />
+          <HistoryDetailContent detail={detail} />
         ) : null}
       </Drawer>
     </section>
@@ -1187,10 +1193,10 @@ export function PressJobHistoryPage({
 }
 
 /**
- * @brief 渲染历史详情概要、参数对照和操作记录。
+ * @brief 渲染 Drawer header（抽屉标题栏）中的四列两行历史作业概要。
  * @author PopoY
  */
-export function HistoryDetailContent({
+export function HistoryDetailSummary({
   detail,
   operatorLabelByValue,
   craftLabelByValue,
@@ -1198,6 +1204,47 @@ export function HistoryDetailContent({
   detail: PressJobHistoryDetail;
   operatorLabelByValue: Map<string, string>;
   craftLabelByValue: Map<string, string>;
+}) {
+  const operator = formatDictValue(operatorLabelByValue, detail.operatorId);
+
+  return (
+    <Descriptions
+      className="press-job-history-detail__summary"
+      column={4}
+      items={[
+        { key: "press", label: "压机", children: formatHistoryCell(detail.pressName) },
+        { key: "mold", label: "模具号", children: detail.moldNo },
+        { key: "status", label: "作业状态", children: formatHistoryStatus(detail.status) },
+        {
+          key: "duration",
+          label: "实际时长",
+          children: formatHistoryDuration(detail.status, detail.actualDurationHours),
+        },
+        { key: "operator", label: "班组 / 作业人员", children: `未记录 / ${operator}` },
+        {
+          key: "craft",
+          label: "工艺",
+          children: formatDictValue(craftLabelByValue, detail.craftCode),
+        },
+        { key: "start", label: "开始时间", children: formatHistoryCell(detail.startedAt) },
+        {
+          key: "end",
+          label: "完成时间",
+          children: formatHistoryCompletedAt(detail.status, detail.completedAt),
+        },
+      ]}
+    />
+  );
+}
+
+/**
+ * @brief 渲染历史详情的参数对照和操作记录。
+ * @author PopoY
+ */
+export function HistoryDetailContent({
+  detail,
+}: {
+  detail: PressJobHistoryDetail;
 }) {
   const [operationPage, setOperationPage] = useState(1);
   useEffect(() => {
@@ -1225,41 +1272,8 @@ export function HistoryDetailContent({
       ),
     },
   ];
-  const operator = formatDictValue(
-    operatorLabelByValue,
-    detail.operatorId,
-  );
-
   return (
-    <div className="press-job-history-detail__layout">
-      <Descriptions
-        className="press-job-history-detail__summary"
-        column={4}
-        items={[
-          { key: "press", label: "压机", children: formatHistoryCell(detail.pressName) },
-          { key: "mold", label: "模具号", children: detail.moldNo },
-          { key: "status", label: "作业状态", children: formatHistoryStatus(detail.status) },
-          {
-            key: "duration",
-            label: "实际时长",
-            children: formatHistoryDuration(detail.status, detail.actualDurationHours),
-          },
-          { key: "operator", label: "班组 / 作业人员", children: `未记录 / ${operator}` },
-          {
-            key: "craft",
-            label: "工艺",
-            children: formatDictValue(craftLabelByValue, detail.craftCode),
-          },
-          { key: "start", label: "开始时间", children: formatHistoryCell(detail.startedAt) },
-          {
-            key: "end",
-            label: "完成时间",
-            children: formatHistoryCompletedAt(detail.status, detail.completedAt),
-          },
-        ]}
-      />
-
-      <div className="press-job-history-detail__body">
+    <div className="press-job-history-detail__body">
         <section className="press-job-history-detail__parameters" aria-label="参数记录">
           <Typography.Title level={5}>参数记录</Typography.Title>
           <div className="press-job-history-detail__parameter-states">
@@ -1337,7 +1351,6 @@ export function HistoryDetailContent({
             />
           ) : null}
         </section>
-      </div>
     </div>
   );
 }

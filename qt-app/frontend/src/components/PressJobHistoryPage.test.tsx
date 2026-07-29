@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-29 17:18:56
+ * @edited 2026-07-29 17:28:56
  * @brief 锁定日期快照、请求竞态、表格、详情和现有 Design Token（设计变量）契约。
  */
 
@@ -67,13 +67,13 @@ function renderPage(): string {
 }
 
 /**
- * @brief 使用真实 HistoryDetailContent（历史详情内容）渲染操作记录。
+ * @brief 创建固定 History Detail（历史详情）测试数据。
  * @author PopoY
  * @param operationRecords 固定五字段的操作记录。
  * @param parameterStates 开始与完工参数的整体状态。
- * @returns server-rendered HTML（服务端渲染 HTML）。
+ * @returns 固定历史详情。
  */
-function renderHistoryDetail(
+function createHistoryDetail(
   operationRecords: PressJobHistoryDetail["operationRecords"],
   parameterStates: Pick<
     PressJobHistoryDetail,
@@ -83,8 +83,8 @@ function renderHistoryDetail(
     endParameterState: "missing",
   },
   detailOverrides: Partial<PressJobHistoryDetail> = {},
-): string {
-  const detail: PressJobHistoryDetail = {
+): PressJobHistoryDetail {
+  return {
     moldJobId: "job-1",
     moldNo: "M-01",
     pressName: "一号压机",
@@ -100,12 +100,52 @@ function renderHistoryDetail(
     operationRecords,
     ...detailOverrides,
   };
+}
 
+/**
+ * @brief 使用真实 HistoryDetailContent（历史详情正文）渲染操作记录。
+ * @author PopoY
+ */
+function renderHistoryDetail(
+  operationRecords: PressJobHistoryDetail["operationRecords"],
+  parameterStates?: Pick<
+    PressJobHistoryDetail,
+    "startParameterState" | "endParameterState"
+  >,
+  detailOverrides: Partial<PressJobHistoryDetail> = {},
+): string {
   return renderToStaticMarkup(
     <AntdRootProvider>
       <HistoryDetailContent
+        detail={createHistoryDetail(
+          operationRecords,
+          parameterStates,
+          detailOverrides,
+        )}
+      />
+    </AntdRootProvider>,
+  );
+}
+
+/**
+ * @brief 使用真实 HistoryDetailSummary（历史详情概要）渲染标题栏内容。
+ * @author PopoY
+ */
+function renderHistorySummary(
+  detailOverrides: Partial<PressJobHistoryDetail> = {},
+): string {
+  const HistoryDetailSummary = Reflect.get(
+    historyPage,
+    "HistoryDetailSummary",
+  );
+  expect(HistoryDetailSummary).toBeTypeOf("function");
+  if (typeof HistoryDetailSummary !== "function") return "";
+
+  return renderToStaticMarkup(
+    <AntdRootProvider>
+      <HistoryDetailSummary
         craftLabelByValue={new Map([["craft-1", "冲压工艺"]])}
-        detail={detail}
+        detail={createHistoryDetail([], undefined, detailOverrides)}
         operatorLabelByValue={new Map([["operator-1", "张三"]])}
       />
     </AntdRootProvider>,
@@ -628,12 +668,46 @@ describe("PressJobHistoryPage", () => {
     expect(renderHistoryDetail([])).toContain("该作业没有可查看的操作记录");
   });
 
+  it("moves the full job summary into the Drawer title and expands the body", () => {
+    const summary = renderHistorySummary();
+
+    for (const label of [
+      "压机",
+      "模具号",
+      "作业状态",
+      "实际时长",
+      "班组 / 作业人员",
+      "工艺",
+      "开始时间",
+      "完成时间",
+    ]) {
+      expect(summary).toContain(label);
+    }
+    expect(pageSource).toContain("<HistoryDetailSummary");
+    expect(pageSource).toContain("title={");
+    expect(
+      pageSource.match(/className="press-job-history-detail__summary"/g),
+    ).toHaveLength(1);
+    expect(pageSource).not.toContain("press-job-history-detail__layout");
+    expect(pageCss).toMatch(
+      /\.press-job-history-detail \.ant-drawer-header\s*\{[^}]*padding: 8px 24px;/,
+    );
+    expect(pageCss).toMatch(
+      /\.press-job-history-detail__body\s*\{[^}]*height: 100%;/,
+    );
+  });
+
   it("renders a running job with unfinished completion fields", () => {
-    const html = renderHistoryDetail([], undefined, {
+    const overrides = {
       actualDurationHours: undefined,
       completedAt: undefined,
       status: "1",
-    });
+    };
+    const html = `${renderHistorySummary(overrides)}${renderHistoryDetail(
+      [],
+      undefined,
+      overrides,
+    )}`;
 
     expect(html).toContain("作业状态");
     expect(html).toContain("进行中");
@@ -685,9 +759,6 @@ describe("PressJobHistoryPage", () => {
     expect(pageCss).toContain("grid-template-rows: auto minmax(0, 1fr)");
     expect(pageCss).toMatch(
       /\.press-job-history-detail \.ant-drawer-body\s*\{[^}]*padding: 12px 24px;/,
-    );
-    expect(pageCss).toMatch(
-      /\.press-job-history-detail__layout\s*\{[^}]*gap: 12px;/,
     );
     expect(pageCss).toMatch(
       /\.press-job-history-detail__summary\s*\{[^}]*padding: 8px 12px;/,
