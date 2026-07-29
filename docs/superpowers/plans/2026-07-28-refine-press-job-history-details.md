@@ -613,7 +613,7 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 - Consumes: Task 3 的可选 `valueKind` 和五字段 `PressJobHistoryOperation`；复用现有 `formatHistoryParameterValue`、Ant Design `Timeline` / `Pagination`、Design Token 与 Drawer 布局。
 - Produces: 开始/完工两列唯一状态格式化入口；局部 `operationPage`，固定 `OPERATION_PAGE_SIZE = 5`；由 Timeline 自带 tail 连接当前页相邻节点，Pagination 固定在操作面板底部。
 
-- [ ] **Step 1：把参数格式化测试改为可靠状态分类并增加两列覆盖**
+- [x] **Step 1：把参数格式化测试改为可靠状态分类并增加两列覆盖**
 
   用以下断言替换旧“所有 Boolean 都翻译”测试，并通过 `alignHistoryParameters` 再证明开始/完工共用相同入口：
 
@@ -656,7 +656,7 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
   )[0]).toMatchObject({ startValue: "否", endValue: "是" });
   ```
 
-- [ ] **Step 2：写缺失提示、操作分页和组合文案失败测试**
+- [x] **Step 2：写缺失提示、操作分页和组合文案失败测试**
 
   修改 `renderHistoryDetail` 的 fixture（夹具），不再提供 `content`。用 6 条命名操作做静态首屏断言：
 
@@ -702,7 +702,7 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
   );
   ```
 
-- [ ] **Step 3：运行页面测试并确认 RED**
+- [x] **Step 3：运行页面测试并确认 RED**
 
   ```bash
   cd /Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/qt-app/frontend
@@ -711,7 +711,7 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 
   Expected: FAIL；Boolean 仍被无条件翻译，missing 提示和内容字段仍存在，6 条操作全部渲染，操作记录尚未使用 Ant Design Timeline，CSS 仍为上下 Grid（网格）及水平分割线。
 
-- [ ] **Step 4：最小实现两列状态格式化和提示删除**
+- [x] **Step 4：最小实现两列状态格式化和提示删除**
 
   保留 `formatHistoryParameterValue` 为唯一入口，改为：
 
@@ -736,7 +736,7 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 
   从 `press-job-history-detail__parameter-states` 删除两个 `missing` JSX 分支，只保留 `invalid` 两个分支；Table（表格）现有“未记录”和“记录不完整”逻辑不改。
 
-- [ ] **Step 5：用现有 Timeline 和 Pagination 实现固定每页 5 条操作**
+- [x] **Step 5：用现有 Timeline 和 Pagination 实现固定每页 5 条操作**
 
   从 `antd` 导入 `Timeline` 和 `Pagination`，在文件常量区增加：
 
@@ -805,7 +805,7 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 
   不请求后端、不写 URL、不提供 page size（每页数量）切换。
 
-- [ ] **Step 6：把筛选和 Timeline 内容 CSS 改为最小水平/紧凑布局**
+- [x] **Step 6：把筛选和 Timeline 内容 CSS 改为最小水平/紧凑布局**
 
   保持 Design Token，只调整 Timeline 内容与分页底栏；不得覆盖 `.ant-timeline-item-tail` 的几何样式：
 
@@ -872,13 +872,13 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 
   删除原 `.operation-marker`、`li:not(:last-child)::before` 和手写 `<ol>/<li>` 专属样式；把 `.press-job-history-detail__operations` 从现有 `overflow: auto` 组合选择器中移出，只有 Timeline 本体滚动。Ant Design 自动隐藏最后一个 item 的 tail，不会连向分页器。
 
-- [ ] **Step 7：运行页面测试并确认 GREEN**
+- [x] **Step 7：运行页面测试并确认 GREEN**
 
   Run: 使用 Step 3 的同一 Vitest 命令。
 
   Expected: `PressJobHistoryPage.test.tsx` PASS；两列只翻译可靠状态，missing 提示消失而 invalid 提示保留，首屏 Timeline 只有 5 条，组合文案无“内容”，无手写圆点/连接线，分页器固定底栏。
 
-- [ ] **Step 8：提交 QT 页面改动**
+- [x] **Step 8：提交 QT 页面改动**
 
   ```bash
   cd /Users/popoy/WorkSpace/Projects/SAM/sam-calendaring
