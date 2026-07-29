@@ -556,6 +556,10 @@ describe("PressJobHistoryPage", () => {
   it("uses only existing tokens for the bounded touch layout", () => {
     expect(pageCss).toContain("grid-template-rows: auto minmax(0, 1fr)");
     expect(pageCss).toContain("min-height: 44px");
+    expect(pageCss).toMatch(
+      /\.press-job-history-page__filters\s+:where\(\.ant-picker, \.ant-input, \.ant-select, \.ant-btn\)\s*\{[^}]*min-height: 44px;/,
+    );
+    expect(pageCss).not.toContain(".ant-select-selector");
     expect(pageCss).toContain("grid-template-columns: minmax(0, 64fr) minmax(260px, 36fr)");
     expect(pageCss).toContain(":focus-visible");
     expect(pageCss).toContain("@media (prefers-reduced-motion: reduce)");

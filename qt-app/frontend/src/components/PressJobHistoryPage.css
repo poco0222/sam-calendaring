@@ -60,7 +60,7 @@
   width: 100%;
 }
 
-.press-job-history-page__filters :where(.ant-picker, .ant-input, .ant-select-selector, .ant-btn) {
+.press-job-history-page__filters :where(.ant-picker, .ant-input, .ant-select, .ant-btn) {
   min-height: 44px;
 }
 
