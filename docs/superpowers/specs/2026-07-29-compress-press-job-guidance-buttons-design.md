@@ -2,13 +2,15 @@
 comet_change: fix-press-job-history-filter-container-sizing
 role: technical-design
 canonical_spec: openspec
-status: draft
+status: final
 ---
 
 <!--
 @file 2026-07-29-compress-press-job-guidance-buttons-design.md
 @author PopoY
 @created 2026-07-29 10:57:34
+@editor PopoY
+@edited 2026-07-29 11:08:06
 @purpose 规定压机作业顶部指导按钮与历史作业查询按钮的尺寸对齐边界和验证方式。
 -->
 

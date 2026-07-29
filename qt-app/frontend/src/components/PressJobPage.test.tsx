@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-06-30
  * @editor PopoY
- * @edited 2026-07-28 11:45:15
+ * @edited 2026-07-29 11:03:02
  * @brief 锁定 frontend-only（仅前端）压机作业页的四行布局、空数据和安全边界。
  */
 
@@ -280,16 +280,20 @@ describe("PressJobPage", () => {
   });
 
   /**
-   * @brief 断言顶部 guidance launcher（指导启动入口）在 1280x720 下右对齐且保持 touch target（触控目标）。
+   * @brief 断言顶部 guidance launcher（指导启动入口）右对齐并继承 medium（中号）控件高度。
    * @author PopoY
    */
-  it("keeps top guidance launchers right aligned and touch ready", () => {
+  it("keeps top guidance launchers right aligned at the medium control height", () => {
     expect(pageCss).toContain(".press-job-page__filter-row");
     expect(pageCss).toContain("flex-wrap: nowrap");
     expect(pageCss).toContain(".press-job-page__guidance-launchers");
     expect(pageCss).toContain("justify-content: flex-end");
-    expect(pageCss).toContain(".press-job-page__guidance-launchers .ant-btn");
-    expect(pageCss).toContain("min-height: 44px");
+    expect(pageCss).toMatch(
+      /\.press-job-page__guidance-launchers \.ant-btn\s*\{[^}]*white-space: nowrap;/,
+    );
+    expect(pageCss).not.toMatch(
+      /\.press-job-page__guidance-launchers \.ant-btn\s*\{[^}]*min-height: 44px;/,
+    );
   });
 
   /**
