@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-29 07:57:11
+ * @edited 2026-07-29 10:28:13
  * @brief 提供本地自然日筛选、服务端分页和脱敏历史作业详情。
  */
 
@@ -11,11 +11,14 @@ import { SearchOutlined } from "@ant-design/icons";
 import {
   Alert,
   Button,
+  Col,
   DatePicker,
   Descriptions,
   Drawer,
+  Form,
   Input,
   Pagination,
+  Row,
   Select,
   Skeleton,
   Table,
@@ -627,62 +630,76 @@ export function PressJobHistoryPage({
 
   return (
     <section className="press-job-history-page" aria-label="历史作业">
-      <div className="press-job-history-page__filters">
-        <label className="press-job-history-page__field">
-          <span>日期范围</span>
-          <RangePicker
-            allowClear={false}
-            format="YYYY-MM-DD"
-            presets={createHistoryRangePresets()}
-            value={draftFilters.dateRange}
-            onChange={handleDraftDateRangeChange}
-          />
-          {dateValidationMessage ? (
-            <span className="press-job-history-page__validation">
-              {dateValidationMessage}
-            </span>
-          ) : null}
-        </label>
-        <label className="press-job-history-page__field">
-          <span>模具号</span>
-          <Input
-            aria-label="模具号"
-            placeholder="请输入模具号"
-            value={draftFilters.mouldCode}
-            onChange={(event) =>
-              setDraftFilters((current) => ({
-                ...current,
-                mouldCode: event.target.value,
-              }))
-            }
-          />
-        </label>
-        <label className="press-job-history-page__field">
-          <span>作业人员</span>
-          <Select
-            allowClear
-            aria-label="作业人员"
-            options={operatorOptions.map((option) => ({
-              label: option.dictLabel,
-              value: option.dictValue,
-            }))}
-            placeholder="全部人员"
-            value={draftFilters.operator}
-            onChange={(operator) =>
-              setDraftFilters((current) => ({ ...current, operator }))
-            }
-          />
-        </label>
-        <Button
-          className="press-job-history-page__query"
-          disabled={dateValidationMessage !== null}
-          icon={<SearchOutlined aria-hidden="true" />}
-          onClick={handleQuery}
-          type="primary"
-        >
-          查询
-        </Button>
-      </div>
+      <Form
+        aria-label="历史作业筛选区"
+        className="press-job-history-page__filters"
+        component="section"
+        labelCol={{ flex: "72px" }}
+        layout="horizontal"
+        wrapperCol={{ flex: "1 1 0" }}
+      >
+        <Row className="press-job-history-page__filter-row" gutter={12} wrap={false}>
+          <Col flex="0 0 360px">
+            <Form.Item className="press-job-history-page__field" label="日期范围">
+              <RangePicker
+                allowClear={false}
+                format="YYYY-MM-DD"
+                presets={createHistoryRangePresets()}
+                value={draftFilters.dateRange}
+                onChange={handleDraftDateRangeChange}
+              />
+              {dateValidationMessage ? (
+                <span className="press-job-history-page__validation">
+                  {dateValidationMessage}
+                </span>
+              ) : null}
+            </Form.Item>
+          </Col>
+          <Col flex="0 0 220px">
+            <Form.Item className="press-job-history-page__field" label="模具号">
+              <Input
+                aria-label="模具号"
+                placeholder="请输入模具号"
+                value={draftFilters.mouldCode}
+                onChange={(event) =>
+                  setDraftFilters((current) => ({
+                    ...current,
+                    mouldCode: event.target.value,
+                  }))
+                }
+              />
+            </Form.Item>
+          </Col>
+          <Col flex="0 0 220px">
+            <Form.Item className="press-job-history-page__field" label="作业人员">
+              <Select
+                allowClear
+                aria-label="作业人员"
+                options={operatorOptions.map((option) => ({
+                  label: option.dictLabel,
+                  value: option.dictValue,
+                }))}
+                placeholder="全部人员"
+                value={draftFilters.operator}
+                onChange={(operator) =>
+                  setDraftFilters((current) => ({ ...current, operator }))
+                }
+              />
+            </Form.Item>
+          </Col>
+          <Col flex="auto">
+            <Button
+              className="press-job-history-page__query"
+              disabled={dateValidationMessage !== null}
+              icon={<SearchOutlined aria-hidden="true" />}
+              onClick={handleQuery}
+              type="primary"
+            >
+              查询
+            </Button>
+          </Col>
+        </Row>
+      </Form>
 
       <Table<PressJobHistoryRow>
         className="press-job-history-page__table"

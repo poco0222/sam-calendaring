@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-29 10:14:02
+ * @edited 2026-07-29 10:28:13
  * @brief 复用现有 Design Token（设计变量）约束 1280x720 触控布局和详情局部滚动。
  */
 
@@ -18,10 +18,6 @@
 
 .press-job-history-page__filters {
   box-sizing: border-box;
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 12px;
   min-height: 62px;
   padding: 8px 12px;
   border: 1px solid var(--qt-app-control-blue-line);
@@ -29,36 +25,31 @@
   background: color-mix(in srgb, var(--qt-app-control-blue-soft) 36%, transparent);
 }
 
+.press-job-history-page__filters > .ant-row,
+.press-job-history-page__filter-row {
+  height: 100%;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.press-job-history-page__filters .ant-form-item {
+  margin-bottom: 0;
+}
+
+.press-job-history-page__filters .ant-form-item-row {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
 .press-job-history-page__field {
   position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
   min-width: 0;
   font-size: 12px;
 }
 
-.press-job-history-page__field > span:first-child {
-  flex: 0 0 56px;
-  white-space: nowrap;
-}
-
-.press-job-history-page__field > :where(.ant-picker, .ant-input, .ant-select) {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.press-job-history-page__field:first-child {
-  flex: 0 0 270px;
-}
-
-.press-job-history-page__field:nth-child(2),
-.press-job-history-page__field:nth-child(3) {
-  flex: 0 1 190px;
-}
-
-.press-job-history-page__field .ant-select {
+.press-job-history-page__field :where(.ant-picker, .ant-input, .ant-select) {
   width: 100%;
+  min-width: 0;
 }
 
 .press-job-history-page__filters :where(.ant-picker, .ant-input, .ant-select, .ant-btn) {
@@ -72,7 +63,7 @@
 .press-job-history-page__validation {
   position: absolute;
   top: 100%;
-  left: 64px;
+  left: 72px;
   z-index: 1;
   padding-top: 2px;
   color: var(--ant-color-error, currentColor);

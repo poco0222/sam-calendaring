@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-29 10:13:42
+ * @edited 2026-07-29 10:29:11
  * @brief 锁定日期快照、请求竞态、表格、详情和现有 Design Token（设计变量）契约。
  */
 
@@ -327,6 +327,24 @@ describe("PressJobHistoryPage", () => {
     }
   });
 
+  /**
+   * @brief 断言历史筛选栏直接复用压机作业的 Form/Row/Col（表单栅格）尺寸体系，避免日期和短字段再次被压窄。
+   * @author PopoY
+   */
+  it("reuses the press-job filter grid dimensions", () => {
+    const html = renderPage();
+
+    expect(html).toContain('aria-label="历史作业筛选区"');
+    expect(pageSource).toContain('labelCol={{ flex: "72px" }}');
+    expect(pageSource).toContain('wrapperCol={{ flex: "1 1 0" }}');
+    expect(pageSource).toContain('gutter={12} wrap={false}');
+    expect(pageSource).toContain('<Col flex="0 0 360px">');
+    expect(pageSource.match(/<Col flex="0 0 220px">/g)).toHaveLength(2);
+    expect(pageSource).toContain('<Col flex="auto">');
+    expect(pageCss).not.toContain("flex: 0 0 270px");
+    expect(pageCss).not.toContain("flex: 0 1 190px");
+  });
+
   it("keeps the row, local state, drawer and retry source contracts", () => {
     expect(pageSource).toContain("allowClear={false}");
     expect(pageSource).toContain('size="80%"');
@@ -530,7 +548,7 @@ describe("PressJobHistoryPage", () => {
       /useEffect\(\(\) => \{\s*setOperationPage\(1\);\s*\}, \[detail\.moldJobId, detail\.operationRecords\]\);/,
     );
     expect(pageCss).toMatch(
-      /\.press-job-history-page__field\s*\{[^}]*display: flex;[^}]*align-items: center;/,
+      /\.press-job-history-page__filters \.ant-form-item-row\s*\{[^}]*flex-wrap: nowrap;[^}]*align-items: center;/,
     );
     expect(pageCss).toMatch(
       /\.press-job-history-page__query\s*\{[^}]*white-space: nowrap;[^}]*\}/,
