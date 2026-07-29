@@ -136,7 +136,7 @@
 
 - [ ] **Step 1：重用固定详情数据并写入失败测试**
 
-  在测试 import 中加入 `HistoryDetailSummary`，把现有 fixture（固定数据）提取为以下函数，并让两个渲染 helper（辅助函数）分别渲染概要和正文：
+  继续使用现有 `import * as historyPage`，不要直接 import 尚不存在的 `HistoryDetailSummary`，确保 RED 是预期 assertion failure（断言失败）而不是模块加载错误。把现有 fixture（固定数据）提取为以下函数，并让两个渲染 helper（辅助函数）分别渲染概要和正文：
 
   ```tsx
   function createHistoryDetail(
@@ -192,6 +192,13 @@
   function renderHistorySummary(
     detailOverrides: Partial<PressJobHistoryDetail> = {},
   ): string {
+    const HistoryDetailSummary = Reflect.get(
+      historyPage,
+      "HistoryDetailSummary",
+    );
+    expect(HistoryDetailSummary).toBeTypeOf("function");
+    if (typeof HistoryDetailSummary !== "function") return "";
+
     return renderToStaticMarkup(
       <AntdRootProvider>
         <HistoryDetailSummary
@@ -269,7 +276,7 @@
   pnpm exec vitest run src/components/PressJobHistoryPage.test.tsx
   ```
 
-  Expected：命令非零退出；TypeScript/Vitest 报告 `HistoryDetailSummary` 尚未导出，或标题栏/CSS 新契约尚未满足。
+  Expected：命令非零退出；Vitest 断言 `HistoryDetailSummary` 仍为 `undefined`，或标题栏/CSS 新契约尚未满足。不得以 named export（命名导出）缺失的模块加载错误充当 RED。
 
 - [ ] **Step 3：迁移现有概要 JSX，不复制字段或 formatter**
 
