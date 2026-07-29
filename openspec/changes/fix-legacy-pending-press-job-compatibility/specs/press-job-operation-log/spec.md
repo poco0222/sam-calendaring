@@ -24,14 +24,19 @@ ERP MUST 在首次锁模业务事务中使用既有 `press_job_info` 和 `press_
 - **THEN** ERP MUST 复用同一父作业 ID 并沿用现有运行中子作业状态规则
 - **AND** 本变更不得放宽现有运行中锁模校验
 
-#### Scenario: 存量待开始 JSON 的 ID 或子状态为空
-- **WHEN** 设备当前可信 JSON 的父作业为 `id=null,status=0`，子作业为 `id=null,pressJobInfoId=null,status=null` 或 `status=0`，且发生下一次锁模、`START` 或解锁
-- **THEN** ERP MUST 先把该窄兼容形状中的空子状态规范化为 `0`，再在当前业务事务内将父作业和仍锁定子作业懒持久化一次并继续本次操作
-- **AND** 直接解锁时 MUST 在应用既有 `status=4` 收口前取得并回写真实父子 ID
+#### Scenario: 存量待开始 JSON 的 ID 为空
+- **WHEN** 设备当前可信 JSON 包含 `id=null,status=0` 的父作业或子作业，且发生下一次锁模或 `START`
+- **THEN** ERP MUST 在当前业务事务内将该父作业和仍锁定的子作业懒持久化一次，再继续本次操作
 - **AND** 系统不得批量迁移、按时间猜测或重复插入已经拥有真实 ID 的记录
-- **AND** 任一子作业存在非空非 `0` 状态、冲突父 ID、跨设备、跨授权主机、重复 ID 或重复模具号时，ERP MUST 在父、子和设备 JSON 写入前拒绝操作
 - **AND** 父 ID 为空但部分子作业已有 ID 时，ERP MUST 在 `START` 事务内按 ID 锁定并验证已有子作业的数据库身份，只用可信数据库实体绑定新父 ID并替换设备 JSON 中的缓存实体
 - **AND** 可信数据库子作业的 `craftCode` MUST 与已通过入口校验的缓存子作业 `craftCode` 精确一致，替换后的 Qt 子作业 MUST 继续满足所选 `processId`
+- **AND** 已有子作业存在冲突父 ID、跨设备、跨授权主机、非 `status=0`、缓存/数据库 `craftCode` 不一致、重复 ID 或重复模具号时，ERP MUST 在父、子和设备 JSON 写入前拒绝操作
+
+#### Scenario: 旧版无 ID 子作业状态为空
+- **WHEN** 设备当前可信 JSON 的父作业为 `id=null,status=0`，子作业为 `id=null,pressJobInfoId=null,status=null` 或 `status=0`，且发生下一次锁模、`START` 或解锁
+- **THEN** ERP MUST 只把该窄兼容形状中的空子状态规范化为 `0`，再在当前业务事务内将父作业和仍锁定子作业懒持久化一次并继续本次操作
+- **AND** 直接解锁时 MUST 在应用既有 `status=4` 收口前取得并回写真实父子 ID
+- **AND** 任一子作业存在非空非 `0` 状态、冲突父 ID、跨设备、跨授权主机、重复 ID 或重复模具号时，ERP MUST 在父、子和设备 JSON 写入前拒绝操作
 
 #### Scenario: mixed Qt START 拒绝数据库工艺漂移
 - **WHEN** mixed legacy 缓存子作业的 `craftCode` 与 Qt 所选 `processId` 一致，但相同 ID 的可信数据库子作业具有不同 `craftCode`
