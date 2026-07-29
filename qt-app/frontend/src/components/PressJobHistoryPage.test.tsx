@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-29 07:56:39
+ * @edited 2026-07-29 09:45:41
  * @brief 锁定日期快照、请求竞态、表格、详情和现有 Design Token（设计变量）契约。
  */
 
@@ -559,7 +559,9 @@ describe("PressJobHistoryPage", () => {
     expect(pageCss).toMatch(
       /\.press-job-history-page__filters\s+:where\(\.ant-picker, \.ant-input, \.ant-select, \.ant-btn\)\s*\{[^}]*min-height: 44px;/,
     );
-    expect(pageCss).not.toContain(".ant-select-selector");
+    expect(pageCss).toMatch(
+      /\.press-job-history-page__filters\s+\.ant-select-selector\s*\{[^}]*min-height: 44px;/,
+    );
     expect(pageCss).toContain("grid-template-columns: minmax(0, 64fr) minmax(260px, 36fr)");
     expect(pageCss).toContain(":focus-visible");
     expect(pageCss).toContain("@media (prefers-reduced-motion: reduce)");

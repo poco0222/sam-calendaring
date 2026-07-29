@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-29 07:57:11
+ * @edited 2026-07-29 09:46:03
  * @brief 复用现有 Design Token（设计变量）约束 1280x720 触控布局和详情局部滚动。
  */
 
@@ -61,6 +61,10 @@
 }
 
 .press-job-history-page__filters :where(.ant-picker, .ant-input, .ant-select, .ant-btn) {
+  min-height: 44px;
+}
+
+.press-job-history-page__filters .ant-select-selector {
   min-height: 44px;
 }
 
