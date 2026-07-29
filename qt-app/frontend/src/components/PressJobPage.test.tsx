@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-06-30
  * @editor PopoY
- * @edited 2026-07-29 11:03:02
+ * @edited 2026-07-29 16:05:28
  * @brief 锁定 frontend-only（仅前端）压机作业页的四行布局、空数据和安全边界。
  */
 
@@ -2745,6 +2745,14 @@ describe("PressJobPage", () => {
         [{ localJobSessionId: "job-01" }],
       ),
     ).toBe("当前作业状态未确认，请刷新后重试。");
+    expect(
+      validateSharedPressDeviceActionPreflight(
+        "connect",
+        { teamId: "team-01", operatorId: "op-01", processId: "PRESS-01" },
+        connectedDriverSession,
+        [{ localJobSessionId: "device-placeholder", pressName: "一号压机" }],
+      ),
+    ).toBeNull();
     expect(
       validateSharedPressDeviceActionPreflight(
         "moveIn",

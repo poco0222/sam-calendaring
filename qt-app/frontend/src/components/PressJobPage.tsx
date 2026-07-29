@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-06-30
  * @editor PopoY
- * @edited 2026-07-28 11:28:19
+ * @edited 2026-07-29 16:06:27
  * @brief 展示压机作业 lookup data（查询数据）和 SignalSnapshotTable（信号快照表）。
  */
 
@@ -2909,10 +2909,7 @@ export function validateSharedPressDeviceActionPreflight(
     return "请先选择预选工艺。";
   }
 
-  if (
-    !isCurrentJobStateKnown(currentJobRows) &&
-    (buttonKey !== "connect" || currentJobRows.length > 0)
-  ) {
+  if (buttonKey !== "connect" && !isCurrentJobStateKnown(currentJobRows)) {
     return "当前作业状态未确认，请刷新后重试。";
   }
 
