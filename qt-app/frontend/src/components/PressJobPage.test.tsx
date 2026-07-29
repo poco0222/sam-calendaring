@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-06-30
  * @editor PopoY
- * @edited 2026-07-29 16:05:28
+ * @edited 2026-07-29 16:30:25
  * @brief 锁定 frontend-only（仅前端）压机作业页的四行布局、空数据和安全边界。
  */
 
@@ -2839,10 +2839,10 @@ describe("PressJobPage", () => {
   });
 
   /**
-   * @brief 断言无当前作业时 CONNECT（建立通信）仍执行 Driver 并使用生成的设备级会话上报。
+   * @brief 断言未选预选工艺且无当前作业时 CONNECT（建立通信）仍执行 Driver 并使用生成的设备级会话上报。
    * @author PopoY
    */
-  it("reports CONNECT with a generated local session when no current job exists", async () => {
+  it("reports CONNECT without a process or current job using a generated local session", async () => {
     const executePressDeviceCommand = vi.fn(async (request) => ({
       ...request,
       resultCode: "PARTIAL_OK",
@@ -2856,7 +2856,7 @@ describe("PressJobPage", () => {
       currentJobRows: [],
       driverSession: createDriverSession("Connected"),
       executePressDeviceCommand,
-      filters: { teamId: "team-1", operatorId: "user-1", processId: "PRESS-01" },
+      filters: { teamId: "team-1", operatorId: "user-1" },
       recordPressJobOperation,
       refreshSignalSnapshot: vi.fn().mockResolvedValue(undefined),
     });

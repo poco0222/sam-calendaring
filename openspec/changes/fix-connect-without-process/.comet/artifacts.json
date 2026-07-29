@@ -1,0 +1,6 @@
+{
+  "openspec_proposal": "openspec/changes/fix-connect-without-process/proposal.md",
+  "openspec_design": "openspec/changes/fix-connect-without-process/design.md",
+  "openspec_tasks": "openspec/changes/fix-connect-without-process/tasks.md",
+  "openspec_delta_spec": "openspec/changes/fix-connect-without-process/specs/press-job-operation-log/spec.md"
+}
