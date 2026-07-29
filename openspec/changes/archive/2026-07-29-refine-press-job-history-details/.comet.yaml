@@ -16,14 +16,14 @@ plan: docs/superpowers/plans/2026-07-28-refine-press-job-history-details.md
 verify_result: pass
 verify_failures: 0
 verification_report: docs/superpowers/reports/2026-07-29-refine-press-job-history-details-verify.md
-branch_status: pending
+branch_status: handled
 created_at: 2026-07-28
 verified_at: 2026-07-29
 archive_confirmation: confirmed
 archived: true
-bound_branch: PopoY-WorkTree/feature/20260728/refine-press-job-history-details
+bound_branch: main
 direct_override: null
-handoff_context: openspec/changes/refine-press-job-history-details/.comet/handoff/design-context.json
+handoff_context: openspec/changes/archive/2026-07-29-refine-press-job-history-details/.comet/handoff/design-context.json
 handoff_hash: 6bed57afc56aa834786fbd88d5b72f926c2b573ae58dbcb01c56e056839684bf
 classic_profile: full
 classic_migration: 1
