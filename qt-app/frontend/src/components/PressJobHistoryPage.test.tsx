@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-29 12:21:24
+ * @edited 2026-07-29 14:56:52
  * @brief 锁定日期快照、请求竞态、表格、详情和现有 Design Token（设计变量）契约。
  */
 
@@ -16,6 +16,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { AntdRootProvider } from "../app/AntdRootProvider";
 import type { PressJobHistoryDetail } from "../domain/pressJob";
+import * as historyPage from "./PressJobHistoryPage";
 import {
   alignHistoryParameters,
   buildHistoryQuery,
@@ -81,6 +82,7 @@ function renderHistoryDetail(
     startParameterState: "missing",
     endParameterState: "missing",
   },
+  detailOverrides: Partial<PressJobHistoryDetail> = {},
 ): string {
   const detail: PressJobHistoryDetail = {
     moldJobId: "job-1",
@@ -96,6 +98,7 @@ function renderHistoryDetail(
     startParameters: [],
     endParameters: [],
     operationRecords,
+    ...detailOverrides,
   };
 
   return renderToStaticMarkup(
@@ -346,8 +349,9 @@ describe("PressJobHistoryPage", () => {
     expect(html).toContain("班组");
     expect(html).toContain("人员");
     expect(pageSource).toContain(
-      "当前查询范围暂无已完成作业，请调整日期范围后查询。",
+      "当前查询范围暂无作业，请调整日期范围后查询。",
     );
+    expect(pageSource).not.toContain("暂无已完成作业");
     for (const title of [
       "压机",
       "模具号",
@@ -356,10 +360,11 @@ describe("PressJobHistoryPage", () => {
       "开始时间",
       "完成时间",
       "实际时长",
-      "完工状态",
+      "作业状态",
     ]) {
       expect(html).toContain(title);
     }
+    expect(pageSource).not.toContain('label: "完工状态"');
   });
 
   it("scopes personnel by team while keeping the global dictionary for display", () => {
@@ -464,10 +469,29 @@ describe("PressJobHistoryPage", () => {
     expect(pageSource).toContain("rootStyle={drawerRootStyle}");
   });
 
-  it("maps unknown completion states to fixed Chinese text", () => {
+  it("formats running, completed and unknown job states", () => {
+    const formatHistoryCompletedAt = Reflect.get(
+      historyPage,
+      "formatHistoryCompletedAt",
+    ) as (status: string | undefined, value: string | undefined) => string;
+    const formatHistoryDuration = Reflect.get(
+      historyPage,
+      "formatHistoryDuration",
+    ) as (status: string | undefined, value: string | undefined) => string;
+
+    expect(formatHistoryStatus("1")).toBe("进行中");
     expect(formatHistoryStatus("3")).toBe("已完成");
     expect(formatHistoryStatus("UNRECOGNIZED")).toBe("状态未知");
     expect(formatHistoryStatus(undefined)).toBe("状态未知");
+
+    expect(typeof formatHistoryCompletedAt).toBe("function");
+    expect(typeof formatHistoryDuration).toBe("function");
+    expect(formatHistoryCompletedAt("1", undefined)).toBe("未完成");
+    expect(formatHistoryCompletedAt("3", "2026-07-27 12:34:56")).toBe(
+      "2026-07-27 12:34:56",
+    );
+    expect(formatHistoryDuration("1", undefined)).toBe("进行中");
+    expect(formatHistoryDuration("3", "1.5")).toBe("1.5 小时");
   });
 
   it("aligns parameters by name and preserves a value recorded on one side", () => {
@@ -602,6 +626,20 @@ describe("PressJobHistoryPage", () => {
 
   it("renders the operation empty state in the real detail UI", () => {
     expect(renderHistoryDetail([])).toContain("该作业没有可查看的操作记录");
+  });
+
+  it("renders a running job with unfinished completion fields", () => {
+    const html = renderHistoryDetail([], undefined, {
+      actualDurationHours: undefined,
+      completedAt: undefined,
+      status: "1",
+    });
+
+    expect(html).toContain("作业状态");
+    expect(html).toContain("进行中");
+    expect(html).toContain("未完成");
+    expect(html).toContain("完工参数");
+    expect(html).toContain("未记录");
   });
 
   /**
