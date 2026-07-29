@@ -5,7 +5,7 @@
 - OpenSpec mapping:
   - `1.1 先修改 Mapper 和 Controller 聚焦测试，证明列表允许 status=1/3、跨日进行中作业按区间相交返回且置顶，并证明详情允许同设备进行中作业；运行测试取得预期 RED（失败）证据`
   - `1.2 最小修改 PressMouldJobInfoMapper 列表与详情 SQL，保留认证设备、半开时间、稳定分页和父作业身份边界，使 1.1 测试转为 GREEN（通过）`
-- Stage: `checkoff`
+- Stage: `done`
 - Implementer: `/root/implement_erp_running_history`
 - Baseline: `085c6f1576ac12b624b7cbec4c5ce2b94a8d81ff`
 - Implementation commits:
@@ -27,3 +27,4 @@
 - Fix agent: `/root/fix_erp_history_contract_review`
 - Review status: approved after re-review
 - Unresolved feedback: none
+- Checkoff: plan Steps 1-6 and OpenSpec 1.1-1.2 verified by `comet state task-checkoff`.

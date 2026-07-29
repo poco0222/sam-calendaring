@@ -8,7 +8,7 @@ base-ref: 4c5d0464d63ae6dece30d2a2fb5617d7181f3c32
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `subagent-driven-development` (recommended) or `executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> Author: PopoY  
+> Author: PopoY
 > Created: 2026-07-29 14:07:12
 
 **Goal:** 让当前认证设备的 `status=1` 进行中模具作业与 `status=3` 已完成作业共享现有“历史作业”列表、详情和操作记录入口。
