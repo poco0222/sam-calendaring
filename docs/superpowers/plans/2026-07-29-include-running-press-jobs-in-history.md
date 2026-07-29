@@ -2,6 +2,7 @@
 change: include-running-press-jobs-in-history
 design-doc: docs/superpowers/specs/2026-07-29-include-running-press-jobs-in-history-design.md
 base-ref: 4c5d0464d63ae6dece30d2a2fb5617d7181f3c32
+archived-with: 2026-07-29-include-running-press-jobs-in-history
 ---
 
 # 历史作业纳入进行中作业 Implementation Plan（实施计划）

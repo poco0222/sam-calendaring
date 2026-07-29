@@ -2,6 +2,8 @@
 comet_change: include-running-press-jobs-in-history
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-29-include-running-press-jobs-in-history
+status: final
 ---
 
 # 历史作业纳入进行中作业技术设计
