@@ -2,6 +2,8 @@
  * @file DiagnosticLogsPage.test.tsx - 验证 Diagnostic Logs Page（诊断日志页面）。
  * @author PopoY
  * @created 2026-06-27
+ * @editor PopoY
+ * @edited 2026-07-29 12:11:37
  * @brief 验证 Diagnostic Logs Page（诊断日志页面）的独立页面、固定筛选器和白名单展示契约。
  */
 
@@ -20,6 +22,10 @@ import {
 
 const pageCss = readFileSync(
   new URL("./DiagnosticLogsPage.css", import.meta.url),
+  "utf8",
+);
+const pageSource = readFileSync(
+  new URL("./DiagnosticLogsPage.tsx", import.meta.url),
   "utf8",
 );
 
@@ -203,6 +209,21 @@ describe("DiagnosticLogsPage", () => {
   });
 
   /**
+   * @brief 断言关联链使用 Ant Design Timeline（时间轴）内建节点和连接线，不保留手写 marker（圆点）。
+   * @author PopoY
+   */
+  it("uses Ant Design Timeline without handwritten markers or rails", () => {
+    expect(pageSource).toContain("<Timeline");
+    expect(pageSource).toContain("items={timelineLogs.map");
+    expect(pageSource).toContain("content: (");
+    expect(pageSource).not.toContain("children: (");
+    expect(pageSource).toContain('aria-current={isActive ? "true" : undefined}');
+    expect(pageSource).not.toContain("diagnostic-logs-page__timeline-marker");
+    expect(pageCss).not.toContain("diagnostic-logs-page__timeline-marker");
+    expect(pageCss).not.toContain(".ant-timeline-item-tail");
+  });
+
+  /**
    * @brief 断言日志超过单页时展示 Ant Design Table pagination（表格分页）。
    * @author PopoY
    */
@@ -268,7 +289,7 @@ describe("DiagnosticLogsPage", () => {
     expect(pageCss).toContain("padding-top: 6px");
     expect(pageCss).toContain("justify-content: flex-end");
     expect(pageCss).toContain("flex-direction: column");
-    expect(pageCss).toContain("grid-template-columns: 12px 96px minmax(0, 1fr)");
+    expect(pageCss).toContain("grid-template-columns: 96px minmax(0, 1fr)");
     expect(pageCss).toContain(".diagnostic-logs-page__detail-grid");
     expect(pageCss).toContain("grid-template-columns: minmax(0, 1fr)");
     expect(pageCss).toContain("overflow: hidden");

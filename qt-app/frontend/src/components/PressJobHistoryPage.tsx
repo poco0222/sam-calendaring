@@ -3,20 +3,20 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-29 10:28:13
+ * @edited 2026-07-29 12:21:24
  * @brief 提供本地自然日筛选、服务端分页和脱敏历史作业详情。
  */
 
 import { SearchOutlined } from "@ant-design/icons";
 import {
   Alert,
+  App as AntdApp,
   Button,
   Col,
   DatePicker,
   Descriptions,
   Drawer,
   Form,
-  Input,
   Pagination,
   Row,
   Select,
@@ -40,7 +40,16 @@ import type {
   PressJobHistoryParameter,
   PressJobHistoryQuery,
   PressJobHistoryRow,
+  PressJobLookupData,
+  PressJobTeamOptions,
+  PressMoldCandidate,
 } from "../domain/pressJob";
+import { NumericKeypad } from "./NumericKeypad";
+import {
+  createPressMoldCandidateSearchInput,
+  resolveActivePressJobTeamOptions,
+  resolveNumericKeypadPosition,
+} from "./PressJobPage";
 import "./PressJobHistoryPage.css";
 
 const { RangePicker } = DatePicker;
@@ -51,6 +60,7 @@ let historyCorrelationSequence = 0;
 export type HistoryDraftFilters = {
   dateRange: [Dayjs, Dayjs] | null;
   mouldCode: string;
+  teamId?: string;
   operator?: string;
 };
 
@@ -65,6 +75,13 @@ export type HistoryParameterComparisonRow = {
 export type PressJobHistoryPageProps = {
   operatorOptions: ErpDictOption[];
   craftOptions: ErpDictOption[];
+  pressJobLookupData?: PressJobLookupData;
+  loadPressJobTeamOptions?: (teamId: string) => Promise<PressJobTeamOptions>;
+  searchPressMoldCandidates?: (input: {
+    moldNo: string;
+    lockedMoldNos: string[];
+    correlationId: string;
+  }) => Promise<PressMoldCandidate[]>;
   loadHistoryList: (
     query: PressJobHistoryQuery,
   ) => Promise<PressJobHistoryPageResult>;
@@ -88,11 +105,30 @@ type HistoryListRequestIdentity = {
  * @param now 工控机当前本地时间。
  * @returns 当天起止日期和空的可选筛选。
  */
-export function createInitialHistoryFilters(now: Dayjs): HistoryDraftFilters & {
+export function createInitialHistoryFilters(
+  now: Dayjs,
+  defaultTeamId?: string,
+): HistoryDraftFilters & {
   dateRange: [Dayjs, Dayjs];
 } {
   const today = now.startOf("day");
-  return { dateRange: [today, today], mouldCode: "" };
+  return {
+    dateRange: [today, today],
+    mouldCode: "",
+    operator: undefined,
+    teamId: defaultTeamId,
+  };
+}
+
+/**
+ * @brief 切换班组时保留其他筛选并清空人员，防止提交旧班组人员。
+ * @author PopoY
+ */
+export function createHistoryTeamChangeFilters(
+  filters: HistoryDraftFilters,
+  teamId?: string,
+): HistoryDraftFilters {
+  return { ...filters, operator: undefined, teamId };
 }
 
 /**
@@ -143,6 +179,7 @@ export function buildHistoryQuery(
     dateRange: readonly [Dayjs, Dayjs] | null;
     mouldCode: string;
     operator?: string;
+    teamId?: string;
   },
   pageNum: number,
   correlationId: string,
@@ -220,6 +257,19 @@ export function shouldApplyHistoryDetailResponse(
 }
 
 /**
+ * @brief 仅接收仍匹配当前版本和筛选值的班组或模具候选响应。
+ * @author PopoY
+ */
+export function shouldApplyHistoryLookupResponse(
+  requestedVersion: number,
+  currentVersion: number,
+  requestedValue: string | undefined,
+  currentValue: string | undefined,
+): boolean {
+  return requestedVersion === currentVersion && requestedValue === currentValue;
+}
+
+/**
  * @brief 把 ERP 完工状态映射为固定中文，未知值不得回显。
  * @author PopoY
  */
@@ -269,7 +319,9 @@ export function alignHistoryParameters(
  * @brief 生成本地单调 request correlation ID（请求关联 ID）。
  * @author PopoY
  */
-export function createHistoryCorrelationId(scope: "list" | "detail"): string {
+export function createHistoryCorrelationId(
+  scope: "list" | "detail" | "mold",
+): string {
   historyCorrelationSequence += 1;
   return `qt-history-${scope}-${Date.now()}-${historyCorrelationSequence}`;
 }
@@ -281,9 +333,13 @@ export function createHistoryCorrelationId(scope: "list" | "detail"): string {
 export function PressJobHistoryPage({
   operatorOptions,
   craftOptions,
+  pressJobLookupData,
+  loadPressJobTeamOptions,
+  searchPressMoldCandidates,
   loadHistoryList,
   loadHistoryDetail,
 }: PressJobHistoryPageProps) {
+  const { message: messageApi } = AntdApp.useApp();
   const {
     token: { colorPrimary, colorPrimaryBg, colorPrimaryBorder },
   } = theme.useToken();
@@ -293,7 +349,7 @@ export function PressJobHistoryPage({
     "--qt-app-control-blue-line": colorPrimaryBorder,
   } as CSSProperties;
   const [draftFilters, setDraftFilters] = useState<HistoryDraftFilters>(() =>
-    createInitialHistoryFilters(dayjs()),
+    createInitialHistoryFilters(dayjs(), pressJobLookupData?.defaultTeamId),
   );
   const [appliedQuery, setAppliedQuery] = useState(() =>
     buildHistoryQuery(
@@ -314,8 +370,25 @@ export function PressJobHistoryPage({
   const [detail, setDetail] = useState<PressJobHistoryDetail>();
   const [detailStatus, setDetailStatus] = useState<RequestStatus>("idle");
   const [detailLoading, setDetailLoading] = useState(false);
+  const [selectedTeamOptions, setSelectedTeamOptions] =
+    useState<PressJobTeamOptions | null>(null);
+  const [loadingTeamId, setLoadingTeamId] = useState<string | null>(null);
+  const [mouldSearchText, setMouldSearchText] = useState("");
+  const [mouldCandidates, setMouldCandidates] = useState<PressMoldCandidate[]>([]);
+  const [mouldCandidateLoading, setMouldCandidateLoading] = useState(false);
+  const [mouldSelectOpen, setMouldSelectOpen] = useState(false);
+  const [mouldKeypadPosition, setMouldKeypadPosition] = useState<
+    ReturnType<typeof resolveNumericKeypadPosition> | null
+  >(null);
   const listRequestVersionRef = useRef(0);
   const detailRequestVersionRef = useRef(0);
+  const teamLookupVersionRef = useRef(0);
+  const mouldLookupVersionRef = useRef(0);
+  const activeTeamIdRef = useRef(draftFilters.teamId);
+  const mouldSearchTextRef = useRef(mouldSearchText);
+  const activeMouldInputRef = useRef<HTMLElement | null>(null);
+  const mouldKeypadOpenRef = useRef(false);
+  const pendingSelectedMouldCodeRef = useRef<string | null>(null);
   const selectedMoldJobIdRef = useRef<string | undefined>(undefined);
   const triggerRowRef = useRef<HTMLElement | null>(null);
   const currentLoadHistoryListRef = useRef(loadHistoryList);
@@ -326,6 +399,8 @@ export function PressJobHistoryPage({
   currentLoadHistoryListRef.current = loadHistoryList;
   currentLoadHistoryDetailRef.current = loadHistoryDetail;
   currentAppliedQueryRef.current = appliedQuery;
+  activeTeamIdRef.current = draftFilters.teamId;
+  mouldSearchTextRef.current = mouldSearchText;
 
   const runHistoryListRequest = useCallback(
     (query: PressJobHistoryQuery) => {
@@ -473,6 +548,38 @@ export function PressJobHistoryPage({
     if (moldJobId) runHistoryDetailRequest(moldJobId);
   }, [loadHistoryDetail, runHistoryDetailRequest]);
 
+  useEffect(() => {
+    const defaultTeamId = pressJobLookupData?.defaultTeamId;
+    if (!defaultTeamId) return;
+
+    setDraftFilters((current) =>
+      current.teamId ? current : { ...current, teamId: defaultTeamId },
+    );
+  }, [pressJobLookupData?.defaultTeamId]);
+
+  const teamOptions = useMemo(
+    () =>
+      (pressJobLookupData?.teamOptions ?? []).map((team) => ({
+        label: team.teamName,
+        value: team.teamId,
+      })),
+    [pressJobLookupData?.teamOptions],
+  );
+  const activeTeamOptions = resolveActivePressJobTeamOptions(
+    draftFilters.teamId,
+    pressJobLookupData,
+    selectedTeamOptions,
+  );
+  const activeOperatorOptions = activeTeamOptions.operatorOptions;
+  const mouldCandidateOptions = useMemo(
+    () =>
+      mouldCandidates.map((candidate) => ({
+        label: candidate.moldNo,
+        value: candidate.moldNo,
+      })),
+    [mouldCandidates],
+  );
+
   const operatorLabelByValue = useMemo(
     () => new Map(operatorOptions.map((option) => [option.dictValue, option.dictLabel])),
     [operatorOptions],
@@ -558,6 +665,216 @@ export function PressJobHistoryPage({
       ...current,
       dateRange: value?.[0] && value[1] ? [value[0], value[1]] : null,
     }));
+  };
+
+  /**
+   * @brief 切换班组并加载该班组人员，迟到响应不得覆盖新班组。
+   * @author PopoY
+   */
+  const handleTeamChange = (teamId?: string) => {
+    const requestedVersion = ++teamLookupVersionRef.current;
+    activeTeamIdRef.current = teamId;
+    setSelectedTeamOptions(null);
+    setLoadingTeamId(null);
+    setDraftFilters((current) =>
+      createHistoryTeamChangeFilters(current, teamId),
+    );
+
+    if (
+      !teamId ||
+      teamId === pressJobLookupData?.defaultTeamId ||
+      !loadPressJobTeamOptions
+    ) {
+      return;
+    }
+
+    setLoadingTeamId(teamId);
+    void loadPressJobTeamOptions(teamId)
+      .then((nextOptions) => {
+        if (
+          shouldApplyHistoryLookupResponse(
+            requestedVersion,
+            teamLookupVersionRef.current,
+            teamId,
+            activeTeamIdRef.current,
+          )
+        ) {
+          setSelectedTeamOptions(nextOptions);
+        }
+      })
+      .catch(() => {
+        if (
+          shouldApplyHistoryLookupResponse(
+            requestedVersion,
+            teamLookupVersionRef.current,
+            teamId,
+            activeTeamIdRef.current,
+          )
+        ) {
+          setSelectedTeamOptions({
+            teamId,
+            operatorOptions: [],
+            processOptions: [],
+          });
+          messageApi.error("班组人员加载失败，请稍后重试。");
+        }
+      })
+      .finally(() => {
+        if (
+          shouldApplyHistoryLookupResponse(
+            requestedVersion,
+            teamLookupVersionRef.current,
+            teamId,
+            activeTeamIdRef.current,
+          )
+        ) {
+          setLoadingTeamId(null);
+        }
+      });
+  };
+
+  /**
+   * @brief 更新模具搜索草稿；只有选择远程候选时才写入历史查询筛选。
+   * @author PopoY
+   */
+  const handleMouldSearchTextChange = (nextText: string) => {
+    const pendingSelectedMouldCode = pendingSelectedMouldCodeRef.current;
+    if (!nextText && pendingSelectedMouldCode) {
+      mouldSearchTextRef.current = pendingSelectedMouldCode;
+      setMouldSearchText(pendingSelectedMouldCode);
+      setMouldSelectOpen(false);
+      return;
+    }
+
+    pendingSelectedMouldCodeRef.current = null;
+    mouldLookupVersionRef.current += 1;
+    mouldSearchTextRef.current = nextText;
+    setMouldCandidateLoading(false);
+    setMouldSearchText(nextText);
+    setMouldCandidates([]);
+    setMouldSelectOpen(false);
+    setDraftFilters((current) => ({ ...current, mouldCode: "" }));
+  };
+
+  const handleMouldKeypadChange = (nextText: string) => {
+    if (!nextText) pendingSelectedMouldCodeRef.current = null;
+    handleMouldSearchTextChange(nextText);
+  };
+
+  const handleMouldCandidateChange = (mouldCode?: string) => {
+    const candidate = mouldCandidates.find(
+      (current) => current.moldNo === mouldCode,
+    );
+    if (!candidate) {
+      pendingSelectedMouldCodeRef.current = null;
+      handleMouldSearchTextChange("");
+      return;
+    }
+
+    pendingSelectedMouldCodeRef.current = candidate.moldNo;
+    mouldSearchTextRef.current = candidate.moldNo;
+    setMouldSearchText(candidate.moldNo);
+    setMouldSelectOpen(false);
+    setDraftFilters((current) => ({
+      ...current,
+      mouldCode: candidate.moldNo,
+    }));
+  };
+
+  /**
+   * @brief 数字键盘确认后按现有模具锁定合同远程加载候选。
+   * @author PopoY
+   */
+  const searchMouldCandidates = () => {
+    const moldNo = mouldSearchText.trim();
+    const requestedVersion = ++mouldLookupVersionRef.current;
+
+    if (!searchPressMoldCandidates || !moldNo) {
+      setMouldCandidates([]);
+      setMouldCandidateLoading(false);
+      setMouldSelectOpen(false);
+      return;
+    }
+
+    const correlationId = createHistoryCorrelationId("mold");
+    setMouldCandidateLoading(true);
+    setMouldSelectOpen(true);
+    void searchPressMoldCandidates(
+      createPressMoldCandidateSearchInput(moldNo, [], correlationId),
+    )
+      .then((nextCandidates) => {
+        if (
+          shouldApplyHistoryLookupResponse(
+            requestedVersion,
+            mouldLookupVersionRef.current,
+            moldNo,
+            mouldSearchTextRef.current.trim(),
+          )
+        ) {
+          setMouldCandidates(nextCandidates);
+          setMouldSelectOpen(nextCandidates.length > 0);
+        }
+      })
+      .catch(() => {
+        if (
+          shouldApplyHistoryLookupResponse(
+            requestedVersion,
+            mouldLookupVersionRef.current,
+            moldNo,
+            mouldSearchTextRef.current.trim(),
+          )
+        ) {
+          setMouldCandidates([]);
+          setMouldSelectOpen(false);
+          messageApi.error("模具查询失败，请稍后重试。");
+        }
+      })
+      .finally(() => {
+        if (
+          shouldApplyHistoryLookupResponse(
+            requestedVersion,
+            mouldLookupVersionRef.current,
+            moldNo,
+            mouldSearchTextRef.current.trim(),
+          )
+        ) {
+          setMouldCandidateLoading(false);
+        }
+      });
+  };
+
+  const handleMouldKeypadFocus = (input: HTMLElement) => {
+    activeMouldInputRef.current = input;
+    mouldKeypadOpenRef.current = true;
+    setMouldSelectOpen(false);
+    setMouldKeypadPosition(
+      resolveNumericKeypadPosition(
+        input.getBoundingClientRect(),
+        window.innerWidth,
+        window.innerHeight,
+      ),
+    );
+  };
+
+  const closeMouldKeypad = (shouldBlur = true) => {
+    mouldKeypadOpenRef.current = false;
+    setMouldKeypadPosition(null);
+    if (shouldBlur) {
+      activeMouldInputRef.current?.blur();
+      activeMouldInputRef.current = null;
+    }
+  };
+
+  const handleMouldSelectOpenChange = (open: boolean) => {
+    if (
+      pendingSelectedMouldCodeRef.current ||
+      mouldKeypadOpenRef.current ||
+      mouldKeypadPosition
+    ) {
+      setMouldSelectOpen(false);
+      return;
+    }
+    setMouldSelectOpen(open && mouldCandidates.length > 0);
   };
 
   const dateValidationMessage = validateHistoryDateRange(draftFilters.dateRange);
@@ -657,33 +974,89 @@ export function PressJobHistoryPage({
           </Col>
           <Col flex="0 0 220px">
             <Form.Item className="press-job-history-page__field" label="模具号">
-              <Input
+              <Select
+                allowClear
                 aria-label="模具号"
-                placeholder="请输入模具号"
-                value={draftFilters.mouldCode}
-                onChange={(event) =>
-                  setDraftFilters((current) => ({
-                    ...current,
-                    mouldCode: event.target.value,
-                  }))
+                classNames={{
+                  popup: {
+                    list: "press-job-page__select-list",
+                    listItem: "press-job-page__select-option",
+                    root: "press-job-page__select-popup press-job-page__mold-select-popup",
+                  },
+                }}
+                listHeight={960}
+                loading={mouldCandidateLoading}
+                onBlur={() => closeMouldKeypad()}
+                onChange={handleMouldCandidateChange}
+                onFocus={(event) =>
+                  handleMouldKeypadFocus(event.currentTarget)
                 }
+                onOpenChange={handleMouldSelectOpenChange}
+                onSearch={handleMouldSearchTextChange}
+                open={mouldSelectOpen}
+                optionFilterProp="label"
+                options={mouldCandidateOptions}
+                placeholder="请输入模具号"
+                popupMatchSelectWidth={false}
+                searchValue={mouldSearchText}
+                showSearch
+                value={draftFilters.mouldCode || undefined}
+                virtual={false}
               />
             </Form.Item>
           </Col>
           <Col flex="0 0 220px">
-            <Form.Item className="press-job-history-page__field" label="作业人员">
+            <Form.Item className="press-job-history-page__field" label="班组">
               <Select
                 allowClear
-                aria-label="作业人员"
-                options={operatorOptions.map((option) => ({
-                  label: option.dictLabel,
-                  value: option.dictValue,
+                aria-label="班组选择器"
+                classNames={{
+                  popup: {
+                    list: "press-job-page__select-list",
+                    listItem: "press-job-page__select-option",
+                    root: "press-job-page__select-popup press-job-page__select-popup--two-column",
+                  },
+                }}
+                listHeight={960}
+                loading={loadingTeamId === draftFilters.teamId}
+                onChange={handleTeamChange}
+                optionFilterProp="label"
+                options={teamOptions}
+                placeholder="请选择班组"
+                popupMatchSelectWidth={false}
+                showSearch
+                value={draftFilters.teamId}
+                virtual={false}
+              />
+            </Form.Item>
+          </Col>
+          <Col flex="0 0 220px">
+            <Form.Item className="press-job-history-page__field" label="人员">
+              <Select
+                allowClear
+                aria-label="人员选择器"
+                classNames={{
+                  popup: {
+                    list: "press-job-page__select-list",
+                    listItem: "press-job-page__select-option",
+                    root: "press-job-page__select-popup press-job-page__select-popup--two-column",
+                  },
+                }}
+                disabled={!draftFilters.teamId || loadingTeamId === draftFilters.teamId}
+                listHeight={960}
+                loading={loadingTeamId === draftFilters.teamId}
+                options={activeOperatorOptions.map((option) => ({
+                  label: option.operatorName,
+                  value: option.operatorId,
                 }))}
                 placeholder="全部人员"
+                popupMatchSelectWidth={false}
+                showSearch
                 value={draftFilters.operator}
                 onChange={(operator) =>
                   setDraftFilters((current) => ({ ...current, operator }))
                 }
+                virtual={false}
               />
             </Form.Item>
           </Col>
@@ -700,6 +1073,20 @@ export function PressJobHistoryPage({
           </Col>
         </Row>
       </Form>
+
+      {mouldKeypadPosition ? (
+        <NumericKeypad
+          onChange={handleMouldKeypadChange}
+          onClose={closeMouldKeypad}
+          onConfirm={() => {
+            searchMouldCandidates();
+            closeMouldKeypad(false);
+          }}
+          specialKey="-"
+          style={mouldKeypadPosition}
+          value={mouldSearchText}
+        />
+      ) : null}
 
       <Table<PressJobHistoryRow>
         className="press-job-history-page__table"

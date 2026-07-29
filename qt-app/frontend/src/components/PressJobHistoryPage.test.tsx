@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-29 10:43:20
+ * @edited 2026-07-29 12:21:24
  * @brief 锁定日期快照、请求竞态、表格、详情和现有 Design Token（设计变量）契约。
  */
 
@@ -19,6 +19,7 @@ import type { PressJobHistoryDetail } from "../domain/pressJob";
 import {
   alignHistoryParameters,
   buildHistoryQuery,
+  createHistoryTeamChangeFilters,
   createHistoryRangePresets,
   createInitialHistoryFilters,
   formatHistoryParameterValue,
@@ -27,6 +28,7 @@ import {
   PressJobHistoryPage,
   shouldApplyHistoryDetailResponse,
   shouldApplyHistoryListResponse,
+  shouldApplyHistoryLookupResponse,
   shouldRequestHistoryList,
   validateHistoryDateRange,
 } from "./PressJobHistoryPage";
@@ -121,6 +123,25 @@ describe("PressJobHistoryPage", () => {
     );
   });
 
+  it("defaults only the team and clears personnel when the team changes", () => {
+    const filters = createInitialHistoryFilters(
+      dayjs("2026-07-24T13:45:00"),
+      "team-1",
+    );
+
+    expect(filters).toMatchObject({ teamId: "team-1", operator: undefined });
+    expect(
+      createHistoryTeamChangeFilters(
+        { ...filters, mouldCode: "M-01", operator: "operator-1" },
+        "team-2",
+      ),
+    ).toMatchObject({
+      mouldCode: "M-01",
+      operator: undefined,
+      teamId: "team-2",
+    });
+  });
+
   it("accepts 31 natural days and rejects 32 natural days", () => {
     const start = dayjs("2026-07-01T00:00:00").utcOffset(480, true);
 
@@ -172,6 +193,7 @@ describe("PressJobHistoryPage", () => {
           dateRange: [start, start.add(1, "day")],
           mouldCode: " M-01 ",
           operator: "op-01",
+          teamId: "team-1",
         },
         2,
         "history-list-1",
@@ -185,6 +207,18 @@ describe("PressJobHistoryPage", () => {
       pageSize: 10,
       startTime: "2026-07-24T00:00:00+08:00",
     });
+  });
+
+  it("rejects stale team and mould lookup responses", () => {
+    expect(shouldApplyHistoryLookupResponse(2, 2, "team-2", "team-2")).toBe(
+      true,
+    );
+    expect(shouldApplyHistoryLookupResponse(1, 2, "team-2", "team-2")).toBe(
+      false,
+    );
+    expect(shouldApplyHistoryLookupResponse(2, 2, "M-01", "M-02")).toBe(
+      false,
+    );
   });
 
   it("keeps the applied snapshot stable until a new page-one query is built", () => {
@@ -309,7 +343,8 @@ describe("PressJobHistoryPage", () => {
 
     expect(html).toContain("日期范围");
     expect(html).toContain("模具号");
-    expect(html).toContain("作业人员");
+    expect(html).toContain("班组");
+    expect(html).toContain("人员");
     expect(pageSource).toContain(
       "当前查询范围暂无已完成作业，请调整日期范围后查询。",
     );
@@ -327,6 +362,43 @@ describe("PressJobHistoryPage", () => {
     }
   });
 
+  it("scopes personnel by team while keeping the global dictionary for display", () => {
+    expect(pageSource).toContain("resolveActivePressJobTeamOptions(");
+    expect(pageSource).toContain("activeOperatorOptions.map");
+    expect(pageSource).toContain("new Map(operatorOptions.map");
+    expect(pageSource).toContain('label="班组"');
+    expect(pageSource).toContain('label="人员"');
+    expect(pageSource).not.toContain('label="作业人员"');
+    expect(pageSource).toContain(
+      "disabled={!draftFilters.teamId || loadingTeamId === draftFilters.teamId}",
+    );
+  });
+
+  it("uses the mould-lock remote Select and NumericKeypad contracts", () => {
+    expect(pageSource).not.toContain("<Input");
+    expect(pageSource).toContain("searchPressMoldCandidates");
+    expect(pageSource).toMatch(
+      /createPressMoldCandidateSearchInput\(moldNo, \[\], correlationId\)/,
+    );
+    expect(pageSource).toContain("mouldLookupVersionRef");
+    expect(pageSource).toContain("press-job-page__mold-select-popup");
+    expect(pageSource).toContain("<NumericKeypad");
+    expect(pageSource).toContain('specialKey="-"');
+  });
+
+  it("clears a selected mould and stops stale lookup loading when input changes", () => {
+    expect(pageSource).toMatch(
+      /const handleMouldCandidateChange = \(mouldCode\?: string\) => \{[\s\S]*if \(!candidate\) \{\s*pendingSelectedMouldCodeRef\.current = null;\s*handleMouldSearchTextChange\(""\);/,
+    );
+    expect(pageSource).toMatch(
+      /const handleMouldSearchTextChange = \(nextText: string\) => \{[\s\S]*mouldLookupVersionRef\.current \+= 1;[\s\S]*setMouldCandidateLoading\(false\);[\s\S]*setMouldSearchText\(nextText\);/,
+    );
+    expect(pageSource).toMatch(
+      /const handleMouldKeypadChange = \(nextText: string\) => \{\s*if \(!nextText\) pendingSelectedMouldCodeRef\.current = null;\s*handleMouldSearchTextChange\(nextText\);\s*\};/,
+    );
+    expect(pageSource).toContain("onChange={handleMouldKeypadChange}");
+  });
+
   /**
    * @brief 断言历史筛选栏直接复用压机作业的 Form/Row/Col（表单栅格）尺寸体系，避免日期和短字段再次被压窄。
    * @author PopoY
@@ -339,7 +411,7 @@ describe("PressJobHistoryPage", () => {
     expect(pageSource).toContain('wrapperCol={{ flex: "1 1 0" }}');
     expect(pageSource).toContain('gutter={12} wrap={false}');
     expect(pageSource).toContain('<Col flex="0 0 360px">');
-    expect(pageSource.match(/<Col flex="0 0 220px">/g)).toHaveLength(2);
+    expect(pageSource.match(/<Col flex="0 0 220px">/g)).toHaveLength(3);
     expect(pageSource).toContain('<Col flex="auto">');
     expect(pageCss).not.toContain("flex: 0 0 270px");
     expect(pageCss).not.toContain("flex: 0 1 190px");

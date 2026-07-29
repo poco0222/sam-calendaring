@@ -2,6 +2,8 @@
  * @file DiagnosticLogsPage.css - 定义 Diagnostic Logs Page（诊断日志页面）样式。
  * @author PopoY
  * @created 2026-06-27
+ * @editor PopoY
+ * @edited 2026-07-29 11:55:16
  * @brief 保持 Diagnostic Logs Page（诊断日志页面）在 1280x720 IPC（工控机）视口内紧凑可读。
  */
 
@@ -172,16 +174,16 @@
 }
 
 .diagnostic-logs-page__timeline-list {
-  display: grid;
-  gap: 6px;
-  padding: 0;
   margin: 0;
-  list-style: none;
+}
+
+.diagnostic-logs-page__timeline-list .ant-timeline-item {
+  padding-bottom: 6px;
 }
 
 .diagnostic-logs-page__timeline-button {
   display: grid;
-  grid-template-columns: 12px 96px minmax(0, 1fr);
+  grid-template-columns: 96px minmax(0, 1fr);
   gap: 8px;
   width: 100%;
   min-height: 48px;
@@ -196,22 +198,13 @@
 
 .diagnostic-logs-page__timeline-button:hover,
 .diagnostic-logs-page__timeline-button:focus-visible,
-.diagnostic-logs-page__timeline-item--active .diagnostic-logs-page__timeline-button {
+.diagnostic-logs-page__timeline-button--active {
   background: var(--ant-color-fill-tertiary, #f5f5f5);
 }
 
 .diagnostic-logs-page__timeline-button:focus-visible {
   outline: 2px solid var(--ant-color-primary, #0078c8);
   outline-offset: 1px;
-}
-
-.diagnostic-logs-page__timeline-marker {
-  width: 8px;
-  height: 8px;
-  margin-top: 6px;
-  border: 2px solid var(--ant-color-primary, #0078c8);
-  border-radius: 50%;
-  background: var(--ant-color-bg-container, #ffffff);
 }
 
 .diagnostic-logs-page__timeline-time {

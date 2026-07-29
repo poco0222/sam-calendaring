@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-06-25
  * @editor PopoY
- * @edited 2026-07-27 12:09:21
+ * @edited 2026-07-29 11:57:50
  * @brief 编排 bootstrap hooks（启动 hooks）并渲染 QT App（Qt 应用）四个一级页面的 app shell（应用外壳）。
  */
 
@@ -689,7 +689,10 @@ export default function App() {
             craftOptions={bootstrapSession.data?.pressMoldCraftOptions ?? []}
             loadHistoryDetail={loadPressJobHistoryDetail}
             loadHistoryList={loadPressJobHistory}
+            loadPressJobTeamOptions={loadPressJobTeamOptions}
             operatorOptions={bootstrapSession.data?.pressMoldOperatorOptions ?? []}
+            pressJobLookupData={bootstrapSession.data?.pressJobLookupData}
+            searchPressMoldCandidates={searchPressMoldCandidates}
           />
         ) : null}
       </section>

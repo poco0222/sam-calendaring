@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-06-27
  * @editor PopoY
- * @edited 2026-07-27 12:13:37
+ * @edited 2026-07-29 12:02:37
  * @brief 锁定 App Shell（应用外壳）顶部导航、主题切换和页面容器契约。
  */
 
@@ -310,7 +310,7 @@ describe("App Shell", () => {
   });
 
   /**
-   * @brief 历史页面只接收字典 options（选项）和 loader callbacks（加载回调）。
+   * @brief 历史页面只接收脱敏 lookup data（查询数据）和既有 loader callbacks（加载回调）。
    * @author PopoY
    */
   it("keeps ERP credentials and device context out of PressJobHistoryPage props", () => {
@@ -328,11 +328,25 @@ describe("App Shell", () => {
       "craftOptions",
       "loadHistoryDetail",
       "loadHistoryList",
+      "loadPressJobTeamOptions",
       "operatorOptions",
+      "pressJobLookupData",
+      "searchPressMoldCandidates",
     ]);
     expect(historyPropsSource).toContain(
       "craftOptions={bootstrapSession.data?.pressMoldCraftOptions ?? []}",
     );
+    expect(historyPropsSource).toContain(
+      "pressJobLookupData={bootstrapSession.data?.pressJobLookupData}",
+    );
+    expect(historyPropsSource).toContain(
+      "loadPressJobTeamOptions={loadPressJobTeamOptions}",
+    );
+    expect(historyPropsSource).toContain(
+      "searchPressMoldCandidates={searchPressMoldCandidates}",
+    );
+    expect(historyPropsSource).not.toContain("sessionToken");
+    expect(historyPropsSource).not.toContain("deviceId");
     expect(historyPropsSource).toContain(
       "operatorOptions={bootstrapSession.data?.pressMoldOperatorOptions ?? []}",
     );

@@ -2,6 +2,8 @@
  * @file DiagnosticLogsPage.tsx - 渲染 Diagnostic Logs Page（诊断日志页面）。
  * @author PopoY
  * @created 2026-06-27
+ * @editor PopoY
+ * @edited 2026-07-29 12:11:37
  * @brief 渲染独立 Diagnostic Logs Page（诊断日志页面）。
  */
 
@@ -16,6 +18,7 @@ import {
   Switch,
   Table,
   Tag,
+  Timeline,
   Tooltip,
   type DescriptionsProps,
   type TableProps,
@@ -367,34 +370,29 @@ export function DiagnosticLogsPage({
       >
         <div className="diagnostic-logs-page__timeline">
           {timelineLogs.length > 0 ? (
-            <ol className="diagnostic-logs-page__timeline-list">
-              {timelineLogs.map((log) => {
+            <Timeline
+              className="diagnostic-logs-page__timeline-list"
+              items={timelineLogs.map((log) => {
                 const isActive =
                   activeLog !== null &&
                   createDiagnosticLogRowKey(log) ===
                     createDiagnosticLogRowKey(activeLog);
 
-                return (
-                  <li
-                    className={
-                      isActive
-                        ? "diagnostic-logs-page__timeline-item diagnostic-logs-page__timeline-item--active"
-                        : "diagnostic-logs-page__timeline-item"
-                    }
-                    key={createDiagnosticLogRowKey(log)}
-                  >
+                return {
+                  key: createDiagnosticLogRowKey(log),
+                  content: (
                     <button
                       aria-current={isActive ? "true" : undefined}
-                      className="diagnostic-logs-page__timeline-button"
+                      className={
+                        isActive
+                          ? "diagnostic-logs-page__timeline-button diagnostic-logs-page__timeline-button--active"
+                          : "diagnostic-logs-page__timeline-button"
+                      }
                       onClick={() => {
                         setSelectedLog(log);
                       }}
                       type="button"
                     >
-                      <span
-                        aria-hidden="true"
-                        className="diagnostic-logs-page__timeline-marker"
-                      />
                       <span className="diagnostic-logs-page__timeline-time">
                         {formatTimelineTime(log.createdAt)}
                       </span>
@@ -413,10 +411,10 @@ export function DiagnosticLogsPage({
                         </span>
                       </span>
                     </button>
-                  </li>
-                );
+                  ),
+                };
               })}
-            </ol>
+            />
           ) : (
             <Empty
               description="暂无时间线日志"
