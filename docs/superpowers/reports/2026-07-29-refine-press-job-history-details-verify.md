@@ -3,7 +3,7 @@
 @author PopoY
 @created 2026-07-29 08:56:35
 @editor PopoY
-@edited 2026-07-29 08:59:46
+@edited 2026-07-29 09:19:27
 @purpose 记录跨 QT App 与 ERP 的规格、测试、构建、浏览器交互和范围保护验证证据。
 -->
 
@@ -18,14 +18,14 @@
 | Dimension（维度） | Status（状态） | Evidence（证据） |
 | --- | --- | --- |
 | Completeness（完整性） | PASS | `12/12` OpenSpec tasks；`2/2` requirements 均有实现落点 |
-| Correctness（正确性） | PASS | `9/9` scenarios 由源码、自动测试或 1280×720 浏览器实测覆盖 |
+| Correctness（正确性） | PASS | `10/10` scenarios 由源码、自动测试或 1280×720 浏览器实测覆盖 |
 | Coherence（一致性） | PASS | 实现遵循 proposal、design、技术设计与项目现有模式，无 spec/design drift（规格/设计漂移） |
 | Security（安全性） | PASS | 旧记录回退限定认证设备；响应不暴露信号身份、配置或异常正文；无真实 ERP、数据库、PLC 或外部请求 |
 | Build（构建） | PASS | ERP Java 8 定向模块构建、QT production build（生产构建）与 TypeScript（类型检查）均成功 |
 
 ## 验证范围
 
-- SAM：`cb4cf4514ca3e43ada65713b77e4a2132ddd4a0f..4dd87007f15d99cf37066226f3627cc2a22c8f3b`。
+- SAM：`cb4cf4514ca3e43ada65713b77e4a2132ddd4a0f..9d05638`。
 - ERP：`74820dc92545cd0f293caa07999d0b088efbae36..591251cc63977a9455b20e18ec5a5a4bfaf69c83`。
 - 关联技术设计：`docs/superpowers/specs/2026-07-28-refine-press-job-history-details-design.md`，文件存在且与本 change 直接关联。
 - 未修改 Driver Service（驱动服务）、数据库结构、Liquibase、依赖、主题、服务端分页或操作日志写入语义。
@@ -40,6 +40,7 @@
 | 操作 session 切换与无可靠记录 | 既有认证设备与作业 session 关联逻辑保持不变 | `QtPressWorkingControllerTest` 及最终累计审查 |
 | 新参数保存分类 | `ModbusSignalValueKind`、两条活跃写入路径写入 `valueKind` | `PressMouldJobInfoServiceImplQtTest` |
 | 两列统一显示状态值 | `formatHistoryParameterValue` 同时处理开始/完工列 | 页面测试覆盖 `0/"0"/false` 与 `1/"1"/true`；scalar 保持原值 |
+| JSON Boolean 既有场景 | 同一 formatter 仅在 `valueKind === "state"` 时转换 JSON Boolean | delta spec 保留主规格同名场景；字符串 `"true"/"false"` 明确保留原值 |
 | 旧记录安全回退 | 每详情一次信号定义查询；同设备 ID 优先、唯一 code 次之 | `QtPressWorkingControllerTest` 覆盖停用、重复、非法、跨设备与查询失败 |
 | 操作时间线与五条分页 | Ant Design `Timeline` + `Pagination`，本地 `slice`，切换详情重置页码 | 页面 SSR 测试；真实点击第 2 页与切换详情回到第 1 页 |
 | 时间线布局 | 内建节点/rail、无手写 marker/伪元素、列表局部滚动、分页固定底栏 | 浏览器实测 5 items / 4 rails，末项无 rail；无水平分割线 |
@@ -78,6 +79,14 @@
 - Assessment：`Ready to merge: Yes`。
 - 审查确认：操作时间轴完全复用 Ant Design 内建 rail；44px 选择器仅作用于历史筛选区；ERP 分类、旧记录回退、前端响应收窄和后端 `content` 兼容边界均符合规格。
 - 两个非阻断测试增强建议不表示当前行为失败：分页重置已有真实浏览器交互证据；旧 Vue 的开始/完工路径使用同一个 `generateParameterRecords` 与共享分类器。
+
+## Archive Repair Re-verification（归档修复复验）
+
+- 首次归档在写入前安全中止：主规格已有场景“参数值为 JSON Boolean”，原 delta spec 未携带该场景。
+- Repair commit：`4bb719015f7f96863b8d4ef63a8a25afa3ea60a5`，仅修改一个 delta spec 文件，无产品代码变化。
+- 修复后主规格该 Requirement 的全部 5 个既有场景名均存在于 MODIFIED block；delta spec 总计 `10` 个场景。
+- 独立复审：`SPEC PASS / QUALITY APPROVED / Critical 0 / Important 0 / Minor 0`，允许重跑 archive。
+- `openspec validate refine-press-job-history-details --strict`：再次 exit 0。
 
 ## Remaining Non-blocking Environment Risks（剩余非阻塞环境风险）
 
