@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-29 14:56:52
+ * @edited 2026-07-29 16:16:47
  * @brief 锁定日期快照、请求竞态、表格、详情和现有 Design Token（设计变量）契约。
  */
 
@@ -588,7 +588,7 @@ describe("PressJobHistoryPage", () => {
 
   it("paginates compact operation records and keeps only invalid parameter hints", () => {
     const html = renderHistoryDetail(
-      Array.from({ length: 6 }, (_, index) => ({
+      Array.from({ length: 10 }, (_, index) => ({
         operationTime: `2026-07-27 12:0${index}:00`,
         operationName: `操作-${index + 1}`,
         result: index === 0 ? "失败" : "成功",
@@ -599,8 +599,8 @@ describe("PressJobHistoryPage", () => {
     const operations = html.slice(html.indexOf('aria-label="操作记录"'));
 
     expect(operations).toContain("操作-1");
-    expect(operations).toContain("操作-5");
-    expect(operations).not.toContain("操作-6");
+    expect(operations).toContain("操作-9");
+    expect(operations).not.toContain("操作-10");
     expect(operations).toContain("班组 / 作业人员：夜班 / 张三");
     expect(operations).toContain("班组 / 作业人员：未记录 / 未记录");
     expect(operations).not.toContain("内容：");
@@ -609,7 +609,7 @@ describe("PressJobHistoryPage", () => {
       operations.match(
         /<li[^>]*class="[^"]*\bant-timeline-item(?=[\s"])[^"]*"/g,
       ),
-    ).toHaveLength(5);
+    ).toHaveLength(9);
     expect(operations).toContain(
       "press-job-history-detail__operation-pagination",
     );
@@ -683,6 +683,21 @@ describe("PressJobHistoryPage", () => {
 
   it("uses only existing tokens and inherits the press-job control height", () => {
     expect(pageCss).toContain("grid-template-rows: auto minmax(0, 1fr)");
+    expect(pageCss).toMatch(
+      /\.press-job-history-detail \.ant-drawer-body\s*\{[^}]*padding: 12px 24px;/,
+    );
+    expect(pageCss).toMatch(
+      /\.press-job-history-detail__layout\s*\{[^}]*gap: 12px;/,
+    );
+    expect(pageCss).toMatch(
+      /\.press-job-history-detail__summary\s*\{[^}]*padding: 8px 12px;/,
+    );
+    expect(pageCss).toContain(
+      ".press-job-history-detail__parameters .ant-spin,",
+    );
+    expect(pageCss).toMatch(
+      /\.press-job-history-detail__parameters \.ant-table-container\s*\{[^}]*display: grid;[^}]*grid-template-rows: auto minmax\(0, 1fr\);[^}]*height: 100%;/,
+    );
     expect(pageCss).toContain("min-height: 44px");
     expect(pageCss).toMatch(
       /\.press-job-history-page__filters\s*\{[^}]*box-sizing: border-box;[^}]*min-height: 62px;[^}]*padding: 8px 12px;/,

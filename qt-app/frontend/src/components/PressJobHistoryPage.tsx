@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-29 14:56:52
+ * @edited 2026-07-29 16:06:28
  * @brief 提供本地自然日筛选、服务端分页和脱敏历史作业详情。
  */
 
@@ -54,7 +54,7 @@ import "./PressJobHistoryPage.css";
 
 const { RangePicker } = DatePicker;
 const EMPTY_HISTORY_TEXT = "当前查询范围暂无作业，请调整日期范围后查询。";
-const OPERATION_PAGE_SIZE = 5;
+const OPERATION_PAGE_SIZE = 9;
 let historyCorrelationSequence = 0;
 
 export type HistoryDraftFilters = {

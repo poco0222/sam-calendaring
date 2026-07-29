@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-29 10:44:41
+ * @edited 2026-07-29 16:17:16
  * @brief 复用压机作业筛选尺寸和现有 Design Token（设计变量），约束 1280x720 布局及详情局部滚动。
  */
 
@@ -146,19 +146,20 @@
 
 .press-job-history-detail .ant-drawer-body {
   min-height: 0;
+  padding: 12px 24px;
   overflow: hidden;
 }
 
 .press-job-history-detail__layout {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  gap: 16px;
+  gap: 12px;
   height: 100%;
   min-height: 0;
 }
 
 .press-job-history-detail__summary {
-  padding: 12px;
+  padding: 8px 12px;
   border: 1px solid var(--qt-app-control-blue-line);
   border-radius: 6px;
   background: var(--qt-app-control-blue-soft);
@@ -199,6 +200,7 @@
 }
 
 .press-job-history-detail__parameters .ant-table-wrapper,
+.press-job-history-detail__parameters .ant-spin,
 .press-job-history-detail__parameters .ant-spin-nested-loading,
 .press-job-history-detail__parameters .ant-spin-container,
 .press-job-history-detail__parameters .ant-table {
@@ -206,7 +208,15 @@
   height: 100%;
 }
 
+.press-job-history-detail__parameters .ant-table-container {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+
 .press-job-history-detail__parameters .ant-table-body {
+  min-height: 0;
   overflow: auto;
 }
 
