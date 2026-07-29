@@ -55,6 +55,7 @@ QT App 的“历史作业”通过现有 `/api/qt/press-working/history-jobs` �
 1. 先以失败测试锁定 Mapper 状态、日期、排序与详情边界，以及前端进行中呈现。
 2. 同步发布 ERP 与 QT App；无需数据库迁移或历史回填。
 3. 回滚时恢复 Mapper 的 `status='3'` 和前端完成态文案即可，数据没有新增或转换。
+4. delta MODIFIED block 保留主规格既有场景标识“展示历史记录”，并在其下新增进行中和未知状态场景，避免归档合并将标题调整误判为删除旧场景。
 
 ## Open Questions
 

@@ -401,6 +401,27 @@ Review 必须检查：状态集合仅为 `1/3`、跨日相交语义、稳定排�
 
 只有对应命令取得真实证据后，才在 `openspec/changes/include-running-press-jobs-in-history/tasks.md` 勾选 1.1–3.2。不得因代码已写或单个聚焦测试通过而提前标记完整验证完成。
 
+---
+
+### Task 4: 归档场景标识兼容修正
+
+**Files:**
+
+- Modify: `openspec/changes/include-running-press-jobs-in-history/specs/press-job-history-query/spec.md`
+- Modify: `openspec/changes/include-running-press-jobs-in-history/design.md`
+
+- [x] **Step 1: 记录归档 RED 证据**
+
+`comet archive include-running-press-jobs-in-history` 已真实失败：主规格场景“展示历史记录”未出现在 MODIFIED block，OpenSpec 为避免静默丢失场景而中止，且没有移动或合并文件。
+
+- [x] **Step 2: 最小修正场景标识**
+
+把 delta 中“展示已完成历史记录”恢复为主规格既有标识“展示历史记录”；保留其 `status=3` 正文以及新增的进行中、未知状态场景，不改变实现行为。
+
+- [x] **Step 3: 取得归档 GREEN 证据并提交**
+
+运行 OpenSpec strict validation（严格校验），并确认主规格与 delta MODIFIED block 都保留唯一的“展示历史记录”场景标识；两项通过后勾选 OpenSpec 4.1，并提交规格修正。正式归档合并只能在 Archive 阶段执行。
+
 ## Self-Review（自检）
 
 - Spec coverage: 状态集合、跨日相交、完成态半开区间、稳定排序、进行中列表/详情文案、设备与父作业边界、全量回归均有对应步骤。

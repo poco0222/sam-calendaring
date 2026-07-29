@@ -68,7 +68,7 @@
 
 历史列表 MUST 一行表示一条可查询的 `press_mould_job_info`，MUST 仅允许 `status=1` 的进行中作业和 `status=3` 的已完成作业，MUST 使用其真实主键作为稳定 `mouldJobId`，并 MUST 展示压机、模具号、作业人员、工艺、开始时间、完成时间、实际时长和中文作业状态。
 
-#### Scenario: 展示已完成历史记录
+#### Scenario: 展示历史记录
 
 - **WHEN** 服务端返回一条 `status=3` 的已完成模具作业
 - **THEN** 前端按固定八列显示记录并把 `mouldWorkingTime` 秒数转换为一位小数小时文本

@@ -12,3 +12,7 @@
 
 - [x] 3.1 运行 ERP 历史 Mapper/Controller 聚焦测试及相关模块测试，确认设备隔离、已完成查询和详情操作日志关联不回归
 - [x] 3.2 运行 QT App 历史页测试、完整 Vitest、TypeScript 检查、生产构建、`git diff --check` 和 OpenSpec strict validation（严格校验），记录真实结果
+
+## 4. 归档兼容修正
+
+- [x] 4.1 保留主规格既有“展示历史记录”场景标识，修正 delta MODIFIED block 的归档合并兼容性，并以 strict validation 和主/delta 场景标识一致性检查取得通过证据
