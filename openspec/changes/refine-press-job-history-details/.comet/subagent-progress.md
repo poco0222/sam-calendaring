@@ -3,7 +3,7 @@
 @author PopoY
 @created 2026-07-28 17:01:01
 @editor PopoY
-@edited 2026-07-29 08:53:14
+@edited 2026-07-29 09:17:38
 @purpose 记录 Comet Build 子代理执行、审查和恢复所需的最小持久状态。
 -->
 
@@ -28,7 +28,12 @@
 - Final review dispatch: `/root/final_whole_change_review`
 - Final review result: `Critical 0 / Important 0 / Ready to merge: Yes`
 - Accepted minor feedback: pagination reset has real browser interaction evidence; legacy start/end uses the same generator and classifier, so both non-blocking automation enhancements remain out of scope
+- Archive repair reason: initial archive aborted before writes because the MODIFIED requirement omitted existing scenario `参数值为 JSON Boolean`
+- Archive repair dispatch: `/root/archive_spec_repair`
+- Archive repair commit: `4bb719015f7f96863b8d4ef63a8a25afa3ea60a5`
+- Archive repair evidence: OpenSpec strict PASS; main/delta scenario names complete; no product code changed
+- Archive repair review: `/root/archive_spec_repair_review` — `SPEC PASS / QUALITY APPROVED / Critical 0 / Important 0 / Minor 0`
 - Review-fix round: `1/2`
 - Unresolved feedback: none
 - Risk signals: none
-- Updated: `2026-07-29 08:53:14 +0800`
+- Updated: `2026-07-29 09:17:38 +0800`
