@@ -1,0 +1,14 @@
+{
+  "change": "include-running-press-jobs-in-history",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "c2421b5b3fc2d7600c3adb77406552e2783bb493c27c87e50e3ed2a74f2bdbfe",
+  "files": [
+    { "path": "openspec/changes/include-running-press-jobs-in-history/proposal.md", "sha256": "b53e2025a1f172c698e5267afeff42f3109ebf6da9e7a5bfb4f85e13ff129e52" },
+    { "path": "openspec/changes/include-running-press-jobs-in-history/design.md", "sha256": "4aeeaf60f1e074feb38bbb04fda7bb4b2a96fd19f42577f228fa65598a4a639a" },
+    { "path": "openspec/changes/include-running-press-jobs-in-history/tasks.md", "sha256": "dfe4745cc42bfb6ddd2087d90acc051d5fd7ac970ef040d0124bd82d0e6ef201" },
+    { "path": "openspec/changes/include-running-press-jobs-in-history/specs/press-job-history-query/spec.md", "sha256": "0da0ca183ae4a74f067b59a13c6b9a7f30e14f6870d87ee6f9324487d9fe8d0c" }
+  ]
+}
