@@ -18,6 +18,6 @@
 
 ## 4. 验证与范围保护
 
-- [ ] 4.1 使用 Java 8 运行 ERP 的 `PressMouldJobInfoServiceImplQtTest`、`QtPressWorkingControllerTest` 及受影响模块构建，确认未改动现有未跟踪 SQL 文件、日志关联和敏感信息边界
-- [ ] 4.2 运行 QT App 的 `erpClient.test.ts`、`PressJobHistoryPage.test.tsx`、TypeScript（类型检查）和 production build（生产构建）
-- [ ] 4.3 在 1280×720 浅色/深色视口核对单行水平筛选、参数表可见区域、5 条操作时间线连接及 Drawer（抽屉）局部滚动，并执行 OpenSpec strict validation（严格校验）
+- [x] 4.1 使用 Java 8 运行 ERP 的 `PressMouldJobInfoServiceImplQtTest`、`QtPressWorkingControllerTest` 及受影响模块构建，确认未改动现有未跟踪 SQL 文件、日志关联和敏感信息边界
+- [x] 4.2 运行 QT App 的 `erpClient.test.ts`、`PressJobHistoryPage.test.tsx`、TypeScript（类型检查）和 production build（生产构建）
+- [x] 4.3 在 1280×720 浅色/深色视口核对单行水平筛选、参数表可见区域、5 条操作时间线连接及 Drawer（抽屉）局部滚动，并执行 OpenSpec strict validation（严格校验）

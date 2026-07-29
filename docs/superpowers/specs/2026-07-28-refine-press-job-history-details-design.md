@@ -164,7 +164,7 @@ valueKind == state 且 value 为 1 / "1" / true  -> 是
 
 操作面板保持 Flex column（纵向弹性布局）：
 
-- `<ol>` 占据剩余高度，`min-height: 0; overflow: auto`。
+- Ant Design `Timeline` 占据剩余高度，`min-height: 0; overflow: auto`。
 - 已安装的 Ant Design `Pagination` 作为不可收缩底栏，仅在记录数超过 5 时显示。
 - `showSizeChanger={false}`，不允许操作员改变每页数量。
 
@@ -173,7 +173,7 @@ valueKind == state 且 value 为 1 / "1" / true  -> 是
 1. 操作名称 + 成功/失败 Tag。
 2. `班组 / 作业人员：{班组或未记录} / {作业人员或未记录}`。
 
-删除 `border-bottom`，把 item（项目）最小高度和 padding 收紧到容纳两行文本。`li` 使用 `position: relative`，`li:not(:last-child)::before` 从当前圆点中心向下连接至下一项，覆盖列表 gap；圆点使用更高 `z-index`。最后一项和分页边界不绘制延伸线。
+删除 `border-bottom`，把 Timeline item（时间轴项）最小高度和 padding 收紧到容纳两行文本。节点和 rail（连接轨道）完全交给 `Timeline` 内建结构，不覆盖连接线几何样式；组件自动不为当前页末项渲染 rail，因此不会延伸到分页底栏。
 
 ## 5. 并发、错误与兼容
 
@@ -229,7 +229,7 @@ JAVA_HOME=/Users/popoy/WorkSpace/DevTools/Java/zulu-8.0.492.jdk/Contents/Home \
 - 删除 missing 提示并保留 invalid 提示。
 - 首屏最多渲染 5 条操作，组合文案不含“内容”。
 - 切换作业或记录集恢复第一页。
-- CSS 契约包含水平筛选、无横线、节点连接线、列表滚动和固定分页底栏。
+- 布局契约包含水平筛选、无横线、Ant Design Timeline 内建节点/连接线、列表滚动和固定分页底栏。
 
 定向命令：
 

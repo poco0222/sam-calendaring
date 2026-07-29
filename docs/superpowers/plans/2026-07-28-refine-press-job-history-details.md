@@ -896,10 +896,10 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 - Must remain untouched: `/Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be/docs/sql/2026-07-27-qt-press-job-operation-log.sql`
 
 **Interfaces:**
-- Consumes: Task 1-4 的两个 ERP commit、两个 QT commit。
+- Consumes: Task 1-4 的 ERP 与 QT implementation commits（实现提交）。
 - Produces: Java 8 定向测试、前端定向测试、TypeScript（类型检查）、production build（生产构建）、1280×720 双主题视觉证据、OpenSpec strict validation（严格校验）和干净范围证明。
 
-- [ ] **Step 1：运行 ERP 合并定向测试**
+- [x] **Step 1：运行 ERP 合并定向测试**
 
   ```bash
   cd /Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be
@@ -912,29 +912,29 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 
   Expected: `BUILD SUCCESS`；两个指定测试类全部 PASS，未访问真实设备或数据库。
 
-- [ ] **Step 2：运行 QT 定向测试、类型检查和生产构建**
+- [x] **Step 2：运行 QT 定向测试、类型检查和生产构建**
 
   ```bash
   cd /Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/qt-app/frontend
-  npm test -- src/services/erpClient.test.ts src/components/PressJobHistoryPage.test.tsx
-  ./node_modules/.bin/tsc --noEmit
-  npm run build
+  pnpm test -- src/services/erpClient.test.ts src/components/PressJobHistoryPage.test.tsx
+  pnpm exec tsc --noEmit
+  pnpm run build
   ```
 
   Expected: 两个 Vitest 文件 PASS；`tsc --noEmit` exit 0；Vite 输出 production assets（生产资源）且 `build` exit 0。
 
-- [ ] **Step 3：在 1280×720 浅色/深色视口做视觉检查**
+- [x] **Step 3：在 1280×720 浅色/深色视口做视觉检查**
 
   启动现有 QT frontend（前端）开发服务后，只使用本地 Mock/开发数据打开历史作业：
 
   ```bash
   cd /Users/popoy/WorkSpace/Projects/SAM/sam-calendaring/qt-app/frontend
-  npm run dev -- --host 127.0.0.1
+  pnpm run dev -- --host 127.0.0.1
   ```
 
   浅色和深色主题分别核对：三个筛选项及查询按钮同一行，每项左描述/右控件且控件高 44px；页面无页面级滚动；参数区不显示两个 missing 提示；5 条操作时分页器位于面板底部；长操作名/班组/人员下列表局部滚动；当前页节点竖线连续，无横线，末节点不连向分页器。检查完成后停止开发服务。
 
-- [ ] **Step 4：运行 OpenSpec 严格校验**
+- [x] **Step 4：运行 OpenSpec 严格校验**
 
   ```bash
   cd /Users/popoy/WorkSpace/Projects/SAM/sam-calendaring
@@ -943,7 +943,7 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 
   Expected: change `refine-press-job-history-details` validation PASS，无缺失 requirement（需求）或 scenario（场景）。
 
-- [ ] **Step 5：核对 diff、敏感边界和用户未跟踪 SQL**
+- [x] **Step 5：核对 diff、敏感边界和用户未跟踪 SQL**
 
   ```bash
   cd /Users/popoy/WorkSpace/Projects/SAM/sam-erp/sam-erp-be
@@ -958,7 +958,7 @@ base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
 
   Expected: checksum 输出 `docs/sql/2026-07-27-qt-press-job-operation-log.sql: OK`；ERP 状态仍只把该文件显示为原有 `??`，没有 staged（暂存）SQL、Driver Service、Liquibase、依赖或数据库文件；两个仓库 `git diff --check` 无空白错误。
 
-- [ ] **Step 6：形成验证记录但不推送**
+- [x] **Step 6：形成验证记录但不推送**
 
   在任务交付消息中逐项记录实际执行命令、退出状态、测试数量、视觉检查结果和两个仓库 commit hash；若任一验证未运行或失败，明确标记为未完成。Remote push（远程推送）、合并、OpenSpec archive（归档）均是独立授权门，不在本计划中自动执行。
 
