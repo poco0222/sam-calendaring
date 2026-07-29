@@ -2,6 +2,7 @@
 change: refine-press-job-history-details
 design-doc: docs/superpowers/specs/2026-07-28-refine-press-job-history-details-design.md
 base-ref: 783994cecd9c6f043c2988c2e2c1b6fce7fcb77f
+archived-with: 2026-07-29-refine-press-job-history-details
 ---
 
 <!--

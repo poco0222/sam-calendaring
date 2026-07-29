@@ -2,6 +2,8 @@
 comet_change: refine-press-job-history-details
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-29-refine-press-job-history-details
+status: final
 ---
 
 <!--
