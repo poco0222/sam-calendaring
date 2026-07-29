@@ -1,6 +1,0 @@
-{
-  "id": "classic-archive:fix-legacy-pending-press-job-compatibility",
-  "stepId": "hotfix.archive.execute",
-  "type": "checkpoint",
-  "ref": "fix-legacy-pending-press-job-compatibility"
-}
