@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-29 17:28:56
+ * @edited 2026-07-30 08:06:17
  * @brief 锁定日期快照、请求竞态、表格、详情和现有 Design Token（设计变量）契约。
  */
 
@@ -675,14 +675,17 @@ describe("PressJobHistoryPage", () => {
       "压机",
       "模具号",
       "作业状态",
-      "实际时长",
+      "开始时间",
       "班组 / 作业人员",
       "工艺",
-      "开始时间",
+      "实际时长",
       "完成时间",
     ]) {
       expect(summary).toContain(label);
     }
+    expect(summary).toMatch(
+      /压机.*模具号.*作业状态.*开始时间.*班组 \/ 作业人员.*工艺.*实际时长.*完成时间/s,
+    );
     expect(pageSource).toContain("<HistoryDetailSummary");
     expect(pageSource).toContain("title={");
     expect(

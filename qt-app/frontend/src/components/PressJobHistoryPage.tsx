@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-29 17:28:56
+ * @edited 2026-07-30 08:06:45
  * @brief 提供本地自然日筛选、服务端分页和脱敏历史作业详情。
  */
 
@@ -1215,18 +1215,18 @@ export function HistoryDetailSummary({
         { key: "press", label: "压机", children: formatHistoryCell(detail.pressName) },
         { key: "mold", label: "模具号", children: detail.moldNo },
         { key: "status", label: "作业状态", children: formatHistoryStatus(detail.status) },
-        {
-          key: "duration",
-          label: "实际时长",
-          children: formatHistoryDuration(detail.status, detail.actualDurationHours),
-        },
+        { key: "start", label: "开始时间", children: formatHistoryCell(detail.startedAt) },
         { key: "operator", label: "班组 / 作业人员", children: `未记录 / ${operator}` },
         {
           key: "craft",
           label: "工艺",
           children: formatDictValue(craftLabelByValue, detail.craftCode),
         },
-        { key: "start", label: "开始时间", children: formatHistoryCell(detail.startedAt) },
+        {
+          key: "duration",
+          label: "实际时长",
+          children: formatHistoryDuration(detail.status, detail.actualDurationHours),
+        },
         {
           key: "end",
           label: "完成时间",
