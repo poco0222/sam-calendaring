@@ -2,6 +2,8 @@
  * @file BootstrapDashboard.test.tsx - 验证 Bootstrap Dashboard（启动仪表盘）。
  * @author PopoY
  * @created 2026-06-25
+ * @editor PopoY
+ * @edited 2026-07-30 10:56:49
  * @brief 定义 touch IPC（触控工控机）bootstrap dashboard（启动仪表盘）的紧凑渲染契约。
  */
 
@@ -13,10 +15,11 @@ import { describe, expect, it } from "vitest";
 import { AntdRootProvider } from "../app/AntdRootProvider";
 import { BootstrapDashboard } from "./BootstrapDashboard";
 
+// @author PopoY: 源码文本契约不依赖 Windows CRLF（回车换行）或 LF（换行）。
 const dashboardCss = readFileSync(
   new URL("./BootstrapDashboard.css", import.meta.url),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 /**
  * @brief 将 React element（React 元素）渲染成 static HTML（静态 HTML），便于断言可见文本。

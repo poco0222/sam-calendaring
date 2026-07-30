@@ -1,0 +1,9 @@
+# @file .gitattributes - 约束跨平台文本文件换行符。
+# @author PopoY
+# @created 2026-07-30 10:56:49
+# @purpose 保持前端源码在 Windows CI（持续集成）与本地检出时使用 LF（换行符）。
+
+* text=auto
+*.ts text eol=lf
+*.tsx text eol=lf
+*.css text eol=lf

@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-07-24 19:52:32
  * @editor PopoY
- * @edited 2026-07-30 08:06:17
+ * @edited 2026-07-30 10:56:49
  * @brief 锁定日期快照、请求竞态、表格、详情和现有 Design Token（设计变量）契约。
  */
 
@@ -37,11 +37,14 @@ import {
 dayjs.extend(utc);
 
 const pageSourceUrl = new URL("./PressJobHistoryPage.tsx", import.meta.url);
+// @author PopoY: 源码文本契约不依赖 Windows CRLF（回车换行）或 LF（换行）。
 const pageSource = existsSync(pageSourceUrl)
-  ? readFileSync(pageSourceUrl, "utf8")
+  ? readFileSync(pageSourceUrl, "utf8").replace(/\r\n/g, "\n")
   : "";
 const pageCssUrl = new URL("./PressJobHistoryPage.css", import.meta.url);
-const pageCss = existsSync(pageCssUrl) ? readFileSync(pageCssUrl, "utf8") : "";
+const pageCss = existsSync(pageCssUrl)
+  ? readFileSync(pageCssUrl, "utf8").replace(/\r\n/g, "\n")
+  : "";
 
 /**
  * @brief 以固定空数据回调渲染 History Page（历史作业页）静态结构。

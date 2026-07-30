@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-06-27
  * @editor PopoY
- * @edited 2026-07-29 12:11:37
+ * @edited 2026-07-30 10:56:49
  * @brief 验证 Diagnostic Logs Page（诊断日志页面）的独立页面、固定筛选器和白名单展示契约。
  */
 
@@ -20,14 +20,15 @@ import {
   createTimelineLogs,
 } from "./DiagnosticLogsPage";
 
+// @author PopoY: 源码文本契约不依赖 Windows CRLF（回车换行）或 LF（换行）。
 const pageCss = readFileSync(
   new URL("./DiagnosticLogsPage.css", import.meta.url),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 const pageSource = readFileSync(
   new URL("./DiagnosticLogsPage.tsx", import.meta.url),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 const sampleLogs: DiagnosticLogRecord[] = Array.from({ length: 12 }, (_, index) => ({
   createdAt:

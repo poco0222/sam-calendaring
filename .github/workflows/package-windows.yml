@@ -2,7 +2,7 @@
 # @author PopoY
 # @created 2026-07-08
 # @editor PopoY
-# @edited 2026-07-21 15:45:09
+# @edited 2026-07-30 10:56:49
 # @purpose 在 GitHub Actions（自动化流水线）中打包 QT App（Qt 应用）和 Driver Service（驱动服务）的 Win10 x64 executable（可执行文件）。
 
 name: Package Windows exe
@@ -69,13 +69,20 @@ jobs:
           "PACKAGE_ROOT=$packageRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
 
+      - name: Install frontend dependencies（安装前端依赖）
+        working-directory: qt-app/frontend
+        shell: pwsh
+        run: pnpm install --frozen-lockfile
+
+      - name: Test frontend（测试前端）
+        working-directory: qt-app/frontend
+        shell: pwsh
+        run: pnpm test
+
       - name: Build frontend（构建前端）
         working-directory: qt-app/frontend
         shell: pwsh
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm test
-          pnpm build
+        run: pnpm build
 
       - name: Test and publish Driver Service（测试并发布驱动服务）
         working-directory: driver-service

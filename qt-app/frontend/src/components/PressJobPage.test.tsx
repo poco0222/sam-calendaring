@@ -3,7 +3,7 @@
  * @author PopoY
  * @created 2026-06-30
  * @editor PopoY
- * @edited 2026-07-29 16:30:25
+ * @edited 2026-07-30 10:56:49
  * @brief 锁定 frontend-only（仅前端）压机作业页的四行布局、空数据和安全边界。
  */
 
@@ -70,10 +70,13 @@ import {
 } from "./PressJobPage";
 
 const pageCssUrl = new URL("./PressJobPage.css", import.meta.url);
-const pageCss = existsSync(pageCssUrl) ? readFileSync(pageCssUrl, "utf8") : "";
+// @author PopoY: 源码文本契约不依赖 Windows CRLF（回车换行）或 LF（换行）。
+const pageCss = existsSync(pageCssUrl)
+  ? readFileSync(pageCssUrl, "utf8").replace(/\r\n/g, "\n")
+  : "";
 const pageSourceUrl = new URL("./PressJobPage.tsx", import.meta.url);
 const pageSource = existsSync(pageSourceUrl)
-  ? readFileSync(pageSourceUrl, "utf8")
+  ? readFileSync(pageSourceUrl, "utf8").replace(/\r\n/g, "\n")
   : "";
 
 /**
